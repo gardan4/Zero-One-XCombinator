@@ -3,11 +3,20 @@
 Real facts from the official Leonardo onboarding deck (Simeon Harrison / Martin Pfister,
 `docs/Z10_compressed.pdf` pp. 80–96) and the AI:AT HPC onboarding kit
 (https://ai-at.eu/hpc-onboarding/ — Ch. 5 "First steps on LEONARDO", Ch. 6 "Software").
-Leonardo = #10 on the Top500, **Nvidia A100** (booster module). Storage is shared across all
-login + compute nodes.
+Leonardo = #10 on the Top500, **Nvidia A100 (64 GB VRAM)** booster nodes. Storage is shared across
+all login + compute nodes.
 
-> Spend GPU time deliberately: the hackathon reservation is **only enough for ~1 node per team**.
-> Always `--dry-run` / smoke-test on a login node or `lrd_all_serial` before submitting a GPU job.
+## Our resource budget (confirmed by team lead)
+| Limit | Value |
+|---|---|
+| GPUs / node | **4** (A100, **64 GB VRAM each** → 256 GB VRAM/node) |
+| RAM / node | **up to 512 GB** |
+| CPUs / node | 32 (8 × gpus) |
+| **Nodes (with reservation `s_tra_ncc`)** | **up to 4** → max **16 GPUs** for our team |
+
+> So the reservation is **not** single-node — we can request up to 4 nodes × 4 GPUs through it.
+> Still spend deliberately and `--dry-run` / smoke-test on a login node or `lrd_all_serial` first.
+> Scale up only when a smaller run proves the pipeline.
 
 ## Login (no 2FA at the hackathon)
 Plain SSH, any of these login nodes (round-robin if one is busy):
