@@ -1,7 +1,7 @@
 # Zero One Philyr
 
 Hackathon monorepo for **finetuning / RL / agentifying** language models. The laptop stays
-light; the **Leonardo (CINECA)** GPU cluster does the heavy lifting. Two-person team, moving
+light; the **Leonardo (CINECA)** GPU cluster does the heavy lifting. four-person team, moving
 fast, prototyping experiments **in parallel** with git worktrees.
 
 > **Theme:** real model training — not prompt engineering. When in doubt, train or measure something.

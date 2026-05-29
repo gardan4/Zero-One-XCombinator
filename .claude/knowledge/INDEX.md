@@ -47,6 +47,8 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 ## Learnings log
 Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
+- 2026-05-29 — Reviewed the official Leonardo onboarding deck (pp. 80–96); cluster.md matches. **Wired the cluster plumbing**: `submit.py`/`train.sbatch.j2` now emit `--reservation` (1-node only, per slide 92), `--gpus-per-task=N`, fair-share `--mem=120×N`/`--cpus=8×N` (auto-derived), proxy export, and `uv sync --extra gpu --offline` (pre-stage on a login node first). Verified by dry-run. — (cluster)
+- 2026-05-29 — Created root `.env` (gitignored, real Leonardo creds) + refreshed `.env.example` (placeholders only). SSH login needs no setup (no 2FA); automating `zo-cluster submit` needs a one-time `ssh-copy-id` (submit.py uses passwordless ssh/scp). — (cluster, stack)
 - 2026-05-29 — Vendored the track + submission folders into the repo: `data/industrial-infineon/` (3×1,000 validated seqs ~21MB, grammar, `generate_sequences.py`) + `docs/submission/`. Verified data loads & validates. **`eval_metrics.py` + `judging/rubrics.md` are NOT upstream** — expect them at kickoff. — (track-industrial-ai, hackathon)
 - 2026-05-29 — Committed to **Industrial AI (Infineon)** track = small-vocab sequence modeling (next-step / completion / anomaly over fab steps), NOT chat-LLM eval. Full spec captured. — (track-industrial-ai)
 - 2026-05-29 — Leonardo: plain SSH no-2FA to `login0{1,2,5,7}-ext.leonardo.cineca.it`; SLURM partition `boost_usr_prod` + reservation `s_tra_ncc`; **Pixi + Singularity** (no Docker/uv on compute); `$SCRATCH` for big files; **no internet on compute nodes** (download on login, or low-bw proxy). — (cluster)

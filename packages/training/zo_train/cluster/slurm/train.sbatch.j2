@@ -2,10 +2,12 @@
 #SBATCH --job-name={{ job_name }}
 {% if account %}#SBATCH --account={{ account }}
 {% endif %}#SBATCH --partition={{ partition }}
-{% if qos %}#SBATCH --qos={{ qos }}
+{% if reservation and nodes == 1 %}#SBATCH --reservation={{ reservation }}
+{% endif %}{% if qos %}#SBATCH --qos={{ qos }}
 {% endif %}#SBATCH --nodes={{ nodes }}
 #SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:{{ gpus_per_node }}
+#SBATCH --gpus-per-task={{ gpus_per_node }}
+#SBATCH --mem={{ mem }}
 #SBATCH --cpus-per-task={{ cpus }}
 #SBATCH --time={{ time }}
 #SBATCH --output={{ repo_dir }}/slurm_logs/%x-%j.out
@@ -23,9 +25,17 @@ mkdir -p slurm_logs
 export ZO_EXPERIMENTS_DIR="{{ experiments_dir }}"
 export HF_HOME="{{ hf_home }}"
 export WANDB_MODE="${WANDB_MODE:-offline}"   # offline on compute nodes; sync later from login node
-
-# Install the GPU stack into the project venv (cached after the first job).
-uv sync --extra gpu
+{% if proxy %}
+# Compute nodes have NO internet. Route ONLY low-bandwidth traffic via the proxy (the proxy
+# restarts every ~10 min). Big downloads (models, wheels, containers) must be done on a login node.
+export HTTP_PROXY="{{ proxy }}"; export HTTPS_PROXY="$HTTP_PROXY"
+export http_proxy="$HTTP_PROXY"; export https_proxy="$HTTP_PROXY"
+{% endif %}
+# GPU stack: pre-stage ON A LOGIN NODE (which has internet) before submitting:
+#     cd {{ repo_dir }} && uv sync --extra gpu      # populates ./.venv on shared storage
+# The compute node then reuses that venv. `--offline` => no network here: it succeeds if already
+# staged, and fails loudly (instead of hanging on the dead network) if you forgot the login-node step.
+uv sync --extra gpu --offline
 
 # --- launch ------------------------------------------------------------------
 # Single process (LoRA on one GPU, or device_map across the node's GPUs).

@@ -83,8 +83,10 @@ pixi run --as-is python3 script.py
 # singularity exec --nv container.sif python3 script.py
 ```
 Scale GPUs by editing three lines together, e.g. 2 GPUs → `--gpus-per-task=2 --mem=240GB --cpus-per-task=16`;
-4 GPUs → `--gpus-per-task=4 --mem=480GB --cpus-per-task=32`. Multi-node (`--nodes=2`) needs `srun $CONTAINER …`
-but the reservation usually only covers **1 node/team**, so prefer 1 node × N GPUs.
+4 GPUs → `--gpus-per-task=4 --mem=480GB --cpus-per-task=32` (deck slides 87–91 walk 1→2→4 GPU).
+**Multi-node** (slide 92, `--nodes=2`): the deck **strikes out the `--reservation` line** and launches with
+`srun … $CONTAINER …` — i.e. the hackathon reservation is **single-node only**; a multi-node job drops the
+reservation and waits in the general queue. With ~1 node/team budgeted, **prefer 1 node × N GPUs**.
 
 ### Useful SLURM commands
 ```
@@ -112,17 +114,20 @@ srun --overlap --pty --jobid=<id> bash  # shell into a running job's node
   - The proxy restarts every ~10 min (login-node CPU limit) → TCP connections drop briefly.
   - **Only use the proxy for low-bandwidth traffic.** Big files → always from a login node.
 
-## How this maps to our scaffold (gaps to close on-site)
-Our `zo-cluster` submit flow + `slurm/train.sbatch.j2` were scaffolded against guesses. Before the
-first real submit, update the template to:
-1. Add `#SBATCH --reservation=s_tra_ncc` and switch the GPU request to `--gpus-per-task` with the
-   `mem=120×N`, `cpus=8×N` fair-share scaling above.
-2. Replace `uv sync --extra gpu` on the compute node — **it won't work (no internet there)**. Either
-   pre-build a pixi env / `.sif` on a login node and call `pixi run …` / `singularity exec --nv …`,
-   or set the proxy env vars for small installs.
-3. Pre-stage the base model + dataset to `$SCRATCH` from a login node; set `HF_HOME=$SCRATCH/hf`.
-4. `ZO_EXPERIMENTS_DIR=$SCRATCH/experiments` so runs survive and the backend (run on a login node)
-   can read them.
+## How this maps to our scaffold
+`zo-cluster submit` renders `slurm/train.sbatch.j2` from `.env`. Status of the known gaps:
+1. ✅ **DONE** — `_render`/template now emit `#SBATCH --reservation` (gated to **1-node only**, per
+   slide 92), `--gpus-per-task=N`, and fair-share `--mem=120×N` / `--cpus-per-task=8×N` (auto-derived
+   from `ZO_SLURM_GPUS_PER_NODE`; override via `ZO_SLURM_MEM`/`ZO_SLURM_CPUS`). Verified by dry-run.
+2. ⚠️ **Partly done — still the real env decision.** The template now runs `uv sync --extra gpu
+   **--offline**` on the compute node and exports the proxy if `ZO_CLUSTER_PROXY` is set. This means you
+   **must pre-stage on a login node first**: `cd $HOME/Zero-One-Philyr && uv sync --extra gpu` (populates
+   `./.venv` on shared `$HOME`, visible to compute nodes). Open question: torch+vllm may blow the 50 GB
+   `$HOME` quota → may need a pixi env / `.sif` on `$SCRATCH` instead. Decide on-site.
+3. **Pre-stage** the base model + dataset to `$SCRATCH` from a login node (runtime step). `HF_HOME` is
+   already exported by the template (`.env` → `$SCRATCH/hf`).
+4. ✅ `ZO_EXPERIMENTS_DIR` is exported by the template (`.env` → `$SCRATCH/zo-experiments`) so runs
+   survive and the backend (run on a login node) can read them.
 
 ## Append below as you learn the real cluster
 - (fill in actual account name, observed queue times, what env recipe worked, once on Leonardo)

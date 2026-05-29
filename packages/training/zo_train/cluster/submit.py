@@ -33,18 +33,25 @@ def _render(subcommand: str, run_id: str, cluster_config_path: str) -> str:
     from jinja2 import Template
 
     repo_dir = _env("ZO_CLUSTER_REPO_DIR", "$HOME/Zero-One-Philyr")
+    gpus = int(_env("ZO_SLURM_GPUS_PER_NODE", "1"))
+    # Leonardo fair share (deck pp. 87–91): mem = 120GB × gpus, cpus = 8 × gpus. Allow overrides.
+    mem = _env("ZO_SLURM_MEM") or f"{120 * gpus}GB"
+    cpus = int(_env("ZO_SLURM_CPUS") or str(8 * gpus))
     ctx = dict(
         job_name=run_id,
         account=_env("ZO_SLURM_ACCOUNT", ""),
         partition=_env("ZO_SLURM_PARTITION", "boost_usr_prod"),
+        reservation=_env("ZO_SLURM_RESERVATION", ""),
         qos=_env("ZO_SLURM_QOS", ""),
         nodes=int(_env("ZO_SLURM_NODES", "1")),
-        gpus_per_node=int(_env("ZO_SLURM_GPUS_PER_NODE", "4")),
-        cpus=int(_env("ZO_SLURM_CPUS", "8")),
+        gpus_per_node=gpus,
+        mem=mem,
+        cpus=cpus,
         time=_env("ZO_SLURM_TIME", "02:00:00"),
         repo_dir=repo_dir,
         experiments_dir=_env("ZO_CLUSTER_EXPERIMENTS_DIR", f"{repo_dir}/experiments"),
         hf_home=_env("HF_HOME") or f"{repo_dir}/hf_cache",
+        proxy=_env("ZO_CLUSTER_PROXY", ""),
         subcommand=subcommand,
         config_path=cluster_config_path,
         run_id=run_id,
