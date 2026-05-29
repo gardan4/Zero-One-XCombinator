@@ -4,8 +4,14 @@ Hackathon monorepo for **finetuning / RL / agentifying** language models. The la
 light; the **Leonardo (CINECA)** GPU cluster does the heavy lifting. Two-person team, moving
 fast, prototyping experiments **in parallel** with git worktrees.
 
-> **Theme:** real model training — SFT / DPO / GRPO, evaluation, and agentic tool-use.
-> Not prompt engineering. When in doubt, train or measure something.
+> **Theme:** real model training — not prompt engineering. When in doubt, train or measure something.
+>
+> **Our track: Industrial AI (Infineon)** — learning & benchmarking *process logic* by sequence-modeling
+> semiconductor fab steps (next-step prediction, sequence completion, anomaly detection over a ~120-token
+> step vocabulary). This is **small-vocab sequence modeling, not chat-LLM SFT** — the scaffold's
+> SFT/GRPO/OpenAI-eval pieces are a starting point, not a direct fit. See
+> [`track-industrial-ai.md`](.claude/knowledge/track-industrial-ai.md) for the full spec and how the
+> scaffold maps.
 
 ## Read this first: the knowledge base
 
@@ -19,8 +25,9 @@ brain — your teammate's Claude session cannot see your context, only what's wr
 3. Keep entries short and concrete. A stale or vague note is worse than none.
 
 Topic files: [stack](.claude/knowledge/stack.md) · [cluster](.claude/knowledge/cluster.md) ·
-[training](.claude/knowledge/training.md) · [eval](.claude/knowledge/eval.md) ·
-[agents](.claude/knowledge/agents.md) · [hackathon](.claude/knowledge/hackathon.md)
+[**track-industrial-ai**](.claude/knowledge/track-industrial-ai.md) · [training](.claude/knowledge/training.md) ·
+[eval](.claude/knowledge/eval.md) · [agents](.claude/knowledge/agents.md) ·
+[hackathon](.claude/knowledge/hackathon.md)
 
 ## Layout
 
@@ -34,6 +41,8 @@ packages/
   eval/       zo_eval: task-based eval harness against an OpenAI endpoint  → CLI: zo-eval
   agent/      zo_agent: tool-calling rollout + scenario harness            → CLI: zo-agent
 experiments/  one dir per run (gitignored): meta.json, metrics.jsonl, config.yaml, logs/, artifacts/
+data/         industrial-infineon/: vendored track data + grammar + generate_sequences.py (our track)
+docs/         track briefing, Leonardo deck (Z10_compressed.pdf), submission/ (REPORT_TEMPLATE, SUBMISSION)
 scripts/      wt.sh (worktree-per-experiment), dev.sh, setup.sh
 .claude/      this folder: CLAUDE.md, knowledge base, slash commands, subagents
 ```

@@ -5,6 +5,9 @@
   Members: `apps/backend`, `packages/common`, `packages/training`, `packages/eval`,
   `packages/agent`. Cross-deps wired via `[tool.uv.sources]` → `{ workspace = true }`.
 - `apps/frontend` is a **separate npm app** (Next.js 16 / React 19 / Tailwind v4), not a uv member.
+- Non-code dirs (not workspace members): `data/industrial-infineon/` (vendored track data + grammar +
+  `generate_sequences.py`, ~21 MB of CSV — tracked, not gitignored) and `docs/` (track briefing,
+  Leonardo deck, `submission/` templates). See [track-industrial-ai.md](track-industrial-ai.md).
 - Tooling pinned by **mise** (`mise.toml`: python 3.12, node 20, uv, just). Tasks run via **just**
   (`Justfile`). First-time per machine: **`mise trust`** (mise refuses to provide `node`/`uv` until
   the repo's `mise.toml` is trusted — `npm`/`uv` error otherwise), then `mise install`, then

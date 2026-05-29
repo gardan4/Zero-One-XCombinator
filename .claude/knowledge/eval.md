@@ -2,6 +2,13 @@
 
 Code: `packages/eval/zo_eval/` (`tasks.py`, `harness.py`, `cli.py`). Tasks: `packages/eval/tasks/*.yaml`.
 
+> **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** the scored eval is **3 process
+> tasks** (next-step / completion / anomaly) graded by the organizer-provided `eval_metrics.py`
+> against held-out inputs — **not** the OpenAI `exact_match` harness below. Plan to wrap
+> `eval_metrics.py` as zo-eval tasks (and use `validate_sequence()` as a rule-based anomaly baseline).
+> The harness pattern below (iterate items → score → `append_metric` → final number) is still the
+> right shape; just swap the scoring + drop the served-model requirement for a from-scratch seq-model.
+
 ## How it works
 - A **task** is a YAML: an id, a list of items (`prompt` + expected answer), and a `metric`.
 - `metric` ∈ `exact_match | contains | numeric | regex` (see `score()` in `tasks.py`).

@@ -3,6 +3,13 @@
 Code: `packages/training/zo_train/` (`sft.py`, `rl.py`, `sim.py`, `cli.py`, `cluster/`).
 Configs: `packages/training/configs/*.yaml`.
 
+> **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** our task is **small-vocab
+> sequence modeling** (~120 step tokens), not chat-LLM SFT. A small token-level Transformer trained
+> **from scratch** is the clean, fast story — likely a new trainer/data-loader
+> (`zo_train/data/process_seq.py`) rather than `SFTTrainer` over chat text. The config schema,
+> registry logging, `--dry-run`, and cluster submit flow still apply; the chat-SFT/GRPO bodies below
+> are a reference, not a direct fit.
+
 ## Config schema (`zo_common.config.ExperimentConfig`)
 `name`, `kind` (`sft|dpo|grpo|eval|agent`), `model` (default `Qwen/Qwen2.5-1.5B-Instruct`),
 `dataset`, `dataset_split`, `text_field`, `learning_rate`, `epochs`, `batch_size`, `grad_accum`,
