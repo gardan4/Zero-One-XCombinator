@@ -38,6 +38,10 @@ cluster**, not your laptop:
 just gpu-sync         # uv sync --extra gpu   (run on a Leonardo node)
 ```
 
+`requirements.txt` (repo root) is the **light** base set for `pip` users / submission; the exact
+GPU pin lives in `uv.lock` and installs via the extra above. Regenerate:
+`uv export --no-hashes --no-emit-workspace -o requirements.txt`.
+
 ## The core loop
 
 ```bash
