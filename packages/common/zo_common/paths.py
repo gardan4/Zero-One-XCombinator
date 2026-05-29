@@ -22,3 +22,15 @@ def experiments_dir() -> Path:
     base = Path(env).expanduser().resolve() if env else repo_root() / "experiments"
     base.mkdir(parents=True, exist_ok=True)
     return base
+
+
+def generated_data_dir() -> Path:
+    """Shared store for the generated data corpus (splits, negatives, CoT, text examples).
+
+    Override with ZO_DATA_DIR so every worktree / cluster job reads the identical frozen
+    corpus (e.g. point it at shared scratch). Defaults to ``<repo>/data/generated``.
+    """
+    env = os.environ.get("ZO_DATA_DIR")
+    base = Path(env).expanduser().resolve() if env else repo_root() / "data" / "generated"
+    base.mkdir(parents=True, exist_ok=True)
+    return base

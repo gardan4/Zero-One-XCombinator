@@ -68,6 +68,14 @@ runs:
 wt name:
     ./scripts/wt.sh {{name}}
 
+# --- data --------------------------------------------------------------------
+
+# (Re)generate the shared deterministic corpus → data/generated (or $ZO_DATA_DIR).
+# Seeded ⇒ byte-identical everywhere; if `git status` stays clean on splits.json /
+# manifest.json afterwards, your corpus matches the team's. A dirty diff = you drifted.
+data:
+    uv run python -m zo_train.datagen --build
+
 # --- quality -----------------------------------------------------------------
 
 lint:

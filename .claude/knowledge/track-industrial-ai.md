@@ -161,4 +161,46 @@ sequence modeling**. Concretely:
    overfit family-specific quirks; family-conditioning + diverse generation help generalization.
 
 ## Append below as you learn
-- (chosen model arch + hyperparams that worked, baseline numbers, eval_metrics.py exact CLI quirks: TBD)
+
+### Strategy decision (2026-05-30) — direction + plan
+**Direction chosen:** pretrained-LLM substrate (SFT a small Qwen on sequences + NL step
+descriptions), with **reasoning (RL)** and an **agentic copilot** as the two core differentiators.
+**From-scratch token model is OUT.** 3–4 people, parallelized via worktrees. Plan = **spine + spike + demo**:
+- **Spine (must-ship):** honest n-gram baseline → SFT LLM emitting all 3 task CSVs in exact format
+  → **leave-one-family-out (LOFO) OOD table** (the headline) → honest Task-3 → dashboard.
+- **Spike (idea #1):** RLVR/GRPO with `validate_sequence` as the verifiable reward + CoT rationales,
+  on top of a working SFT model (abandonable if it stalls).
+- **Demo (idea #2):** diagnose→attribute→explain→repair copilot (repair brain = our model, not an API).
+
+### Load-bearing findings (measured on our data — don't re-derive)
+- **OOD is THE story.** n-gram next-step top-1 ≈ 0.78–0.82 in-distribution but collapses to ~0.35–0.50
+  on a held-out family (LOFO) — that drop is the literal "logic vs memorization" answer → Slide-1
+  headline. Lead with OOD; never headline aggregate next-step (n-gram top-5 ≈ 1.0, trivially strong).
+- **`validate_sequence()` is a free, perfect verifier** ⇒ (a) ~100% oracle on Task 3 → submit the
+  oracle for the score and frame the *learned* detector as "what it knows without the rules" + OOD;
+  never claim ML "solves" anomaly detection. (b) perfect verifiable reward for GRPO. (c) mints
+  unlimited labeled negatives + correct-by-construction explanations.
+- **Report edit-distance / block-acc / validity on completion, NOT exact-match** (≈0 for everyone:
+  synonyms + optional steps mean many valid completions exist).
+- A closed-vocab from-scratch model can't emit the hidden family's ~15–21% novel step tokens — a key
+  reason we chose the pretrained-LLM + NL substrate.
+
+### Data factory (NEW — `zo_train/datagen.py` + `zo_train/grammar.py`)
+GPU-free, deterministic, shared. `zo_train.grammar` = the single import point for the vendored
+`validate_sequence` / `generate_dataset` + the rule frozensets (loads the script by path so rules
+never drift). `zo_train.datagen` builds the whole corpus into `generated_data_dir()`:
+- `make_splits()` — per-family train/val/test + LOFO folds.
+- `make_negative(steps, rng, rule=...)` — verified rule-violating variant + its **repair** (the valid
+  original); all 10 rules fire at **94–100%**.
+- `explain_violation()` / `justify_next_step()` — **correct-by-construction** NL rationales (anomaly
+  from the verifier's own `Violation`; next-step via counterfactual re-validation). Never train on a
+  wrong rationale.
+- `nextstep_example / completion_example / anomaly_example` — LLM text framing (family-conditioned,
+  optional NL aug). `build_all()` writes JSONL + a manifest.
+- Build: `uv run python -m zo_train.datagen` (smoke) or `from zo_train.datagen import build_all`.
+
+### Parallel-exploration setup
+One git worktree per stream (`just wt <stream>`). In each worktree's `.env` set BOTH:
+`ZO_EXPERIMENTS_DIR=<shared path>` (one dashboard sees every stream's runs) and
+`ZO_DATA_DIR=<shared path>` (every stream reads the identical frozen corpus; `paths.generated_data_dir()`).
+On Leonardo, point both at shared `$SCRATCH`.

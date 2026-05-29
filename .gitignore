@@ -196,6 +196,13 @@ experiments/*/
 !experiments/README.md
 !experiments/.gitkeep
 
+# Generated data corpus — regenerable + bulky; recipe is in zo_train/datagen.py (`just data`).
+# Ignore the bulk, but TRACK splits.json + manifest.json: they pin the partition + a corpus
+# fingerprint, so a clean `git status` after `just data` proves your copy matches the team's.
+data/generated/*
+!data/generated/splits.json
+!data/generated/manifest.json
+
 # Model artifacts, checkpoints, datasets, caches
 *.safetensors
 *.bin

@@ -1,0 +1,68 @@
+{
+  "seed": 42,
+  "families": [
+    "IC",
+    "IGBT",
+    "MOSFET"
+  ],
+  "counts": {
+    "IC": {
+      "train_seqs": 800,
+      "negatives": 400,
+      "per_rule": {
+        "RULE_DEP_NO_CLEAN": 32,
+        "RULE_ETCH_NO_MASK": 134,
+        "RULE_METAL_ETCH_NO_LITHO": 54,
+        "RULE_IMPLANT_NO_MASK": 32,
+        "RULE_CMP_NO_DEP": 46,
+        "RULE_LITHO_LEVEL_SKIP": 46,
+        "RULE_TEST_BEFORE_PASSIVATION": 46,
+        "RULE_SHIP_BEFORE_TEST": 46,
+        "RULE_BACKSIDE_BEFORE_PASSIVATION": 0,
+        "RULE_PAD_OPEN_BEFORE_DEP": 46
+      },
+      "sft_lm_examples": 800,
+      "completion_examples": 1600,
+      "eval_nextstep_examples": 800
+    },
+    "IGBT": {
+      "train_seqs": 800,
+      "negatives": 400,
+      "per_rule": {
+        "RULE_DEP_NO_CLEAN": 38,
+        "RULE_ETCH_NO_MASK": 102,
+        "RULE_METAL_ETCH_NO_LITHO": 52,
+        "RULE_IMPLANT_NO_MASK": 50,
+        "RULE_CMP_NO_DEP": 40,
+        "RULE_LITHO_LEVEL_SKIP": 40,
+        "RULE_TEST_BEFORE_PASSIVATION": 40,
+        "RULE_SHIP_BEFORE_TEST": 40,
+        "RULE_BACKSIDE_BEFORE_PASSIVATION": 40,
+        "RULE_PAD_OPEN_BEFORE_DEP": 40
+      },
+      "sft_lm_examples": 800,
+      "completion_examples": 1600,
+      "eval_nextstep_examples": 800
+    },
+    "MOSFET": {
+      "train_seqs": 800,
+      "negatives": 400,
+      "per_rule": {
+        "RULE_DEP_NO_CLEAN": 39,
+        "RULE_ETCH_NO_MASK": 107,
+        "RULE_METAL_ETCH_NO_LITHO": 47,
+        "RULE_IMPLANT_NO_MASK": 46,
+        "RULE_CMP_NO_DEP": 40,
+        "RULE_LITHO_LEVEL_SKIP": 40,
+        "RULE_TEST_BEFORE_PASSIVATION": 40,
+        "RULE_SHIP_BEFORE_TEST": 40,
+        "RULE_BACKSIDE_BEFORE_PASSIVATION": 40,
+        "RULE_PAD_OPEN_BEFORE_DEP": 40
+      },
+      "sft_lm_examples": 800,
+      "completion_examples": 1600,
+      "eval_nextstep_examples": 800
+    }
+  },
+  "fingerprint": "bca86d39e6ca587c"
+}
