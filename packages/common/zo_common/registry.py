@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import secrets
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -72,8 +73,11 @@ def new_run(
     cluster: str | None = None,
 ) -> RunMeta:
     ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    # Random suffix: timestamps are only second-granular, so two runs started in the same
+    # second (parallel worktrees / a shared ZO_EXPERIMENTS_DIR on cluster scratch) would
+    # otherwise collide and clobber each other's meta.json.
     meta = RunMeta(
-        id=f"{ts}_{kind}_{_slug(name)}",
+        id=f"{ts}_{kind}_{_slug(name)}_{secrets.token_hex(3)}",
         name=name,
         kind=kind,
         git_branch=_git("rev-parse", "--abbrev-ref", "HEAD"),

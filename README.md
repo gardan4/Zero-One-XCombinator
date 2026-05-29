@@ -19,7 +19,7 @@ packages/
   agent/        zo_agent  — agent rollout harness (tools, scenarios, task success)
 experiments/    per-run outputs (meta.json, metrics.jsonl, artifacts/) — gitignored
 .claude/        team Claude config: settings, slash commands, subagents, knowledge base
-scripts/        wt.sh (worktree-per-experiment), dev.sh, setup.sh
+scripts/        wt.sh (worktree-per-experiment), dev.sh
 ```
 
 ## Quickstart
@@ -51,11 +51,11 @@ just agent packages/agent/scenarios/example.yaml $MODEL  # measure agentic task 
 Every run — training, eval, or agent — writes through `zo_common` into `experiments/`,
 which is exactly what the backend serves and the dashboard shows.
 
-## Working in parallel (2 people, many experiments)
+## Working in parallel (4 people, many experiments)
 
 ```bash
 just wt grpo-reward-v2   # new git worktree + branch ../zo-grpo-reward-v2, isolated experiments
 ```
 
-Each worktree is an independent checkout, so two people (or two Claude sessions) can train
+Each worktree is an independent checkout, so teammates (or parallel Claude sessions) can train
 and eval different ideas at once without stepping on each other. See [`CLAUDE.md`](CLAUDE.md).

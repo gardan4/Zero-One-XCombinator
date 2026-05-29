@@ -1,7 +1,7 @@
 # Zero One Philyr
 
 Hackathon monorepo for **finetuning / RL / agentifying** language models. The laptop stays
-light; the **Leonardo (CINECA)** GPU cluster does the heavy lifting. four-person team, moving
+light; the **Leonardo (CINECA)** GPU cluster does the heavy lifting. Four-person team, moving
 fast, prototyping experiments **in parallel** with git worktrees.
 
 > **Theme:** real model training — not prompt engineering. When in doubt, train or measure something.
@@ -43,7 +43,7 @@ packages/
 experiments/  one dir per run (gitignored): meta.json, metrics.jsonl, config.yaml, logs/, artifacts/
 data/         industrial-infineon/: vendored track data + grammar + generate_sequences.py (our track)
 docs/         track briefing, Leonardo deck (Z10_compressed.pdf), submission/ (REPORT_TEMPLATE, SUBMISSION)
-scripts/      wt.sh (worktree-per-experiment), dev.sh, setup.sh
+scripts/      wt.sh (worktree-per-experiment), dev.sh
 .claude/      this folder: CLAUDE.md, knowledge base, slash commands, subagents
 ```
 
@@ -73,7 +73,8 @@ CLIs also run directly: `uv run zo-train sft -c <config> --dry-run`, `uv run zo-
 
 ## The run registry — the shared contract
 
-Every run is a directory: `experiments/<run_id>/` where `run_id = <YYYYMMDD_HHMMSS>_<kind>_<slug>`.
+Every run is a directory: `experiments/<run_id>/` where `run_id = <YYYYMMDD_HHMMSS>_<kind>_<slug>_<rand>`
+(the trailing 6-hex random suffix keeps same-second runs from colliding on a shared store).
 
 - `meta.json` — `RunMeta` (id, name, kind, status, git info, slurm_job_id, config, metrics summary)
 - `metrics.jsonl` — one JSON object per logged step (append-only)

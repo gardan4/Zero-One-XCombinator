@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from typing import Any
 
@@ -55,7 +56,17 @@ class LaunchRequest(BaseModel):
 
 @router.post("/launch")
 def launch(req: LaunchRequest) -> dict[str, Any]:
-    """Best-effort: spawn a run in the background. Poll /api/runs to see it appear."""
+    """Best-effort: spawn a run in the background. Poll /api/runs to see it appear.
+
+    Disabled by default: this runs arbitrary `uv run` subprocesses, so exposing it on a
+    non-localhost interface (ZO_API_HOST=0.0.0.0) would be remote code execution. Opt in with
+    ZO_ALLOW_LAUNCH=1 only on a trusted machine you control.
+    """
+    if not os.environ.get("ZO_ALLOW_LAUNCH"):
+        raise HTTPException(
+            status_code=403,
+            detail="launch disabled; set ZO_ALLOW_LAUNCH=1 to enable (trusted/localhost only)",
+        )
     if req.kind in ("sft", "grpo"):
         if not req.config:
             raise HTTPException(status_code=400, detail="config required for training")

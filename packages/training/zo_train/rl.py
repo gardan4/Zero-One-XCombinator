@@ -1,3 +1,12 @@
+"""GRPO / RL recipe — **generic chat-LLM scaffold, not our track's primary path.**
+
+Our track (Industrial AI / Infineon) is small-vocab *sequence modeling* of fab steps —
+next-step prediction, sequence completion, anomaly detection. That's supervised, not RL.
+Keep this as a reference (and a working trl GRPO loop) but **don't invest here first**;
+the toy length reward below proves the loop runs, nothing more. Start with `fab.py` +
+next-step modeling. See `.claude/knowledge/track-industrial-ai.md`.
+"""
+
 from __future__ import annotations
 
 import os
