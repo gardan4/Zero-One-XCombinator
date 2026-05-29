@@ -73,16 +73,18 @@ singularity exec --nv --bind $SCRATCH:/scratch container.sif python3 script.py
 ```
 
 ## SLURM — the hackathon job template
-Key bits: partition `boost_usr_prod`, **reservation `s_tra_ncc`**, and fair-share scaling where
-**mem = 120 GB × gpus-per-task** and **cpus = 8 × gpus-per-task**. Up to **4 GPUs** per node.
+Key bits: partition `boost_usr_prod`, **reservation `s_tra_ncc`** (covers up to **4 nodes**), and
+fair-share scaling **cpus = 8 × gpus-per-task**. **4 GPUs/node** (64 GB VRAM each); RAM up to
+**512 GB/node**. The deck's own scripts request **mem = 120 GB × gpus** (conservative, leaves OS
+headroom) — fine to use, but you may go up to 512 GB on a full node.
 ```bash
 #!/bin/bash
 #SBATCH --partition=boost_usr_prod
-#SBATCH --reservation=s_tra_ncc   # hackathon reservation (≈1 node per team — don't hog)
+#SBATCH --reservation=s_tra_ncc   # hackathon reservation (up to 4 nodes for our team — don't hog)
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --gpus-per-task=1         # up to 4 on Leonardo
-#SBATCH --mem=120GB               # 120GB × gpus-per-task
+#SBATCH --gpus-per-task=1         # up to 4 on Leonardo (64 GB VRAM each)
+#SBATCH --mem=120GB               # 120GB × gpus (node max 512GB)
 #SBATCH --cpus-per-task=8         # 8 × gpus-per-task
 #SBATCH --time=0:30:00            # HH:MM:SS, up to 24:00:00
 
@@ -92,10 +94,12 @@ pixi run --as-is python3 script.py
 # singularity exec --nv container.sif python3 script.py
 ```
 Scale GPUs by editing three lines together, e.g. 2 GPUs → `--gpus-per-task=2 --mem=240GB --cpus-per-task=16`;
-4 GPUs → `--gpus-per-task=4 --mem=480GB --cpus-per-task=32` (deck slides 87–91 walk 1→2→4 GPU).
-**Multi-node** (slide 92, `--nodes=2`): the deck **strikes out the `--reservation` line** and launches with
-`srun … $CONTAINER …` — i.e. the hackathon reservation is **single-node only**; a multi-node job drops the
-reservation and waits in the general queue. With ~1 node/team budgeted, **prefer 1 node × N GPUs**.
+4 GPUs → `--gpus-per-task=4 --mem=480GB --cpus-per-task=32` (deck slides 87–91 walk 1→2→4 GPU; bump
+mem toward 512GB if a full-node job needs it).
+**Multi-node** (slide 92, `--nodes=2…4`): keep `--reservation=s_tra_ncc` (it spans up to 4 nodes) and
+launch the workload with `srun … $CONTAINER …`. *(Slide 92 shows the reservation line struck out, but
+that's a generic multi-node example — our team's reservation does cover multi-node.)* Our ceiling:
+**4 nodes × 4 GPUs = 16 A100s**. Prove the pipeline at 1 node × N GPUs before scaling out.
 
 ### Useful SLURM commands
 ```
