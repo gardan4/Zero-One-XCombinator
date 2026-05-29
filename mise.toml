@@ -1,0 +1,9 @@
+[tools]
+python = "3.12"
+node = "20"
+uv = "latest"
+just = "latest"
+
+[env]
+# Make `uv run ...` and the CLIs resolve the workspace from anywhere in the repo.
+_.python.venv = ".venv"

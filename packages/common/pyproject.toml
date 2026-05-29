@@ -1,0 +1,22 @@
+[project]
+name = "zo-common"
+version = "0.1.0"
+description = "Shared config + file-based run registry for Zero One Philyr."
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.7",
+    "pyyaml>=6",
+    "typer>=0.12",
+    "rich>=13",
+    "httpx>=0.27",
+]
+
+[project.scripts]
+zo-runs = "zo_common.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["zo_common"]

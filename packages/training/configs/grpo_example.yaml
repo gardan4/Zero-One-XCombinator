@@ -1,0 +1,18 @@
+# GRPO / RL example. The reward in zo_train/rl.py is a TOY (length-targeting) —
+# replace it with a task reward (verifier, unit tests, judge model, format checker).
+name: grpo-toy-reward
+kind: grpo
+model: Qwen/Qwen2.5-0.5B-Instruct
+dataset: null            # null -> built-in toy prompts (needs a `prompt` column)
+learning_rate: 1.0e-6
+batch_size: 8
+grad_accum: 1
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+extra:
+  num_generations: 8
+  max_completion_length: 256
+  target_len: 200
+  tags: [rl, toy]

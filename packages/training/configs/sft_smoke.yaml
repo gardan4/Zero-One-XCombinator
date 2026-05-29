@@ -1,0 +1,16 @@
+# Tiny SFT smoke test. Run locally with `just train .../sft_smoke.yaml`
+# (add --dry-run via `uv run zo-train sft -c <this> --dry-run` to skip torch entirely).
+name: sft-smoke
+kind: sft
+model: Qwen/Qwen2.5-0.5B-Instruct
+dataset: null            # null -> built-in toy dataset
+text_field: text
+epochs: 1
+batch_size: 2
+grad_accum: 1
+max_seq_len: 512
+lora: true
+bf16: false
+extra:
+  max_steps: 20
+  tags: [smoke]

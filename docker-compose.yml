@@ -1,0 +1,29 @@
+# Bring up the dashboard + control plane:  docker compose up --build
+# This is the LIGHT stack only (no GPU/ML deps) — training runs on the cluster, not here.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      ZO_API_HOST: "0.0.0.0"
+      ZO_API_PORT: "8000"
+      ZO_CORS_ORIGINS: "*"
+      ZO_EXPERIMENTS_DIR: /data/experiments
+    volumes:
+      # Share the run registry with the host so local runs show up in the dashboard.
+      - ./experiments:/data/experiments
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      args:
+        # The dashboard fetches server-side, so this is the in-network service URL.
+        # (All pages are server components; the browser never calls the API directly.)
+        NEXT_PUBLIC_API_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend

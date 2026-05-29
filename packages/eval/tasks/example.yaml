@@ -1,0 +1,14 @@
+# Minimal eval task. Run: `just eval packages/eval/tasks/example.yaml <model>`
+# (needs a model endpoint up — see `just serve <model>`).
+name: arithmetic-tiny
+metric: numeric
+system: "You are a precise calculator. Reply with ONLY the final number."
+items:
+  - prompt: "What is 17 + 25?"
+    answer: "42"
+  - prompt: "What is 6 * 7?"
+    answer: "42"
+  - prompt: "What is 100 - 58?"
+    answer: "42"
+  - prompt: "What is half of 84?"
+    answer: "42"

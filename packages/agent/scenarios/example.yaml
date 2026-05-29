@@ -1,0 +1,16 @@
+# Agent scenario suite. Run: `just agent packages/agent/scenarios/example.yaml <model>`
+# Measures whether the model correctly USES the calculator tool to reach the answer.
+name: tool-use-arithmetic
+model: default
+scenarios:
+  - name: multiply-then-add
+    system: "You are an agent. Use the calculator tool for any arithmetic. Reply with ONLY the final number."
+    task: "Compute (12 * 7) + 19 and give me the result."
+    success_type: numeric
+    success_value: "103"
+  - name: order-of-operations
+    system: "You are an agent. Use the calculator tool. Reply with ONLY the final number."
+    task: "What is 2 + 3 * 4?"
+    success_type: numeric
+    success_value: "14"
+    repeat: 2

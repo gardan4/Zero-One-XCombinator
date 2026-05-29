@@ -1,0 +1,54 @@
+[project]
+name = "zero-one-philyr"
+version = "0.1.0"
+description = "Zero One Hack monorepo — finetuning, RL, eval, and an agent harness for the Leonardo cluster."
+requires-python = ">=3.11"
+# The root depends on every member so a plain `uv sync` installs the whole
+# workspace (editable). Heavy ML deps still live behind `uv sync --extra gpu`.
+dependencies = [
+    "zo-common",
+    "zo-train",
+    "zo-eval",
+    "zo-agent",
+    "zo-backend",
+]
+
+# Re-expose the training package's heavy ML stack at the root so `just gpu-sync`
+# (== `uv sync --extra gpu`) works from the repo root. Cluster/GPU box only.
+[project.optional-dependencies]
+gpu = ["zo-train[gpu]"]
+
+# Virtual workspace root (no [build-system] => uv does not build this project itself).
+[tool.uv.workspace]
+members = [
+    "apps/backend",
+    "packages/common",
+    "packages/training",
+    "packages/eval",
+    "packages/agent",
+]
+
+[tool.uv.sources]
+zo-common = { workspace = true }
+zo-train = { workspace = true }
+zo-eval = { workspace = true }
+zo-agent = { workspace = true }
+zo-backend = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6",
+    "pytest>=8",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

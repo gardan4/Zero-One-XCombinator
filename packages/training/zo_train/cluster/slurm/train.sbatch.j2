@@ -1,0 +1,36 @@
+#!/bin/bash
+#SBATCH --job-name={{ job_name }}
+{% if account %}#SBATCH --account={{ account }}
+{% endif %}#SBATCH --partition={{ partition }}
+{% if qos %}#SBATCH --qos={{ qos }}
+{% endif %}#SBATCH --nodes={{ nodes }}
+#SBATCH --ntasks-per-node=1
+#SBATCH --gres=gpu:{{ gpus_per_node }}
+#SBATCH --cpus-per-task={{ cpus }}
+#SBATCH --time={{ time }}
+#SBATCH --output={{ repo_dir }}/slurm_logs/%x-%j.out
+#SBATCH --error={{ repo_dir }}/slurm_logs/%x-%j.out
+
+set -euo pipefail
+cd "{{ repo_dir }}"
+mkdir -p slurm_logs
+
+# --- Leonardo environment ----------------------------------------------------
+# Adjust to the allocation's module stack (confirm names with the organizers):
+# module load profile/deeplrn
+# module load cuda/12.1
+
+export ZO_EXPERIMENTS_DIR="{{ experiments_dir }}"
+export HF_HOME="{{ hf_home }}"
+export WANDB_MODE="${WANDB_MODE:-offline}"   # offline on compute nodes; sync later from login node
+
+# Install the GPU stack into the project venv (cached after the first job).
+uv sync --extra gpu
+
+# --- launch ------------------------------------------------------------------
+# Single process (LoRA on one GPU, or device_map across the node's GPUs).
+uv run zo-train {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
+
+# Multi-GPU / multi-node alternative (uncomment, comment the line above):
+# uv run accelerate launch --multi_gpu --num_processes {{ gpus_per_node }} \
+#     -m zo_train.cli {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"

@@ -1,0 +1,18 @@
+# Baseline SFT on a real model. Submit to the cluster with `just submit <this>`.
+name: sft-qwen-1.5b
+kind: sft
+model: Qwen/Qwen2.5-1.5B-Instruct
+dataset: HuggingFaceH4/ultrachat_200k   # swap for your track's dataset
+dataset_split: train_sft[:2000]
+text_field: messages                     # chat-formatted -> trl applies the chat template
+epochs: 1
+batch_size: 4
+grad_accum: 8
+learning_rate: 1.0e-5
+max_seq_len: 2048
+lora: true
+lora_r: 32
+lora_alpha: 64
+bf16: true
+extra:
+  tags: [baseline]
