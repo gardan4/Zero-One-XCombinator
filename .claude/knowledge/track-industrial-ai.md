@@ -15,13 +15,18 @@ token (~120-token vocab). That's a big divergence from the generic chat/vLLM sca
 ## Where the data + spec live
 **Vendored into our repo** (from MIT-licensed `github.com/Lumos-Data/zero_one_hack_01`, folders
 `tracks/industrial-infineon/` + `submission/`):
-- **`data/industrial-infineon/`** — the whole `training_data/` folder: the 3 `*_variants.csv`
-  (1,000 seqs each, ~21 MB total), `synthetic_*.csv` references, `*_Longdescr.csv` +
-  `*_longdescription_parameters.csv`, **`generation_rules.md`** (authoritative — read first),
-  **`generate_sequences.py`** (generator + validator, stdlib only), and the data `README.md`.
+- **`data/industrial-infineon/`** — a **byte-faithful 1:1 mirror** of the upstream track folder
+  (verified via `diff -r`). Layout:
+  - **track-level docs at root**: `README.md` (track overview), `Track_industrial.md` (DE brief),
+    `Track_industrial_en.md` (EN brief).
+  - **`training_data/`** subfolder: the 3 `*_variants.csv` (1,000 seqs each, ~21 MB total),
+    `synthetic_*.csv` references, `*_Longdescr.csv` + `*_longdescription_parameters.csv`,
+    **`generation_rules.md`** (authoritative — read first), **`generate_sequences.py`** (generator +
+    validator, stdlib only), and the data `README.md` (lists eval tasks/metrics + the kickoff-only
+    `eval_input_*.csv` schemas).
 - **`docs/submission/`** — `SUBMISSION.md` + `REPORT_TEMPLATE.md` (what/how to hand in).
-- **`docs/Track One Assignment.txt`** — the EN briefing (byte-identical to the repo's
-  `Track_industrial_en.md`, so not re-vendored).
+- **`docs/Track One Assignment.txt`** — the EN briefing; **identical** to
+  `data/industrial-infineon/Track_industrial_en.md` (the brief now lives in both — harmless dup).
 
 Sanity-checked on load: MOSFET/IGBT/IC = 1,000 seqs each, lengths ~125/148/115, all start
 `RECEIVE WAFER LOT` / end `SHIP LOT`, all pass `validate_sequence`. To refresh from upstream:
@@ -117,7 +122,7 @@ kickoff**, stdlib only) gives per-task reports with family / truncation breakdow
 python eval_metrics.py --task anomaly --ground-truth <gt.csv> --predictions <your_output.csv>
 ```
 Until it lands, validate our own generated/predicted sequences with
-`data/industrial-infineon/generate_sequences.py --validate <csv>` (uses the same 10 rules).
+`data/industrial-infineon/training_data/generate_sequences.py --validate <csv>` (uses the same 10 rules).
 
 ## Track-specific repo deliverables (from SUBMISSION.md + REPORT_TEMPLATE.md)
 Beyond the general submission (see hackathon.md), the **Industrial AI** repo must contain:

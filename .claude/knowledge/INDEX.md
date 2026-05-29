@@ -24,8 +24,9 @@ non-obvious. `/log-learning` does the append in one step.
 - **Hackathon docs:** https://docs.zero-one.lumos-consulting.at/getting-started/welcome/
 - **Track + data repo:** https://github.com/Lumos-Data/zero_one_hack_01 (MIT). Our track under
   `tracks/industrial-infineon/`; submission spec under `submission/`. **Both are vendored locally**
-  → `data/industrial-infineon/` (data + grammar + `generate_sequences.py`) and `docs/submission/`
-  (`REPORT_TEMPLATE.md`, `SUBMISSION.md`). Refresh from upstream:
+  → `data/industrial-infineon/` is a **byte-faithful 1:1 mirror** of the upstream track folder
+  (track docs at root + `training_data/` subfolder with CSVs/grammar/`generate_sequences.py`),
+  and `docs/submission/` (`REPORT_TEMPLATE.md`, `SUBMISSION.md`). Refresh from upstream:
   `git clone --depth 1 --filter=blob:none --sparse <repo> /tmp/up && cd /tmp/up && git sparse-checkout set tracks/industrial-infineon submission`
   then copy the two folders. (`eval_metrics.py` + `judging/rubrics.md` are referenced but NOT upstream
   — organizers ship them at kickoff.)
@@ -47,6 +48,7 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 ## Learnings log
 Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
+- 2026-05-29 — Made `data/industrial-infineon/` a **byte-faithful 1:1 mirror** of upstream `tracks/industrial-infineon/`: moved the CSVs/grammar/`generate_sequences.py` into a `training_data/` subfolder (git renames) and added the 3 track-level docs (`README.md`, `Track_industrial{,_en}.md`). `diff -r` clean; 1000 seqs/family intact. No code referenced the old flat paths. Staged, not committed. — (track-industrial-ai)
 - 2026-05-29 — **Resource budget (team lead):** 4 GPUs/node (A100 **64 GB VRAM** each), up to **512 GB RAM/node**, and the reservation `s_tra_ncc` covers **up to 4 nodes** → max **16 GPUs**. (Corrects an earlier misread of deck slide 92 — the reservation is NOT single-node.) — (cluster)
 - 2026-05-29 — Reviewed the official Leonardo onboarding deck (pp. 80–96); cluster.md matches. **Wired the cluster plumbing**: `submit.py`/`train.sbatch.j2` now emit `--reservation` (any node count), `--gpus-per-task=N`, fair-share `--mem=120×N`/`--cpus=8×N` (auto-derived), proxy export, and `uv sync --extra gpu --offline` (pre-stage on a login node first). Verified by dry-run. — (cluster)
 - 2026-05-29 — Created root `.env` (gitignored, real Leonardo creds) + refreshed `.env.example` (placeholders only). SSH login needs no setup (no 2FA); automating `zo-cluster submit` needs a one-time `ssh-copy-id` (submit.py uses passwordless ssh/scp). — (cluster, stack)
