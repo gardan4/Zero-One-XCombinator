@@ -1,0 +1,36 @@
+# GRPO / RLVR reasoning spike (Stream 2) for the Industrial AI (Infineon) track.
+#
+# Reward = the verifiable validate_sequence reward in zo_train/rewards.py (dense
+# `1 - n_viol/n` + anti-hack guards), NOT the old length stub. This is an abandonable
+# spike that runs ON TOP of a working Stream-1 SFT checkpoint — start from the SFT
+# output, then let GRPO push generated sequences toward zero rule-violations.
+#
+# Run GPU-free first:  just grpo configs/grpo_fab.yaml --dry-run
+# Real run (GPU only):  just grpo configs/grpo_fab.yaml      (needs `just gpu-sync`)
+name: grpo-fab-validate
+kind: grpo
+
+# IMPORTANT: point this at the Stream-1 SFT *output directory* (the fine-tuned
+# checkpoint), e.g. experiments/<sft_run_id>/artifacts. The base instruct model below is
+# only a placeholder so the config parses / dry-runs before the SFT checkpoint exists.
+model: Qwen/Qwen2.5-1.5B-Instruct  # TODO(stream-1): replace with the SFT checkpoint dir
+
+# Prompt dataset for GRPO needs a `prompt` column — the next-step eval JSONL has one.
+# Build the corpus first: `uv run python -m zo_train.datagen --build`.
+dataset: data/generated/MOSFET_eval_nextstep.jsonl
+
+# Low LR is standard for GRPO stability (matches grpo_example.yaml).
+learning_rate: 1.0e-6
+batch_size: 8
+grad_accum: 1
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+
+extra:
+  num_generations: 8
+  max_completion_length: 64   # our completions are short (a few pipe-separated steps)
+  reward: validate            # or "validate+format" to also reward a clean <think> shape
+  # max_steps: 50             # uncomment for a tiny GPU smoke (reward should rise, stay non-degenerate)
+  tags: [stream:2, rl, rlvr, grpo]

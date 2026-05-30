@@ -1,0 +1,46 @@
+# CoT-SFT bootstrap (Stream 2) — teach the model the "think, then answer" anomaly shape
+# BEFORE the GRPO spike (grpo_fab.yaml). Trains on the correct-by-construction CoT anomaly
+# rationales (each completion is grounded in validate_sequence's own Violation, so we never
+# SFT on a wrong rationale).
+#
+#   Run GPU-free first:  just train configs/sft_cot.yaml --dry-run
+#   Real run (GPU only): just train configs/sft_cot.yaml          (needs `just gpu-sync`)
+#
+# --------------------------------------------------------------------------------------
+# DATA FORMAT — read this. `MOSFET_cot_anomaly.jsonl` rows are {prompt, completion, ...},
+# NOT a single `text` field. There are two ways to SFT on prompt/completion:
+#
+#   (A) Completion-only loss (mask the prompt, train only on the rationale tokens) — the
+#       RIGHT objective, but **UNVERIFIED on our trl (target 1.5.1)**. trl's auto-handling of
+#       `prompt`/`completion` columns + which kwarg toggles prompt-masking has drifted across
+#       versions, AND the current sft.py only wires `dataset_text_field` (it does not pass a
+#       prompt/completion pair or a completion-only flag to SFTTrainer). So (A) needs BOTH a
+#       trl-version check on a GPU/cluster node AND an sft.py change (Stream-1 owned). Until
+#       both are confirmed, do NOT rely on (A).
+#
+#   (B) FALLBACK (this config, works with sft.py UNCHANGED): concatenate prompt + completion
+#       into a single `text` field and SFT as a plain causal LM (`text_field: text`). Loss
+#       covers the prompt too, but for these short anomaly rows that's a minor cost and it is
+#       robust to trl drift. Build a `*_cot_anomaly.jsonl` (or a `*_cot_anomaly_text.jsonl`)
+#       whose rows carry `text = prompt + completion` — a one-line tweak in
+#       `zo_train.datagen.build_all` (Stream-1 owned: add a `text` field to the cot writer,
+#       e.g. `{"text": ex["prompt"] + ex["completion"], ...}`). Then this config runs as-is.
+# --------------------------------------------------------------------------------------
+name: sft-cot-anomaly
+kind: sft
+model: Qwen/Qwen2.5-1.5B-Instruct
+
+dataset: data/generated/MOSFET_cot_anomaly.jsonl
+text_field: text   # FALLBACK path (B): requires a `text` field (prompt+completion) — see above
+
+learning_rate: 1.0e-5
+epochs: 2
+batch_size: 4
+grad_accum: 8
+max_seq_len: 1024
+lora: true
+bf16: true
+
+extra:
+  # max_steps: 50            # uncomment for a tiny GPU smoke
+  tags: [stream:2, sft, cot]
