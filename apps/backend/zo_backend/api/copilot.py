@@ -15,6 +15,7 @@ import random
 from functools import lru_cache
 from typing import Any
 
+from fastapi import APIRouter
 from pydantic import BaseModel
 
 router = APIRouter(tags=["copilot"])
