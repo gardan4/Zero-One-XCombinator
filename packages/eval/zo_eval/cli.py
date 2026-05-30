@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import typer
 
+from zo_common.env import load_dotenv
 from zo_eval.harness import run_eval
 from zo_eval.tasks import TaskSpec
+
+load_dotenv()
 
 app = typer.Typer(help="Evaluate models against task specs.", no_args_is_help=True)
 

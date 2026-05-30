@@ -63,3 +63,15 @@ just wt grpo-reward-v2   # new git worktree + branch ../zo-grpo-reward-v2, isola
 
 Each worktree is an independent checkout, so teammates (or parallel Claude sessions) can train
 and eval different ideas at once without stepping on each other. See [`CLAUDE.md`](CLAUDE.md).
+
+## Leonardo inference & eval
+
+Judges and reproducers: see **[docs/leonardo-eval.md](docs/leonardo-eval.md)** for running
+finetuned models on Leonardo and producing the three track submission CSVs.
+
+Quick path on a login node:
+
+```bash
+cp .env.example .env   # ZO_CLUSTER_USER, HF_TOKEN, ZO_INFER_MODEL, ZO_CLUSTER_ON_LOGIN=1
+just judge-setup && just judge-stage && just judge-eval --local
+```

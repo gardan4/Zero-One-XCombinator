@@ -15,6 +15,10 @@ import random
 
 import typer
 
+from zo_common.env import load_dotenv
+
+load_dotenv()
+
 app = typer.Typer(no_args_is_help=True, help="Track eval: predict → submission CSVs → score → tagged run.")
 
 
@@ -36,19 +40,23 @@ def _build_predictor(kind: str, train_families: str | None, order: int, model: s
         from zo_eval.predict_llm import HFGeneratePredictor, ServedLLMPredictor
 
         return ServedLLMPredictor(model=model, base_url=base_url) if kind == "llm" else HFGeneratePredictor(model=model)
-    raise typer.BadParameter(f"unknown predictor {kind!r} (ngram|oracle|freq|llm|hf)")
+    if kind == "featherless":
+        from zo_eval.predict_llm import FeatherlessPredictor
+
+        return FeatherlessPredictor(model=model)
+    raise typer.BadParameter(f"unknown predictor {kind!r} (ngram|oracle|freq|llm|hf|featherless)")
 
 
 @app.command()
 def predict(
-    predictor: str = typer.Option(..., "--predictor", "-p", help="ngram|oracle|freq|llm|hf"),
+    predictor: str = typer.Option(..., "--predictor", "-p", help="ngram|oracle|freq|llm|hf|featherless"),
     valid: str = typer.Option(None, help="eval_input_valid.csv (Tasks 1 & 2)"),
     anomaly: str = typer.Option(None, help="eval_input_anomaly.csv (Task 3)"),
     gold: str = typer.Option(None, help="gold.json — enables scoring"),
     tasks: str = typer.Option("nextstep,completion,anomaly", help="subset to run"),
     out: str = typer.Option(None, help="output dir (default experiments/<run>/results)"),
     tags: str = typer.Option("", help="comma-separated run tags, e.g. split:id,family:MOSFET"),
-    model: str = typer.Option("default", help="served model name (llm/hf)"),
+    model: str = typer.Option("default", help="served model name (llm/hf) or HF repo (featherless)"),
     base_url: str = typer.Option(None, help="OpenAI-compatible base url (llm)"),
     order: int = typer.Option(3, help="n-gram order"),
     train_families: str = typer.Option(None, help="restrict baseline to these families (for OOD)"),
