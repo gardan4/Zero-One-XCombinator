@@ -1,4 +1,14 @@
 import { FAB_DATA } from "./data/fab-data.js";
+import {
+  RULE_IDS,
+  ID_TO_STEP,
+  rankCandidates,
+  completeRouteBaseline,
+  checkAnomaly,
+  parseSequence,
+  encodeSteps,
+  normalizeFamily,
+} from "./engine.js";
 
 const CORS = {
   "access-control-allow-origin": "*",
@@ -6,131 +16,6 @@ const CORS = {
   "access-control-allow-headers": "content-type,authorization",
 };
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", ...CORS };
-const STEP_TO_ID = new Map(FAB_DATA.vocab.map((step, id) => [step, id]));
-const ID_TO_STEP = FAB_DATA.vocab;
-const MAX_NGRAM = 12;
-
-const RULE_IDS = [
-  "RULE_DEP_NO_CLEAN",
-  "RULE_METAL_ETCH_NO_LITHO",
-  "RULE_ETCH_NO_MASK",
-  "RULE_LITHO_LEVEL_SKIP",
-  "RULE_IMPLANT_NO_MASK",
-  "RULE_CMP_NO_DEP",
-  "RULE_PAD_OPEN_BEFORE_DEP",
-  "RULE_TEST_BEFORE_PASSIVATION",
-  "RULE_SHIP_BEFORE_TEST",
-  "RULE_BACKSIDE_BEFORE_PASSIVATION",
-];
-
-const DEPOSITION_STEPS = set([
-  "THERMAL OXIDATION",
-  "GATE OXIDE GROWTH",
-  "DEPOSIT PAD OXIDE",
-  "EPITAXIAL DEPOSITION",
-  "DEPOSIT POLYSILICON",
-  "DEPOSIT SPACER DIELECTRIC",
-  "DEPOSIT FIELD OXIDE",
-  "DEPOSIT GATE OXIDE OR DIELECTRIC",
-  "DEPOSIT INTERLAYER DIELECTRIC",
-  "DEPOSIT INTERLEVEL DIELECTRIC",
-  "DEPOSIT BARRIER METAL",
-  "DEPOSIT METAL SEED",
-  "DEPOSIT METAL 1",
-  "DEPOSIT TOP METAL",
-  "DEPOSIT BACKSIDE METAL",
-  "DEPOSIT TUNGSTEN SEED",
-  "DEPOSIT PASSIVATION",
-  "DEPOSIT PASSIVATION LAYER",
-  "DEPOSIT BACKSIDE PROTECTION",
-]);
-
-const CLEAN_STEPS = set([
-  "PRE CLEAN WAFER",
-  "WAFER CLEAN PRE PROCESS",
-  "WAFER SURFACE CLEAN",
-  "RCA CLEAN 1",
-  "RCA CLEAN 2",
-  "WET CLEAN RCA1",
-  "WET CLEAN RCA2",
-  "HF DIP",
-  "OXIDE STRIP",
-  "SURFACE PREP FOR DEPOSITION",
-  "FRONTSIDE CLEAN",
-  "BACKSIDE CLEAN",
-  "FRONTSIDE CLEAN FINAL",
-  "BACKSIDE CLEAN FINAL",
-  "WAFER CLEAN PRE-GRIND",
-  "DRY WAFER",
-  "DRY WAFER BACKSIDE",
-  "CLEAN AFTER ETCH",
-  "CLEAN AFTER OXIDE ETCH",
-  "CLEAN AFTER POLY ETCH",
-  "CLEAN AFTER VIA ETCH",
-  "CLEAN AFTER METAL ETCH",
-  "CLEAN AFTER WINDOW ETCH",
-  "CLEAN AFTER FIELD ETCH",
-  "CLEAN PAD OPENING",
-  "BACKSIDE ETCH CLEAN",
-  "BACKSIDE RINSE",
-  "THERMAL OXIDATION",
-  "GATE OXIDE PREP",
-  "RAPID THERMAL ANNEAL",
-  "EPITAXY ANNEAL",
-  "ANNEAL OXIDE",
-]);
-
-const ETCH_STEPS = set([
-  "OXIDE ETCH",
-  "OXIDE ETCH DRY",
-  "POLYSILICON ETCH",
-  "POLYSILICON ETCH DRY",
-  "ETCH SILICON OR OXIDE WINDOW",
-  "FIELD OXIDE ETCH",
-  "VIA ETCH",
-  "VIA ETCH THROUGH DIELECTRIC",
-  "DIELECTRIC ETCH VIA",
-  "METAL ETCH",
-  "METAL ETCH DRY",
-  "PASSIVATION ETCH PAD OPENING",
-  "PASSIVATION ETCH",
-]);
-
-const METAL_ETCH_STEPS = set(["METAL ETCH", "METAL ETCH DRY"]);
-const IMPLANT_STEPS = set([
-  "IMPLANT WELL",
-  "IMPLANT SOURCE DRAIN",
-  "IMPLANT SOURCE REGION",
-  "IMPLANT LDD",
-  "IMPLANT P BODY",
-  "IMPLANT N BUFFER",
-  "IMPLANT CHANNEL STOP",
-  "IMPLANT DRAIN / CATHODE REGION",
-  "IMPLANT N-TYPE",
-]);
-const IMPLANT_OPENER_STEPS = set([
-  "OXIDE ETCH",
-  "OXIDE ETCH DRY",
-  "ETCH SILICON OR OXIDE WINDOW",
-  "DEVELOP PHOTORESIST",
-]);
-const CMP_STEPS = set(["CMP DIELECTRIC", "CMP INTERLAYER DIELECTRIC", "CMP METAL", "CMP VIA FILL"]);
-const FILL_STEPS = new Set([...DEPOSITION_STEPS, "FILL VIA METAL", "FILL VIA TUNGSTEN"]);
-const PAD_WINDOW_STEPS = set([
-  "OPEN PAD WINDOW",
-  "OPEN BOND PAD WINDOW",
-  "PAD WINDOW LITHO",
-  "OPEN PAD WINDOW LITHO",
-]);
-const ELECTRICAL_TEST_STEPS = set([
-  "PARAMETRIC TEST",
-  "ELECTRICAL PARAMETRIC TEST",
-  "THRESHOLD VOLTAGE TEST",
-  "BREAKDOWN VOLTAGE TEST",
-  "LEAKAGE TEST",
-  "SWITCHING TEST",
-]);
-const BACKSIDE_METAL_STEPS = set(["DEPOSIT BACKSIDE METAL"]);
 
 export default {
   async fetch(request, env) {
@@ -178,6 +63,10 @@ async function handleApi(request, env, url) {
     return json(await predictNext(family, partial, env));
   }
 
+  if (url.pathname === "/api/predict-batch") {
+    return json(predictBatch(body.csv ?? body.csvText ?? ""));
+  }
+
   if (url.pathname === "/api/complete") {
     const partial = parseSequence(body.partial_sequence ?? body.partialSequence ?? body.sequence);
     return json(await completeSequence(family, partial, env, Number(body.max_steps || body.maxSteps || 80)));
@@ -212,98 +101,87 @@ async function predictNext(family, partialSteps, env) {
   };
 }
 
-async function completeSequence(family, partialSteps, env, maxSteps) {
-  const originalLength = partialSteps.length;
-  const current = [...partialSteps];
-  const exact = trainingCompletion(family, current);
-
-  if (exact) {
-    const full = [...current, ...exact];
-    return {
-      family,
-      predicted_sequence: exact,
-      full_sequence: full,
-      completionMode: exact.mode,
-      anomaly: checkAnomaly(family, full),
-    };
-  }
-
-  const cap = Math.min(Math.max(maxSteps, 1), 120);
-  for (let i = 0; i < cap; i += 1) {
-    if (current.at(-1) === "SHIP LOT") break;
-    const { ids, unknownSteps } = encodeSteps(current);
-    if (unknownSteps.length) break;
-    const next = rankCandidates(family, ids, 1)[0]?.step;
-    if (!next) break;
-    current.push(next);
-  }
-
-  return {
-    family,
-    predicted_sequence: current.slice(originalLength),
-    full_sequence: current,
-    completionMode: "iterative_ngram",
-    anomaly: checkAnomaly(family, current),
-  };
-}
-
-function checkAnomaly(family, steps) {
-  const { unknownSteps } = encodeSteps(steps);
-  if (unknownSteps.length) {
-    return {
-      family,
-      is_valid: false,
-      score: 0.01,
-      predicted_rule: "UNKNOWN_STEP",
-      violations: unknownSteps.map((step) => ({ rule: "UNKNOWN_STEP", step_name: step })),
-    };
-  }
-
-  const violations = validateSequence(steps);
-  return {
-    family,
-    is_valid: violations.length === 0,
-    score: violations.length ? 0.05 : 0.97,
-    predicted_rule: violations[0]?.rule || null,
-    violations,
-  };
-}
-
-function rankCandidates(family, partialIds, limit = 5) {
-  const sequences = FAB_DATA.sequences[family] || [];
-  const maxN = Math.min(MAX_NGRAM, partialIds.length);
-
-  for (let n = maxN; n >= 1; n -= 1) {
-    const suffix = partialIds.slice(-n);
-    const counts = new Map();
-    for (const seq of sequences) {
-      for (let i = n; i < seq.length; i += 1) {
-        if (matchesAt(seq, i - n, suffix)) counts.set(seq[i], (counts.get(seq[i]) || 0) + 1);
-      }
+function predictBatch(csvText) {
+  const { rows, errors } = parseBatchCsv(csvText);
+  const results = rows.map((row, i) => {
+    try {
+      const family = normalizeFamily(row.family);
+      const partial = parseSequence(row.partial_sequence);
+      if (!partial.length) throw new Error("Empty PARTIAL_SEQUENCE");
+      const { ids, unknownSteps } = encodeSteps(partial);
+      const ranked = rankCandidates(family, ids, 5);
+      const top = ranked[0];
+      return {
+        example_id: row.example_id || `row_${i + 1}`,
+        family,
+        completion_fraction: row.completion_fraction,
+        partial_length: partial.length,
+        predicted_next_step: top?.step || null,
+        confidence: top?.confidence ?? null,
+        source: top?.source || "position",
+        top5: ranked,
+        unknown_steps: unknownSteps,
+      };
+    } catch (error) {
+      return {
+        example_id: row.example_id || `row_${i + 1}`,
+        family: row.family,
+        completion_fraction: row.completion_fraction,
+        error: error.message || "Could not predict",
+      };
     }
-    if (counts.size) return countsToPredictions(counts, limit, `${n}-gram_${family}`);
-  }
-
-  const position = partialIds.length;
-  const counts = new Map();
-  for (const seq of sequences) {
-    if (position < seq.length) counts.set(seq[position], (counts.get(seq[position]) || 0) + 1);
-  }
-  return countsToPredictions(counts, limit, `position_${family}`);
+  });
+  return { count: results.length, parseErrors: errors, results };
 }
 
-function countsToPredictions(counts, limit, source) {
-  const total = [...counts.values()].reduce((a, b) => a + b, 0) || 1;
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || ID_TO_STEP[a[0]].localeCompare(ID_TO_STEP[b[0]]))
-    .slice(0, limit)
-    .map(([id, count], rank) => ({
-      rank: rank + 1,
-      step: ID_TO_STEP[id],
-      confidence: Math.round((count / total) * 1000) / 1000,
-      support: count,
-      source,
-    }));
+// Parses the EXAMPLE_ID,FAMILY,COMPLETION_FRACTION,PARTIAL_SEQUENCE format.
+// PARTIAL_SEQUENCE is the last column and holds pipe-joined steps, so the
+// final cell absorbs any stray commas.
+function parseBatchCsv(text) {
+  const lines = String(text || "").split(/\r?\n/).filter((line) => line.trim());
+  if (!lines.length) return { rows: [], errors: ["File is empty."] };
+
+  const header = lines[0].split(",").map((h) => h.trim().toUpperCase());
+  const idx = {
+    id: header.indexOf("EXAMPLE_ID"),
+    family: header.indexOf("FAMILY"),
+    fraction: header.indexOf("COMPLETION_FRACTION"),
+    seq: header.indexOf("PARTIAL_SEQUENCE"),
+  };
+  if (idx.family < 0 || idx.seq < 0) {
+    return { rows: [], errors: ["Header must include FAMILY and PARTIAL_SEQUENCE columns."] };
+  }
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i += 1) {
+    const cells = splitCsvRow(lines[i], header.length);
+    rows.push({
+      example_id: idx.id >= 0 ? cells[idx.id] : `row_${i}`,
+      family: cells[idx.family],
+      completion_fraction: idx.fraction >= 0 ? cells[idx.fraction] : "",
+      partial_sequence: cells[idx.seq],
+    });
+  }
+  return { rows, errors: [] };
+}
+
+function splitCsvRow(line, columns) {
+  const parts = line.split(",");
+  if (parts.length <= columns) return parts.map((c) => c.trim());
+  const head = parts.slice(0, columns - 1).map((c) => c.trim());
+  head.push(parts.slice(columns - 1).join(",").trim());
+  return head;
+}
+
+async function completeSequence(family, partialSteps, env, maxSteps) {
+  const result = completeRouteBaseline(family, partialSteps, maxSteps);
+  return {
+    family,
+    predicted_sequence: result.predicted_sequence,
+    full_sequence: result.full_sequence,
+    completionMode: result.completionMode,
+    anomaly: checkAnomaly(family, result.full_sequence),
+  };
 }
 
 async function rerankWithModel(env, family, partialSteps, candidates) {
@@ -380,43 +258,6 @@ async function rerankWithModel(env, family, partialSteps, candidates) {
   };
 }
 
-function trainingCompletion(family, partialSteps) {
-  const { ids, unknownSteps } = encodeSteps(partialSteps);
-  if (unknownSteps.length || !ids.length) return null;
-  const sequences = FAB_DATA.sequences[family] || [];
-
-  for (const seq of sequences) {
-    if (ids.length < seq.length && matchesAt(seq, 0, ids)) {
-      const steps = seq.slice(ids.length).map((id) => ID_TO_STEP[id]);
-      steps.mode = "exact_training_prefix";
-      return steps;
-    }
-  }
-
-  const maxSuffix = Math.min(18, ids.length);
-  for (let n = maxSuffix; n >= 3; n -= 1) {
-    const suffix = ids.slice(-n);
-    let best = null;
-    for (const seq of sequences) {
-      for (let start = 0; start <= seq.length - n; start += 1) {
-        if (!matchesAt(seq, start, suffix)) continue;
-        const continuationStart = start + n;
-        if (continuationStart >= seq.length) continue;
-        const positionPenalty = Math.abs(continuationStart - ids.length);
-        if (!best || n > best.n || (n === best.n && positionPenalty < best.positionPenalty)) {
-          best = { seq, continuationStart, n, positionPenalty };
-        }
-      }
-    }
-    if (best) {
-      const steps = best.seq.slice(best.continuationStart).map((id) => ID_TO_STEP[id]);
-      steps.mode = `suffix_match_${best.n}`;
-      return steps;
-    }
-  }
-  return null;
-}
-
 function sampleRoute(family, fraction) {
   const seq = FAB_DATA.sequences[family][0].map((id) => ID_TO_STEP[id]);
   const cut = Math.max(3, Math.min(seq.length - 1, Math.round(seq.length * fraction)));
@@ -430,120 +271,6 @@ function sampleRoute(family, fraction) {
     invalid_sequence: invalid,
     stats: FAB_DATA.stats[family],
   };
-}
-
-function validateSequence(steps) {
-  const violations = [];
-  const window = (i, size) => steps.slice(Math.max(0, i - size), i);
-  const anyInWindow = (i, size, targets) => window(i, size).some((s) => targets.has(s));
-
-  steps.forEach((step, i) => {
-    if (DEPOSITION_STEPS.has(step) && !anyInWindow(i, 12, CLEAN_STEPS)) {
-      violations.push(v("RULE_DEP_NO_CLEAN", i, step, "Deposition requires a prior clean step."));
-    }
-    if (METAL_ETCH_STEPS.has(step)) {
-      const w = window(i, 15);
-      const hasExpose = w.some((s) => s.startsWith("EXPOSE LITHO LEVEL"));
-      const hasDevelop = w.includes("DEVELOP PHOTORESIST") || w.includes("DEVELOP PAD WINDOW");
-      if (!hasExpose || !hasDevelop) {
-        violations.push(v("RULE_METAL_ETCH_NO_LITHO", i, step, "Metal etch requires expose and develop."));
-      }
-    }
-    if (ETCH_STEPS.has(step)) {
-      const w = window(i, 12);
-      const hasDevelop = w.includes("DEVELOP PHOTORESIST") || w.includes("DEVELOP PAD WINDOW");
-      if (!hasDevelop) violations.push(v("RULE_ETCH_NO_MASK", i, step, "Etch requires a patterned mask."));
-    }
-    if (IMPLANT_STEPS.has(step) && !anyInWindow(i, 15, IMPLANT_OPENER_STEPS)) {
-      violations.push(v("RULE_IMPLANT_NO_MASK", i, step, "Implant requires an open implant window."));
-    }
-    if (CMP_STEPS.has(step) && !anyInWindow(i, 6, FILL_STEPS)) {
-      violations.push(v("RULE_CMP_NO_DEP", i, step, "CMP requires prior deposition or fill."));
-    }
-  });
-
-  const aligns = [];
-  steps.forEach((step, i) => {
-    const m = /^ALIGN MASK LEVEL (\d+)$/.exec(step);
-    if (m) aligns.push([i, Number(m[1])]);
-  });
-  for (let i = 1; i < aligns.length; i += 1) {
-    const [prevI, prevLevel] = aligns[i - 1];
-    const [currI, currLevel] = aligns[i];
-    if (currLevel > prevLevel + 1 || currLevel < prevLevel) {
-      violations.push(
-        v("RULE_LITHO_LEVEL_SKIP", currI, steps[currI], `Litho level moved from ${prevLevel} at ${prevI} to ${currLevel}.`),
-      );
-    }
-  }
-
-  let passivationDep = -1;
-  let cure = -1;
-  steps.forEach((step, i) => {
-    if (step === "DEPOSIT PASSIVATION" || step === "DEPOSIT PASSIVATION LAYER") passivationDep = i;
-    if (step === "CURE PASSIVATION") cure = i;
-    if (PAD_WINDOW_STEPS.has(step) && (passivationDep < 0 || cure < 0 || i < passivationDep || i < cure)) {
-      violations.push(v("RULE_PAD_OPEN_BEFORE_DEP", i, step, "Pad window must follow deposited and cured passivation."));
-    }
-  });
-
-  steps.forEach((step, i) => {
-    if (ELECTRICAL_TEST_STEPS.has(step) && (cure < 0 || i < cure)) {
-      violations.push(v("RULE_TEST_BEFORE_PASSIVATION", i, step, "Electrical test must follow passivation cure."));
-    }
-    if (BACKSIDE_METAL_STEPS.has(step) && (cure < 0 || i < cure)) {
-      violations.push(v("RULE_BACKSIDE_BEFORE_PASSIVATION", i, step, "Backside metal must follow passivation cure."));
-    }
-  });
-
-  const ship = steps.indexOf("SHIP LOT");
-  const sort = steps.indexOf("WAFER SORT TEST");
-  if (ship >= 0 && (sort < 0 || ship < sort)) {
-    violations.push(v("RULE_SHIP_BEFORE_TEST", ship, "SHIP LOT", "Lot shipment must follow wafer sort test."));
-  }
-
-  return violations;
-}
-
-function v(rule, step_index, step_name, description) {
-  return { rule, step_index, step_name, description };
-}
-
-function parseSequence(input) {
-  if (Array.isArray(input)) return input.map(cleanStep).filter(Boolean);
-  return String(input || "")
-    .split(/\||\n/)
-    .map(cleanStep)
-    .filter(Boolean);
-}
-
-function cleanStep(step) {
-  return String(step || "").trim().replace(/\s+/g, " ").toUpperCase();
-}
-
-function encodeSteps(steps) {
-  const ids = [];
-  const unknownSteps = [];
-  for (const step of steps) {
-    const id = STEP_TO_ID.get(step);
-    if (id === undefined) unknownSteps.push(step);
-    else ids.push(id);
-  }
-  return { ids, unknownSteps };
-}
-
-function normalizeFamily(family) {
-  const out = String(family || "").trim().toUpperCase();
-  if (!FAB_DATA.families.includes(out)) throw new Error(`Unknown product line: ${family}`);
-  return out;
-}
-
-function matchesAt(seq, start, ids) {
-  if (start < 0 || start + ids.length > seq.length) return false;
-  for (let i = 0; i < ids.length; i += 1) {
-    if (seq[start + i] !== ids[i]) return false;
-  }
-  return true;
 }
 
 function explainPrediction(family, partialSteps, predictions) {
@@ -567,8 +294,4 @@ function extractJson(text) {
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: JSON_HEADERS });
-}
-
-function set(items) {
-  return new Set(items);
 }

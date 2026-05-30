@@ -153,6 +153,60 @@
         </div>
       </section>
 
+      <!-- ============ BATCH CSV ============ -->
+      <section class="section reveal" style="--d: 2" id="batch">
+        <div class="section-head">
+          <p class="eyebrow">Batch · CSV upload</p>
+          <h2>Predict next step for a CSV of partial routes</h2>
+          <p class="demo-note">
+            Upload a CSV with columns
+            <code>EXAMPLE_ID, FAMILY, COMPLETION_FRACTION, PARTIAL_SEQUENCE</code> — the steps in
+            <code>PARTIAL_SEQUENCE</code> joined by <code>|</code>. Each row gets a predicted next step
+            from the live <b>retrieval baseline</b>; the fine-tuned <span id="batchModelName">FabSeq-S</span>
+            uses the same endpoint.
+          </p>
+        </div>
+
+        <section class="card card-pad">
+          <div class="batch-controls">
+            <label class="btn ghost file-btn">
+              Choose CSV…
+              <input id="csvFile" type="file" accept=".csv,text/csv" hidden />
+            </label>
+            <span class="meta" id="csvFileName">No file selected</span>
+            <button id="runBatch" class="btn primary" type="button">Predict next steps</button>
+            <button id="downloadBatch" class="btn" type="button" disabled>Download results CSV</button>
+          </div>
+
+          <details class="raw-edit">
+            <summary>Or paste CSV text</summary>
+            <textarea
+              id="csvText"
+              spellcheck="false"
+              placeholder="EXAMPLE_ID,FAMILY,COMPLETION_FRACTION,PARTIAL_SEQUENCE&#10;valid_0001,MOSFET,0.6,RECEIVE WAFER LOT|LOT IDENTIFICATION|PRE CLEAN INSPECTION|…"
+            ></textarea>
+          </details>
+
+          <p class="batch-status" id="batchStatus"></p>
+
+          <div class="table-wrap">
+            <table class="table batch-table" id="batchTable" hidden>
+              <thead>
+                <tr>
+                  <th>Example</th>
+                  <th>Family</th>
+                  <th>Frac</th>
+                  <th>Steps</th>
+                  <th>Predicted next step</th>
+                  <th>Conf.</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
       <!-- ============ NEXT STEP ============ -->
       <section class="section reveal" style="--d: 2">
         <div class="section-head">
