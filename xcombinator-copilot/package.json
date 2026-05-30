@@ -6,7 +6,6 @@
   "description": "XCombinator — Fab Process Copilot. Imports a partial semiconductor fab route and predicts the next process step.",
   "scripts": {
     "dev": "vite",
-    "build:benchmarks": "node scripts/build-benchmarks.mjs",
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "deploy": "vite build && rm -rf ../infineon-results-dashboard/public/copilot && mkdir -p ../infineon-results-dashboard/public/copilot && cp -r dist/* ../infineon-results-dashboard/public/copilot/ && npm --prefix ../infineon-results-dashboard run deploy"

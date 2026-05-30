@@ -1,0 +1,47 @@
+{
+  // ── Fab Copilot live demo ──────────────────────────────────────────────
+  // Run "Demo: start all" (Terminal → Run Task… → Demo: start all) to boot both
+  // halves of the local demo in their own panels:
+  //   • model server — OpenAI-compatible inference on Apple Silicon / MPS (:8001)
+  //   • copilot UI    — the Vite dev server (:5173), points at the model server
+  // Open http://localhost:5173 and pick a model in the top bar. If the server is
+  // down the UI falls back to the simulator, so the demo never hard-fails.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Demo: start all",
+      "dependsOn": ["Demo: model server (MPS)", "Demo: copilot UI"],
+      "dependsOrder": "parallel",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Demo: model server (MPS)",
+      "type": "shell",
+      "command": "uv run python scripts/serve_copilot_mac.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "demo",
+        "panel": "dedicated",
+        "reveal": "always",
+        "clear": true
+      }
+    },
+    {
+      "label": "Demo: copilot UI",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/xcombinator-copilot" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "group": "demo",
+        "panel": "dedicated",
+        "reveal": "always",
+        "clear": true
+      }
+    }
+  ]
+}

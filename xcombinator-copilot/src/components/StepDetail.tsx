@@ -1,4 +1,4 @@
-import type { Prediction, Violation } from '../types'
+import type { Prediction } from '../types'
 import type { Category } from '../lib/grammar'
 import type { StepRule } from '../lib/rules'
 
@@ -10,22 +10,13 @@ interface Props {
   category: Category
   description: string | null
   prediction: Prediction | null
-  /** does appending prediction.step keep the route grammar-valid? */
-  predValid: boolean
-  /** the new violation appending the step would introduce, if any */
-  predViolation: Violation | null
   rule: StepRule | null
   fraction: number
   isHead: boolean
   complete: boolean
 }
 
-/** Compact, human-readable name for a rule id, e.g. RULE_DEP_NO_CLEAN → "dep no clean". */
-function prettyRule(rule: string): string {
-  return rule.replace(/^RULE_/, '').replace(/_/g, ' ').toLowerCase()
-}
-
-export default function StepDetail({ step, idx, total, phaseName, category, description, prediction, predValid, predViolation, rule, fraction, isHead, complete }: Props) {
+export default function StepDetail({ step, idx, total, phaseName, category, description, prediction, rule, fraction, isHead, complete }: Props) {
   const pct = Math.round(Math.min(1, fraction) * 100)
   return (
     <aside className="detail glass">
@@ -64,13 +55,11 @@ export default function StepDetail({ step, idx, total, phaseName, category, desc
       {isHead && prediction && !complete && (
         <div className="d-row">
           <div className="d-label">Predicted next</div>
-          <div className={`d-pred${predValid ? '' : ' breaks'}`}>
+          <div className="d-pred">
             <span className="pp-ghost" />
             <span className="pp-body">
               <span className="pp-name mono">{prediction.step}</span>
-              <span className="pp-conf">
-                {predValid ? '✓ valid next step' : `⚠ would break ${predViolation ? prettyRule(predViolation.rule) : 'a rule'}`}
-              </span>
+              <span className="pp-conf">confidence · {prediction.source}</span>
             </span>
             <span className="pp-pct mono">{Math.round(prediction.confidence * 100)}%</span>
           </div>
