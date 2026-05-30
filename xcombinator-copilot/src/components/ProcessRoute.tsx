@@ -157,10 +157,14 @@ export default function ProcessRoute(props: Props) {
   }
 
   return (
-    <div className="track-wrap" ref={wrapRef}>
+    <div className="track-frame">
+      {/* fades live in the non-scrolling frame so they stay pinned to the
+          visible edges instead of scrolling away with the track content */}
       <div className="track-fade l" />
       <div className="track-fade r" />
-      <div className="track">{items}</div>
+      <div className="track-wrap" ref={wrapRef}>
+        <div className="track">{items}</div>
+      </div>
     </div>
   )
 }

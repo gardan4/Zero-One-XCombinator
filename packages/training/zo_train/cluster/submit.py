@@ -14,6 +14,8 @@ from zo_train.cluster._remote import (
     env,
     expand_cluster_path,
     load_dotenv,
+    prepare_cluster_for_job,
+    push_cluster_env,
     scp_download,
     scp_upload,
     ssh_run,
@@ -134,6 +136,7 @@ def submit_run(
     kind: str | None = None,
     *,
     dry_run: bool = False,
+    no_prep: bool = False,
 ) -> SubmitResult:
     """Render (and optionally submit) a SLURM training job."""
     ensure_cluster_env()
@@ -169,6 +172,7 @@ def submit_run(
         return SubmitResult(run_id=run.id, sbatch_path=sbatch_path, rendered_only=True)
 
     target = f"{user}@{host}"
+    prepare_cluster_for_job(skip=no_prep)
     ssh_run(target, f"mkdir -p {remote_dir}", check=True)
     scp_upload(local_dir / "meta.json", target, f"{remote_dir}/meta.json")
     scp_upload(local_dir / "config.yaml", target, f"{remote_dir}/config.yaml")
@@ -195,8 +199,13 @@ def submit(
     config: str = typer.Option(..., "--config", "-c"),
     kind: str | None = typer.Option(None, help="Override YAML kind (default: read from config)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Render the sbatch but don't ssh."),
+    no_prep: bool = typer.Option(
+        False,
+        "--no-prep",
+        help="Skip push-env/sync-code/uv sync (or set ZO_CLUSTER_SKIP_PREP=1).",
+    ),
 ) -> None:
-    result = submit_run(config, kind, dry_run=dry_run)
+    result = submit_run(config, kind, dry_run=dry_run, no_prep=no_prep)
     typer.echo(f"run {result.run_id} -> {result.sbatch_path}")
     if result.rendered_only:
         if not (env("ZO_CLUSTER_HOST") and env("ZO_CLUSTER_USER")):
@@ -214,6 +223,19 @@ def pull_run_cmd(
 ) -> None:
     """Sync ``meta.json`` + ``metrics.jsonl`` from cluster scratch to the local run store."""
     pull_run_from_cluster(run_id)
+
+
+@app.command("push-env")
+def push_env_cmd() -> None:
+    """Push local ``.env`` secrets to the cluster repo (also runs before submit/eval)."""
+    ensure_cluster_env()
+    ensure_remote_path_vars()
+    target = ssh_target()
+    if not target:
+        raise typer.BadParameter("Set ZO_CLUSTER_HOST and ZO_CLUSTER_USER in .env.")
+    repo_dir = cluster_repo_dir()
+    push_cluster_env(target, repo_dir)
+    typer.secho(f"pushed .env to {target}:{repo_dir}", fg="green")
 
 
 @app.command("sync-code")

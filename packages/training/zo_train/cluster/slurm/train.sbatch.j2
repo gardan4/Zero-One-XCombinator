@@ -24,8 +24,17 @@ fi
 _trim_env() {
   printf '%s' "${1:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/\r$//'
 }
+if [[ -n "${WANDB_API_KEY:-}" ]]; then
+  export WANDB_API_KEY="$(_trim_env "$WANDB_API_KEY")"
+fi
 if [[ -n "${WANDB_MODE:-}" ]]; then
   export WANDB_MODE="$(_trim_env "$WANDB_MODE")"
+fi
+if [[ -n "${WANDB_ENTITY:-}" ]]; then
+  export WANDB_ENTITY="$(_trim_env "$WANDB_ENTITY")"
+fi
+if [[ -n "${WANDB_PROJECT:-}" ]]; then
+  export WANDB_PROJECT="$(_trim_env "$WANDB_PROJECT")"
 fi
 
 # --- Leonardo environment ----------------------------------------------------

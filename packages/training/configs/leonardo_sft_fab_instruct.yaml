@@ -6,7 +6,7 @@ name: leonardo-sft-fab-instruct-all
 kind: sft
 model: $SCRATCH/hf-local/Qwen2.5-1.5B-Instruct
 dataset: data/generated/instruct_all.jsonl
-text_field: ""            # empty -> prompt/completion path (completion-only loss)
+text_field: messages       # shared system+user+assistant rows from datagen instruct_all.jsonl
 lora: false
 bf16: true
 max_seq_len: 1024

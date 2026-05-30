@@ -29,7 +29,8 @@ import math
 from collections.abc import Callable, Iterable
 
 from zo_common.llm import content, token_logprobs
-from zo_train.datagen import SEP, anomaly_example
+from zo_train.prompts import build_messages as build_sft_messages
+from zo_train.datagen import SEP
 
 from zo_eval.predict import parse_anomaly
 from zo_eval.submission import AnomalyInput
@@ -85,9 +86,8 @@ def served_logodds_scorer(
     _chat = chat_fn or _default_chat
 
     def _score(item: AnomalyInput) -> float:
-        prompt = anomaly_example(item.family, item.sequence, is_valid=True)["prompt"]
         resp = _chat(
-            [{"role": "user", "content": prompt}],
+            build_sft_messages("anomaly", item),
             model=model,
             base_url=base_url,
             temperature=temperature,
@@ -230,9 +230,8 @@ class ClassifierDetector:
         return []
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        prompt = anomaly_example(item.family, item.sequence, is_valid=True)["prompt"]
         resp = self._chat(
-            [{"role": "user", "content": prompt}],
+            build_sft_messages("anomaly", item),
             model=self.model,
             base_url=self.base_url,
             temperature=self.temp,
