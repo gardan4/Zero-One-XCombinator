@@ -65,12 +65,26 @@ Point at any organizer-format inputs; omit `--gold` if you have no labels (outpu
 
 ```bash
 uv run zo-track predict -p hf \
-  --model "$ZO_INFER_MODEL_PATH" \
+  --model "XCombinator/leonardo-smoke-qwen-0.5b-lora" \
   --valid  /path/to/eval_input_valid.csv \
   --anomaly /path/to/eval_input_anomaly.csv \
   --out    extras/results \
   --tasks  nextstep,completion,anomaly
 ```
+
+LoRA adapters auto-resolve the base model from `adapter_config.json` (Leonardo scratch paths
+are mapped to public HF ids). Override with `ZO_INFER_BASE_MODEL=Qwen/Qwen2.5-0.5B-Instruct`.
+
+**Programmatic API** (same loader used by `-p hf`):
+
+```python
+from zo_common.hub_inference import HubInferenceClient
+
+client = HubInferenceClient("XCombinator/leonardo-smoke-qwen-0.5b-lora")
+text = client.complete("Your prompt here")
+```
+
+Smoke: `uv run python -m zo_common.hub_inference` (needs `HF_TOKEN` + `uv sync --extra gpu`).
 
 Input/output column specs: `packages/eval/zo_eval/submission.py`.
 

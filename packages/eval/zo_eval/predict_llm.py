@@ -102,25 +102,13 @@ class HFGeneratePredictor:
     name = "hf"
 
     def __init__(self, model: str, device: str | None = None, max_new_tokens: int = 256):
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from zo_common.hub_inference import HubInferenceClient
 
-        self._torch = torch
-        self.tok = AutoTokenizer.from_pretrained(model)
-        self.model = AutoModelForCausalLM.from_pretrained(model)
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device).eval()
-        self.max_new_tokens = max_new_tokens
+        self._client = HubInferenceClient(model, device=device, max_new_tokens=max_new_tokens)
         self.vocab = vocab()
 
     def _gen(self, prompt: str, max_new_tokens: int | None = None) -> str:
-        text = self.tok.apply_chat_template(
-            [{"role": "user", "content": prompt}], tokenize=False, add_generation_prompt=True
-        )
-        ids = self.tok(text, return_tensors="pt").to(self.device)
-        with self._torch.no_grad():
-            out = self.model.generate(**ids, max_new_tokens=max_new_tokens or self.max_new_tokens, do_sample=False)
-        return self.tok.decode(out[0][ids["input_ids"].shape[1] :], skip_special_tokens=True)
+        return self._client.generate(prompt, max_new_tokens=max_new_tokens or self._client.max_new_tokens)
 
     def next_step(self, item: ValidInput) -> list[str]:
         prompt = (
