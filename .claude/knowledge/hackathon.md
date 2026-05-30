@@ -36,8 +36,8 @@ The **repository** must:
 
 `REPORT.md` sections (2–4 pages, from `REPORT_TEMPLATE.md`): Team · **TL;DR** · **Problem** (specific,
 not "improve X") · **Approach** (3–5 bullets incl. where it runs) · **How to run it** (exact commands) ·
-**Results** (headline metric + baseline comparison + per-family breakdown; paste `eval_metrics.py`
-scores) · **What worked** · **What didn't** · **Next 36 h** (concrete) · **Credits & dependencies**
+**Results** (headline metric + baseline comparison + per-family breakdown; paste `metrics_report.md`
+from `zo-track`) · **What worked** · **What didn't** · **Next 36 h** (concrete) · **Credits & dependencies**
 (libs+versions, models, APIs, **AI coding tools used**, datasets+licenses) · **A note on honesty**
 (disclose anything mocked/hardcoded — the jury asks in Q&A). Template + spec are vendored at
 **`docs/submission/REPORT_TEMPLATE.md`** and **`docs/submission/SUBMISSION.md`**.
@@ -45,8 +45,10 @@ scores) · **What worked** · **What didn't** · **Next 36 h** (concrete) · **C
 Repo-layout conventions the template assumes: eval outputs + raw scores in **`extras/results/`**,
 optional architecture sketch in **`extras/`**. (Minor inconsistency: SUBMISSION.md says `REPORT.md` at
 **repo root**, REPORT_TEMPLATE.md's header says `/submissions/{team}/REPORT.md` — go with **root**, it's
-the authoritative checklist.) Note `judging/rubrics.md` is linked from SUBMISSION.md but **absent
-upstream** — only the general rubric below is published. Industrial AI: [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md); HF **`XCombinator`**; W&B **`XCombinator/XCombinator`**.
+the authoritative checklist.) `judging/rubrics.md` is linked but **not published** — Industrial AI
+criteria are in the track brief + `generation_rules.md` §5 + SUBMISSION “What we judge”. We do not
+receive `eval_metrics.py` (organizers score our CSVs). See [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
+HF **`XCombinator`**; W&B **`XCombinator/XCombinator`**.
 
 > **Action items this implies for us:** confirm the root `LICENSE` is MIT (it exists — verify text),
 > write a root **`REPORT.md`** from the vendored template, ensure a **`requirements.txt`**-equivalent

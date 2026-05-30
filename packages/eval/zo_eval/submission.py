@@ -1,8 +1,8 @@
 """Eval-input + submission CSV I/O for the Industrial AI track — EXACT organizer formats.
 
 Getting the columns right matters most: a perfect model with the wrong header scores zero.
-These match generation_rules.md §5.3 byte-for-byte. The authoritative scorer ``eval_metrics.py``
-arrives at kickoff; ``track_metrics.py`` is the local stand-in until then.
+These match generation_rules.md §5.3 byte-for-byte. Organizers score our CSVs with their script;
+``track_metrics.py`` implements the documented metrics for self-eval on data we label locally.
 
 Eval inputs (organizers distribute at kickoff; we also synthesize our own for local OOD eval):
   eval_input_valid.csv   : EXAMPLE_ID, FAMILY, COMPLETION_FRACTION, PARTIAL_SEQUENCE   (Tasks 1 & 2)

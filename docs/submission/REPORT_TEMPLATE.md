@@ -72,6 +72,15 @@ The numbers. This is the section the jury reads most carefully.
 
 If you used the track's official scoring script (Infineon `eval_metrics.py`), paste the scores here. If you defined your own metrics, explain what they measure and why they are the right metrics for what you built.
 
+**========== XCombinator-TEAM-START ==========**  
+*(not in original Lumos REPORT_TEMPLATE)*
+
+We do not receive `eval_metrics.py`. Paste scores from `experiments/<run>/results/metrics_report.md`
+(from `zo-track predict`, metrics in `generation_rules.md` §5). Organizers score submitted CSVs
+with their script.
+
+**========== XCombinator-TEAM-END ==========**
+
 ---
 
 ## What worked
@@ -109,6 +118,8 @@ Each track has additional required outputs beyond this report. Confirm yours are
   - `anomaly.csv` (Task 3 format)
 - [ ] Training artifacts: checkpoint(s), training logs, loss curves
 - [ ] Scores from `eval_metrics.py` on all three tasks, with per-family breakdown
+
+<!-- XCombinator-TEAM: use metrics_report.md from zo-track instead — we do not receive eval_metrics.py -->
 - [ ] Demo shows baseline vs. trained output on identical inputs
 
 ### 📈 Forecasting AI (Sybilion)

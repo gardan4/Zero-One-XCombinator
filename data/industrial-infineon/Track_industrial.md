@@ -1,6 +1,20 @@
 # Track: Industrial AI
 ## Use Case Title: Prozesslogik lernen und benchmarken
 
+---
+**========== XCombinator-TEAM-START ==========**  
+*(nicht im Original der Organisatoren / Lumos `Track_industrial.md`)*
+
+Wir erhalten kein `eval_metrics.py` — die Organisatoren bewerten unsere drei CSV-Abgaben.
+Self-Eval: `packages/eval/zo_eval/track_metrics.py`. Kein `judging/rubrics.md`; Kriterien in
+diesem Brief + `docs/submission/SUBMISSION.md` + `training_data/generation_rules.md` §5.
+Siehe `docs/track-industrial-sources.md` und `docs/XCOMBINATOR-TEAM-ADDITIONS.md`.
+
+**========== XCombinator-TEAM-END ==========**  
+*(Original-Briefing folgt unten)*
+
+---
+
 **Challenge Owner:** TBD
 **Mentor(en):** TBD
 **Schwierigkeitsgrad:** Fortgeschritten bis Expert

@@ -2,8 +2,8 @@
 
 This is the spine every stream shares: pick a ``Predictor`` (ngram / oracle / llm / hf / …), point it
 at organizer-format eval inputs, and get submission CSVs in ``extras/results/`` + scored, tagged runs
-the dashboard can compare. Mirrors the organizers' ``eval_metrics.py`` so it's drop-in once theirs
-lands at kickoff (the CSV formats already match ``submission.py``).
+the dashboard can compare. CSV formats match ``submission.py``; metrics match ``track_metrics.py``
+(documented in ``generation_rules.md`` §5 — organizers score submissions with their own tooling).
 
 Metric/tag convention (the dashboard's contract — keep flat, the frontend reads `Record<str,num>`):
   scalars: top1/top3/top5/mrr · em/ned/token_acc/block_acc ·

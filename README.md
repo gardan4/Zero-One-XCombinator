@@ -66,10 +66,12 @@ and eval different ideas at once without stepping on each other. See [`CLAUDE.md
 
 ## Track eval, artifacts, and known gaps
 
-Industrial AI (Infineon) scoring uses three submission CSVs and metrics documented in
-`data/industrial-infineon/training_data/generation_rules.md`. The organizer scorer
-`eval_metrics.py` and kickoff eval CSVs are **not** in the public repo — see
-**[docs/track-industrial-sources.md](docs/track-industrial-sources.md)**.
+Industrial AI (Infineon): submit three CSVs (`nextstep`, `completion`, `anomaly`); organizers score
+them with their script (we do **not** get `eval_metrics.py`). Self-eval on hold-out data:
+`zo_eval/track_metrics.py` via `zo-track predict`. Judging criteria are in the track brief +
+`generation_rules.md` §5 (no separate `rubrics.md`). See
+**[docs/track-industrial-sources.md](docs/track-industrial-sources.md)**. Vendored briefs: search
+`XCombinator-TEAM-START` for our notes vs [upstream text](docs/XCOMBINATOR-TEAM-ADDITIONS.md).
 
 | Where | What |
 |-------|------|

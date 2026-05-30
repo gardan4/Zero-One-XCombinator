@@ -2,10 +2,10 @@
 
 Code: `packages/eval/zo_eval/` (`tasks.py`, `harness.py`, `cli.py`). Tasks: `packages/eval/tasks/*.yaml`.
 
-> **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** the scored eval is **3 process
-> tasks** (next-step / completion / anomaly). **`eval_metrics.py` and kickoff CSVs are not in the public
-> repo** — use `track_metrics.py` + `extras/eval_local/` until kickoff. **`judging/rubrics.md` is also
-> unpublished**; see [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
+> **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** submit 3 CSVs; organizers score
+> with **their** script (we do **not** get `eval_metrics.py`). Self-eval: **`track_metrics.py`** implements
+> the metrics in `generation_rules.md` §5 on `extras/eval_local/` + `gold.json`. No `rubrics.md` — criteria
+> in SUBMISSION + track brief + §5. See [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
 > Checkpoints: HF **`XCombinator`**; logs: W&B **`XCombinator/XCombinator`**. Not the OpenAI harness below.
 
 ## How it works
@@ -34,11 +34,9 @@ Drop a new YAML in `packages/eval/tasks/`. Example: `tasks/example.yaml` = `arit
   `write_anomaly` (the 3 submission files → `extras/results/`), and `make_local_eval_set(valid_seqs,
   negatives, out)` which synthesizes organizer-format eval inputs + `gold.json` from held-out data so
   the full input→predict→write→score path runs **before kickoff** (e.g. on a LOFO test family).
-- **`track_metrics.py`** = stand-in scorer for every documented metric (Top-1/3/5+MRR; ExactMatch/
-  NormEditDist/TokenAcc/BlockAcc; BinAcc/P/R/F1/confusion/ROC-AUC/RuleAttribution). Anomaly positive
-  class = INVALID; ROC-AUC uses SCORE=P(valid). `per_family(score_fn, preds, gold, family_of)` gives
-  the required per-family breakdown. **Authoritative scorer = organizers' `eval_metrics.py` at
-  kickoff**; NormEditDist/TokenAcc/BlockAcc are sensible stand-in definitions to reconcile then.
+- **`track_metrics.py`** = our self-eval scorer for every documented metric (Top-1/3/5+MRR; ExactMatch/
+  NormEditDist/TokenAcc/BlockAcc; BinAcc/P/R/F1/confusion/ROC-AUC/RuleAttribution). Organizers use their
+  own script on submitted CSVs. `per_family` / `per_cut_fraction` for report breakdowns.
 - Verified end-to-end: perfect preds → top1/EM/F1/AUC = 1.0 (`python -m zo_eval.submission`).
 
 ### Inference/predict core (2026-05-30) — `predict.py` + `baselines.py` + `track.py`/`track_cli.py`
@@ -51,7 +49,7 @@ The shared, model-agnostic path every stream uses (there was NO inference code b
   `OraclePredictor` (`validate_sequence` — the **submitted** anomaly path, ~100%), `FreqPredictor`.
 - **`track.py` / `track_cli.py`** (`zo-track`, `just track` / `just local-eval`) — run a predictor →
   write the 3 CSVs (namespaced `experiments/<run>/results/`) → score+`per_family` → flat tagged
-  scalars in the registry. Driver mirrors the organizers' `eval_metrics.py` (drop-in at kickoff).
+  scalars in the registry + `metrics_report.md`.
 - **Metric/tag convention (dashboard contract):** flat scalars `top1/top3/top5/mrr`,
   `em/ned/token_acc/block_acc`, `anomaly_acc/anomaly_p/anomaly_r/anomaly_f1/anomaly_auc/rule_attr_acc`,
   `cm_tp/fp/tn/fn`; per-family adds `_MOSFET|_IGBT|_IC`; per-cut adds `_frac60` / `_frac80` (60%/80%).

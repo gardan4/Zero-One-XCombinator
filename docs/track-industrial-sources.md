@@ -1,66 +1,76 @@
-# Industrial AI track — sources, gaps, and where our artifacts live
+# Industrial AI track — sources, scoring, and artifacts
 
-This doc is the team’s **source of truth** for what the public Lumos track repo includes vs what organizers
-hand out at kickoff, and where **our** checkpoints and training logs live (not in git).
+> **Entire file is XCombinator-authored** (not from the Lumos/upstream hackathon pack). For inline notes
+> inserted into vendored briefs, search `XCombinator-TEAM-START` or see
+> [XCOMBINATOR-TEAM-ADDITIONS.md](XCOMBINATOR-TEAM-ADDITIONS.md).
 
-## What we have in this repository
+Team **source of truth** for what is in the repo, how judging works, and where checkpoints/logs live.
 
-| Source | Location | Use |
-|--------|----------|-----|
-| Track brief (EN) | `data/industrial-infineon/Track_industrial_en.md` | Same text as `docs/Track One Assignment.txt` |
-| Track brief (DE) | `data/industrial-infineon/Track_industrial.md` | German briefing |
-| Data + grammar + generator | `data/industrial-infineon/training_data/` | 3×1000 sequences, `generation_rules.md`, `generate_sequences.py` |
-| Eval protocol (metrics + CSV formats) | `generation_rules.md` §5 | Authoritative **formats**; metric *definitions* for NED/token/block may differ slightly from our stand-in scorer until kickoff |
-| Submission checklist | `docs/submission/SUBMISSION.md`, `REPORT_TEMPLATE.md` | Tally + repo deliverables |
-| Local stand-in scorer | `packages/eval/zo_eval/track_metrics.py` | All documented task metrics + per-family (+ per-cut) breakdown |
-| Local eval proxy | `extras/eval_local/` (regenerate: `just local-eval MOSFET`) | Organizer-format CSVs + `gold.json` from held-out data |
+## Judging criteria (no separate `rubrics.md`)
 
-## What we do **not** have (and should not wait on to build)
+`docs/submission/SUBMISSION.md` links to `judging/rubrics.md`, but **that file is not published** and we do not receive it. Everything we need is already in the repo:
 
-| Missing item | Referenced by | What we do instead |
-|--------------|---------------|-------------------|
-| **`eval_metrics.py`** | Track README, `SUBMISSION.md`, `generation_rules.md` | `zo_eval/track_metrics.py` + `zo-track predict` (reconcile numbers when the official script lands) |
-| **Kickoff eval inputs** | `eval_input_valid.csv` (600 rows), `eval_input_anomaly.csv` (987 rows) | `extras/eval_local/` until organizers distribute the fixed set; swap paths in `zo-track` / `just judge-eval` |
-| **`judging/rubrics.md`** | `docs/submission/SUBMISSION.md` (link only) | **Not published upstream.** Judge using: general rubric in `SUBMISSION.md` (“What we judge”), track brief §7, and `generation_rules.md` §5. No per-track numeric rubric weights in repo. |
+| Topic | Where |
+|-------|--------|
+| General jury bar (working artifact, honest eval, infra, no wrappers) | `docs/submission/SUBMISSION.md` — “What we judge” |
+| Track problem, tasks, metrics, stretch goals | `data/industrial-infineon/Track_industrial_en.md` (= `docs/Track One Assignment.txt`) |
+| CSV formats + metric names | `data/industrial-infineon/training_data/generation_rules.md` §5 |
+| Data + eval overview | `data/industrial-infineon/README.md`, `training_data/README.md` |
+| Repo deliverables checklist | `docs/submission/REPORT_TEMPLATE.md` |
 
-When kickoff files arrive, copy them to e.g. `extras/eval_kickoff/` (gitignored or committed per team choice), set
-`ZO_JUDGE_EVAL_DIR`, and re-run inference with tag `eval-set:kickoff`.
+## Scoring: what we submit vs what we run locally
 
-## Official metrics (all three scored tasks)
+**We do not receive `eval_metrics.py`.** The organizers score our three output CSVs with **their own** script after submission. Our job is to produce correctly formatted files:
 
-Documented in `generation_rules.md` §5.2. Our registry / `metrics_report.md` use the same names (flat keys).
+- `nextstep.csv` — `EXAMPLE_ID,RANK_1..RANK_5`
+- `completion.csv` — `EXAMPLE_ID,PREDICTED_SEQUENCE`
+- `anomaly.csv` — `EXAMPLE_ID,IS_VALID,SCORE,PREDICTED_RULE`
 
-**Task 1 — next-step:** `top1`, `top3`, `top5`, `mrr` (+ per-family `_MOSFET` etc., per-cut `top1_frac60` …)
-
-**Task 2 — completion:** `em`, `ned`, `token_acc`, `block_acc` (lead with **ned** / **block_acc** in the report; EM is often ~0)
-
-**Task 3 — anomaly:** `anomaly_acc`, `anomaly_p`, `anomaly_r`, `anomaly_f1`, `anomaly_auc`, `rule_attr_acc`, `cm_tp/fp/tn/fn`
-
-**Task 4 (organizers only):** ID→OOD performance drop on a hidden 4th family — no submission file; report our **LOFO** proxy from tagged runs (`split:ood,family:<held-out>`).
-
-## Trained artifacts (not in git)
-
-| Artifact | Location | Notes |
-|----------|----------|--------|
-| **Model checkpoints** | Hugging Face org **`XCombinator`** | e.g. `XCombinator/sft-fab-all`, LOFO variants, smoke LoRA repos. Upload via `scripts/leonardo_upload_artifact.sh` / training `extra.hub_model_id`. |
-| **Training logs & curves** | Weights & Biases **`XCombinator/XCombinator`** | Set `WANDB_ENTITY` / `WANDB_PROJECT` in `.env`. Leonardo compute: `WANDB_MODE=offline` then `wandb sync` on login. |
-| **Run registry + eval CSVs** | `experiments/<run_id>/` or `$ZO_EXPERIMENTS_DIR` | `meta.json`, `metrics.jsonl`, `results/{nextstep,completion,anomaly}.csv`, `metrics_report.json` |
-
-Reproduce eval on a checkpoint:
+**Self-evaluation** on data we hold (training hold-outs or a local proxy set) uses our implementation of the **same documented metrics** in `packages/eval/zo_eval/track_metrics.py`, driven by `zo-track predict` → `metrics_report.json` / `metrics_report.md`. Wrong CSV columns still score zero on their side; our stand-in does not change that.
 
 ```bash
-# Local / login node (HF hub, no vLLM):
-uv run zo-track predict -p hf --model XCombinator/sft-fab-lofo-mosfet \
-  --version sft-lofo-mosfet-v1 --model-ref XCombinator/sft-fab-lofo-mosfet \
+uv run zo-track predict -p ngram -V ngram-v1 \
   --valid extras/eval_local/eval_input_valid.csv \
   --anomaly extras/eval_local/eval_input_anomaly.csv \
   --gold extras/eval_local/gold.json \
-  --tags split:ood,family:MOSFET,eval-set:local
-
-# Baseline (no GPU):
-uv run zo-track predict -p ngram --train-families IGBT,IC \
-  --version ngram-lofo-v1 --tags split:ood,family:MOSFET,predictor:ngram,eval-set:local \
-  --valid ... --gold ...
+  --tags split:id,eval-set:local
+# → experiments/<run>/results/metrics_report.md
 ```
 
-See `docs/leonardo-eval.md` and `packages/training/configs/README.md` for cluster batch paths.
+Regenerate local organizer-format inputs: `just local-eval MOSFET` → `extras/eval_local/`.
+
+If organizers distribute a **fixed kickoff eval set** (`eval_input_valid.csv`, `eval_input_anomaly.csv`), use those paths for final predictions; we still self-score only where we have labels (`gold.json` from hold-out synthesis or labels they provide).
+
+## Documented metrics (Tasks 1–3)
+
+From `generation_rules.md` §5.2 — implemented in `track_metrics.py`:
+
+| Task | Metrics |
+|------|---------|
+| Next-step | Top-1/3/5 accuracy, MRR |
+| Completion | Exact match, normalized edit distance, token accuracy, block-level accuracy |
+| Anomaly | Binary accuracy, precision, recall, F1, confusion matrix, ROC-AUC, rule attribution accuracy |
+
+Registry keys and per-family / per-cut (`_frac60`, `_frac80`) breakdowns: see `.claude/knowledge/eval.md`.
+
+**Task 4 (OOD):** organizers only — hidden 4th family, ID→OOD drop. We report a **LOFO proxy** (`split:ood,family:<held-out>`).
+
+## What is in the repo vs optional at kickoff
+
+| Item | In public repo? | Our approach |
+|------|-----------------|--------------|
+| Training data + grammar | Yes — `data/industrial-infineon/` | |
+| Eval protocol (formats + metric names) | Yes — `generation_rules.md` §5 | |
+| **`eval_metrics.py`** | **No — not given to teams** | `track_metrics.py` for self-eval |
+| **`judging/rubrics.md`** | **No** | Criteria in table above |
+| Fixed kickoff `eval_input_*.csv` | Often distributed at event | `extras/eval_local/` until then |
+
+## Trained artifacts (not in git)
+
+| Artifact | Location |
+|----------|----------|
+| Checkpoints | Hugging Face **`XCombinator`** |
+| Training logs / loss curves | W&B **`XCombinator/XCombinator`** |
+| Eval CSVs + reports | `experiments/<run_id>/results/` or `extras/results/` |
+
+See `docs/leonardo-eval.md`, `packages/training/configs/README.md`, `.env.example`.

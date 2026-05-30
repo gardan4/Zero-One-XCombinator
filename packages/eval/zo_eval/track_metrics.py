@@ -1,14 +1,12 @@
-"""Local stand-in scorer for the 3 Industrial AI track tasks.
+"""Self-eval scorer for the 3 Industrial AI track tasks (organizers use their own script on our CSVs).
 
-Matches the **documented metric set** (generation_rules.md §5.2) so every stream can measure
-locally *before* the organizers' authoritative ``eval_metrics.py`` arrives at kickoff. Pure
-stdlib; operates on in-memory structures (the CSV I/O lives in ``submission.py``).
+Teams do **not** receive ``eval_metrics.py``. Organizers score submitted ``nextstep.csv`` /
+``completion.csv`` / ``anomaly.csv`` privately. This module implements the **documented** metric set
+from ``generation_rules.md`` §5.2 so we can measure on hold-out / local proxy data before submit.
 
-> Honesty note: the submission **format** (column names) is authoritative — get it right or score
-> zero. These **numbers** are a faithful guide, but the exact definitions of Normalized Edit
-> Distance (normalization), Token Accuracy (alignment), and "Block-level Accuracy" are the
-> organizers' to fix; ours are sensible, documented choices to reconcile with ``eval_metrics.py``
-> at kickoff. Top-k / MRR / binary-acc / P-R-F1 / ROC-AUC / rule-attribution are unambiguous.
+> Submission **column names** are authoritative — wrong format → zero on their side. NED / token /
+> block accuracy use documented stand-in definitions here (see ``score_completion``); top-k, MRR,
+> P/R/F1, ROC-AUC, and rule-attribution follow the spec directly.
 
 Conventions:
 - **Anomaly = positive class is INVALID** (we are detecting violations). So precision/recall/F1

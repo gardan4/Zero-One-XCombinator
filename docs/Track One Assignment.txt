@@ -1,6 +1,17 @@
 # Track: Industrial AI
 ## Use Case Title: Learning and Benchmarking Process Logic
 
+========== XCombinator-TEAM-START ==========
+(not in original organizer / Lumos Track One Assignment)
+
+We do not receive eval_metrics.py — organizers score our submitted CSVs with their script.
+Self-eval on hold-out data: packages/eval/zo_eval/track_metrics.py (metrics in generation_rules.md §5).
+judging/rubrics.md is not published; judging criteria are in this file, SUBMISSION.md, and §5.
+See docs/track-industrial-sources.md and docs/XCOMBINATOR-TEAM-ADDITIONS.md.
+
+========== XCombinator-TEAM-END ==========
+(original briefing continues below)
+
 **Challenge Owner:** TBD
 **Mentor(s):** TBD
 **Difficulty Level:** Advanced to Expert

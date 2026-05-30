@@ -1,4 +1,4 @@
-"""Track metrics + reporting (Industrial AI eval stand-in)."""
+"""Track metrics + reporting (Industrial AI self-eval; organizers score our CSVs separately)."""
 
 from zo_eval import track_metrics as M
 

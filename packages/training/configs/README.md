@@ -56,7 +56,7 @@ driver** (`zo-track`) produces the three submission CSVs + `metrics_report.md`:
 # 1. serve the full-FT checkpoint (vLLM, OpenAI-compatible; no merge needed)
 just serve experiments/<run_id>/artifacts
 
-# 2. generate + score submissions against the organizers' kickoff eval inputs
+# 2. generate submissions; self-score with gold.json (organizers score CSVs with their script)
 zo-track predict -p hf --model XCombinator/sft-fab-lofo-mosfet \
   --version sft-lofo-mosfet-v1 --model-ref XCombinator/sft-fab-lofo-mosfet \
   --valid   eval_input_valid.csv \
