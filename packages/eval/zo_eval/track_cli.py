@@ -18,7 +18,6 @@ import random
 from pathlib import Path
 
 import typer
-
 from zo_common.env import load_dotenv
 
 load_dotenv()
