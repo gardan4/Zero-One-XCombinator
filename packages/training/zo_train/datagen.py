@@ -447,6 +447,7 @@ def build_all(
             target_cycle += 1
             neg = make_negative(rng.choice(train_seqs), rng, rule=rule)
             if neg:
+                neg["family"] = fam  # so per-family eval + make_local_eval_set can group negatives
                 negs.append(neg)
                 for r in neg["rules"]:
                     per_rule[r] = per_rule.get(r, 0) + 1

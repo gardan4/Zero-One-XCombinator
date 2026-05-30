@@ -41,3 +41,20 @@ Drop a new YAML in `packages/eval/tasks/`. Example: `tasks/example.yaml` = `arit
   the required per-family breakdown. **Authoritative scorer = organizers' `eval_metrics.py` at
   kickoff**; NormEditDist/TokenAcc/BlockAcc are sensible stand-in definitions to reconcile then.
 - Verified end-to-end: perfect preds → top1/EM/F1/AUC = 1.0 (`python -m zo_eval.submission`).
+
+### Inference/predict core (2026-05-30) — `predict.py` + `baselines.py` + `track.py`/`track_cli.py`
+The shared, model-agnostic path every stream uses (there was NO inference code before this).
+- **`predict.py`** — `Predictor` Protocol (`next_step`/`complete`/`anomaly`) + the **output
+  normalizer**: `snap(text, vocab, strict)` (free text → exact step; `strict=False` passes novel OOD
+  tokens through), `parse_pipe_list`, `extract_answer` (strip `<think>`), `parse_anomaly`. Owns the
+  separator translation: prompts use `" | "` (`datagen.SEP`), CSVs use `"|"` (`submission.STEP_SEP`).
+- **`baselines.py`** — `NGramPredictor` (back-off; restrict to LOFO train families for OOD),
+  `OraclePredictor` (`validate_sequence` — the **submitted** anomaly path, ~100%), `FreqPredictor`.
+- **`track.py` / `track_cli.py`** (`zo-track`, `just track` / `just local-eval`) — run a predictor →
+  write the 3 CSVs (namespaced `experiments/<run>/results/`) → score+`per_family` → flat tagged
+  scalars in the registry. Driver mirrors the organizers' `eval_metrics.py` (drop-in at kickoff).
+- **Metric/tag convention (dashboard contract):** flat scalars `top1/top3/top5/mrr`,
+  `em/ned/token_acc/block_acc`, `anomaly_acc/anomaly_p/anomaly_r/anomaly_f1/anomaly_auc/rule_attr_acc`,
+  `cm_tp/fp/tn/fn`; per-family adds `_MOSFET|_IGBT|_IC`. **ID vs OOD is a run TAG** (`split:id|ood`),
+  not a metric name. Tags: `eval:<task>`, `split:id|ood`, `family:*`, `predictor:ngram|oracle|llm|...`.
+- `zo-eval` now depends on `zo-train` (declared) so it can import grammar/fab/datagen.

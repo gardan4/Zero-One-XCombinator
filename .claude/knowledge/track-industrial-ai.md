@@ -173,9 +173,15 @@ descriptions), with **reasoning (RL)** and an **agentic copilot** as the two cor
 - **Demo (idea #2):** diagnose→attribute→explain→repair copilot (repair brain = our model, not an API).
 
 ### Load-bearing findings (measured on our data — don't re-derive)
-- **OOD is THE story.** n-gram next-step top-1 ≈ 0.78–0.82 in-distribution but collapses to ~0.35–0.50
-  on a held-out family (LOFO) — that drop is the literal "logic vs memorization" answer → Slide-1
-  headline. Lead with OOD; never headline aggregate next-step (n-gram top-5 ≈ 1.0, trivially strong).
+- **OOD lives in ANOMALY, not next-step (corrected 2026-05-30 by the GPU-free E2E run).** The ~0.30
+  next-step drop we first measured was over *all positions*. But the eval cuts each sequence at
+  **60%/80%**, which lands in the **shared back-half backbone** (passivation→backside→test→ship) that
+  is near-identical across families — so next-step *transfers*: measured **ID top-1 0.69 ≈ OOD top-1
+  0.705** at those cuts (top-5 ≈ 1.0 both; trained-on-IGBT+IC, eval-on-MOSFET). The real OOD collapse
+  shows in the **learned anomaly detector: n-gram AUC 0.9999 (ID) → 0.50 (chance) OOD** — that is the
+  Slide-1 headline — and modestly in completion edit-distance (≈0.50→0.55). For the *internal* OOD
+  study we can also probe next-step at LOW cut fractions (where the family-specific region lives), but
+  under the *submitted* protocol, anomaly/likelihood is where logic-vs-memorization separates.
 - **`validate_sequence()` is a free, perfect verifier** ⇒ (a) ~100% oracle on Task 3 → submit the
   oracle for the score and frame the *learned* detector as "what it knows without the rules" + OOD;
   never claim ML "solves" anomaly detection. (b) perfect verifiable reward for GRPO. (c) mints

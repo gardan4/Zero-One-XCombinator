@@ -5,6 +5,7 @@ description = "Model eval harness for Zero One — tasks in, metrics into the ru
 requires-python = ">=3.11"
 dependencies = [
     "zo-common",
+    "zo-train",  # grammar/fab/datagen: the verifier, vocab, splits, and the data corpus
     "typer>=0.12",
     "pyyaml>=6",
     "rich>=13",
@@ -16,6 +17,7 @@ gpu = ["datasets>=2.20", "transformers>=4.44"]
 
 [project.scripts]
 zo-eval = "zo_eval.cli:app"
+zo-track = "zo_eval.track_cli:app"
 
 [build-system]
 requires = ["hatchling"]
@@ -26,3 +28,4 @@ packages = ["zo_eval"]
 
 [tool.uv.sources]
 zo-common = { workspace = true }
+zo-train = { workspace = true }

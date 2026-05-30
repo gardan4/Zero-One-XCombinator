@@ -203,6 +203,9 @@ data/generated/*
 !data/generated/splits.json
 !data/generated/manifest.json
 
+# Local scratch eval sets (regenerable via `just local-eval`); real deliverables → extras/results/.
+extras/eval_local/
+
 # Model artifacts, checkpoints, datasets, caches
 *.safetensors
 *.bin

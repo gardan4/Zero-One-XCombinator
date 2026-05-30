@@ -51,6 +51,15 @@ cluster-watch:
 eval task model:
     uv run zo-eval run --task {{task}} --model {{model}}
 
+# Track eval: predict the 3 tasks → write submission CSVs → score → tagged run.
+# e.g. `just track "-p ngram --valid …/eval_input_valid.csv --gold …/gold.json --tags split:id"`
+track *args:
+    uv run zo-track predict {{args}}
+
+# Synthesize an organizer-format local eval set (+ gold.json) from a family's held-out test split.
+local-eval family *args:
+    uv run zo-track make-local-eval --family {{family}} {{args}}
+
 agent scenario model:
     uv run zo-agent run --scenario {{scenario}} --model {{model}}
 

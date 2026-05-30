@@ -5241,6 +5241,7 @@ dependencies = [
     { name = "rich" },
     { name = "typer" },
     { name = "zo-common" },
+    { name = "zo-train" },
 ]
 
 [package.optional-dependencies]
@@ -5257,6 +5258,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'gpu'", specifier = ">=4.44" },
     { name = "typer", specifier = ">=0.12" },
     { name = "zo-common", editable = "packages/common" },
+    { name = "zo-train", editable = "packages/training" },
 ]
 provides-extras = ["gpu"]
 
