@@ -33,36 +33,44 @@ Topic files: [stack](.claude/knowledge/stack.md) · [cluster](.claude/knowledge/
 
 ```
 apps/
-  backend/    FastAPI control plane — reads the run registry, launches jobs (zo_backend)
-  frontend/   Next.js 16 + React 19 dashboard — lists runs, plots metrics
+  backend/    FastAPI control plane — reads the run registry, serves runs/compare/inference (zo_backend)
 packages/
-  common/     zo_common: run registry, config schema, paths, LLM client   → CLI: zo-runs
-  training/   zo_train: SFT + GRPO via trl; cluster/ submits SLURM jobs    → CLI: zo-train, zo-cluster
-  eval/       zo_eval: task-based eval harness against an OpenAI endpoint  → CLI: zo-eval
+  common/     zo_common: run registry, config schema, paths, W&B/HF helpers, LLM client → CLI: zo-runs
+  training/   zo_train: SFT + GRPO via trl; data factory (grammar/datagen); cluster/ SLURM → CLI: zo-train, zo-cluster
+  eval/       zo_eval: track predict→score→CSVs (the real harness) + legacy tasks harness → CLI: zo-eval, zo-track
   agent/      zo_agent: tool-calling rollout + scenario harness            → CLI: zo-agent
-experiments/    legacy in-repo scratch (default is ~/.cache/zo-experiments) — gitignored
-data/         industrial-infineon/: vendored track data + grammar + generate_sequences.py (our track)
-docs/         track briefing, Leonardo deck (Z10_compressed.pdf), submission/ (REPORT_TEMPLATE, SUBMISSION)
-scripts/      dev.py, setup.py (cross-platform), wt.sh (worktrees)
+infineon-results-dashboard/  standalone Cloudflare Workers dashboard (:8787) — the submission UI (replaced apps/frontend)
+data/         industrial-infineon/: vendored track data + grammar + generate_sequences.py; eval/ kickoff inputs
+extras/       eval_local/ labeled proxy eval sets (+ _base, _sbatch); results/ promoted CSVs for the report
+submissions/  per-team REPORT.md (submissions/XCombinator/)
+tests/        top-level pytest suite (unit by default; `-m integration` for live HF)
+experiments/  legacy in-repo scratch (default is ~/.cache/zo-experiments) — outputs gitignored
+docs/         track briefing, Leonardo deck (Z10_compressed.pdf), submission/ + playbooks (eval-and-artifacts, leonardo-eval)
+scripts/      dev.py, setup.py, leonardo_*.py, zo_cluster.py (no-uv judge path), wt.sh
 .claude/      this folder: CLAUDE.md, knowledge base, slash commands, subagents
 ```
 
 It's a **uv workspace**: one virtual root `pyproject.toml`, one lockfile, members under
-`apps/backend` + `packages/*`. `apps/frontend` is a separate npm app. Tools are pinned with
-**mise**; tasks run through **just**.
+`apps/backend` + `packages/*`. The dashboard (`infineon-results-dashboard/`) is a **standalone
+Cloudflare Workers / npm app**, not a uv member — the old in-repo `apps/frontend` Next.js app was
+**removed** (see Gotchas). Tools are pinned with **mise**; tasks run through **just**.
 
 ## Common commands
 
 | Command | What it does |
 |---|---|
-| `just setup` | First-time: `uv sync` + frontend deps — see [docs/setup.md](docs/setup.md) |
+| `just setup` | First-time `uv sync` (its npm step still targets the removed `apps/frontend` — see Gotchas) — [docs/setup.md](docs/setup.md) |
 | `just gpu-sync` | Install the heavy ML stack (`torch/trl/transformers/vllm`) — **run on a GPU box / the cluster** |
-| `just dev` | Backend + frontend together (Ctrl-C stops both); uses `scripts/dev.py` (no bash) |
+| `just backend` | FastAPI control plane on `:8000` (`zo_backend.main:app`) — what the dashboard reads |
+| `just dev` | ⚠️ Backend + the **removed** `apps/frontend` — frontend half now fails; run the dashboard separately (Gotchas) |
 | `just train <config>` | Local SFT from a YAML config. Add `--dry-run` to skip torch entirely |
 | `just grpo <config>` | Local GRPO / RL run |
 | `just submit <config>` | Render + submit a training job to Leonardo SLURM over SSH |
 | `just cluster-watch` | `squeue --me` on the cluster |
-| `just eval <task> <model>` | Run an eval task against a served model |
+| `just eval <task> <model>` | Run a *legacy* task-based eval against a served model |
+| `just track <args>` | **The track eval**: predict → 3 CSVs + metrics → tagged registry/W&B run (`zo-track`) |
+| `just data` | (Re)generate the shared deterministic fab corpus → `data/generated` (or `$ZO_DATA_DIR`) |
+| `just judge-eval <args>` | Leonardo batch inference + track scoring (login node; see `docs/leonardo-eval.md`) |
 | `just agent <scenario> <model>` | Run an agent scenario (tool-use rollout) |
 | `just serve <model>` | Start a vLLM OpenAI-compatible server (default port 8001) |
 | `just runs` | List all experiment runs |
@@ -70,6 +78,11 @@ It's a **uv workspace**: one virtual root `pyproject.toml`, one lockfile, member
 | `just lint` / `just fmt` / `just test` | ruff check / ruff format / pytest (unit only; `pytest -m integration` for live HF) |
 
 CLIs also run directly: `uv run zo-train sft -c <config> --dry-run`, `uv run zo-runs show <id>`, etc.
+
+**Dashboard (submission UI)** is run separately, not via `just`:
+`cd infineon-results-dashboard && npm install && npm run build:data && npm run dev -- --port 8787`
+→ http://localhost:8787. Static headline numbers render alone; live registry/compare/inference
+sections call the backend at `:8000` when it's up. See its [README](infineon-results-dashboard/README.md).
 
 ## The run registry — the shared contract
 
@@ -122,11 +135,17 @@ To surface a new metric anywhere, just append it; nothing else needs to change.
 
 ## Gotchas
 
-- The local directory is `Zero One Philyr` (with spaces); the remote is `Zero-One-Philyr`. Spaces
-  break some tooling — consider renaming the local dir to match.
+- The local directory is `Zero One Philyr` (with spaces); the **git remote is
+  `gardan4/Zero-One-XCombinator`** and the team/org is **XCombinator** (W&B `XCombinator/XCombinator`,
+  HF `XCombinator/*`). Spaces in the local path break some tooling — consider renaming to match.
+- **The in-repo `apps/frontend` Next.js dashboard was removed** (commit "remove front"). The
+  submission dashboard is the standalone **`infineon-results-dashboard/`** (Cloudflare Workers, `:8787`).
+  **`scripts/{setup,dev,frontend}.py` still target the deleted `apps/frontend`** → the npm steps of
+  `just setup` / `just dev` / `just frontend` fail (`uv sync` and the backend still work). Use
+  `just backend` + run the dashboard per its README until those scripts are repointed.
+- A literal **`$SCRATCH/` directory** can appear at the repo root on a laptop where `$SCRATCH` is
+  unset (an HF cache written to the unexpanded path). It's gitignored — safe to `rm -rf '$SCRATCH'`.
 - **`trl` API drifts between versions.** If `SFTConfig` / `GRPOConfig` kwargs error out, check the
   installed version against [`training.md`](.claude/knowledge/training.md) and note what you found.
-- The frontend needs the backend running (`NEXT_PUBLIC_API_URL`, default `http://localhost:8000`).
-  `just dev` starts both.
 - Cluster host / partition / account / QOS in `.env.example` are **best guesses** — confirm with
   the organizers on-site and record the real values in [`cluster.md`](.claude/knowledge/cluster.md).

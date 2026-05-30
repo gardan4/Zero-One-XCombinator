@@ -293,6 +293,15 @@ class HubInferenceClient:
         if os.path.isdir(str(model_src)):
             kwargs["local_files_only"] = True
 
+        # Load weights in a device-appropriate dtype. fp32 on an accelerator is 2x the memory and
+        # much slower (a 7B in fp32 is ~28 GB); use half precision on MPS/CUDA. The dtype kwarg is
+        # for the MODEL only — the tokenizer must not receive it.
+        model_kwargs = dict(kwargs)
+        if device == "cuda":
+            model_kwargs["torch_dtype"] = torch.bfloat16
+        elif device == "mps":
+            model_kwargs["torch_dtype"] = torch.float16
+
         self._tok = AutoTokenizer.from_pretrained(tok_src or model_src, **kwargs)
         if self._tok.pad_token is None:
             self._tok.pad_token = self._tok.eos_token
@@ -301,13 +310,13 @@ class HubInferenceClient:
         if adapter:
             from peft import PeftModel
 
-            base = AutoModelForCausalLM.from_pretrained(model_src, **kwargs)
+            base = AutoModelForCausalLM.from_pretrained(model_src, **model_kwargs)
             peft_kw = dict(kwargs)
             if os.path.isdir(str(adapter)):
                 peft_kw["local_files_only"] = True
             self._model = PeftModel.from_pretrained(base, adapter, **peft_kw)
         else:
-            self._model = AutoModelForCausalLM.from_pretrained(model_src, **kwargs)
+            self._model = AutoModelForCausalLM.from_pretrained(model_src, **model_kwargs)
 
         self._model.to(device).eval()
 

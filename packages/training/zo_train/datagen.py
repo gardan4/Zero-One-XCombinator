@@ -393,6 +393,140 @@ def anomaly_example(family, steps, is_valid, rules=None, descriptions=None, expl
 
 
 # --------------------------------------------------------------------------------------
+# Rich-context framing for a BASE (un-fine-tuned) LLM — "give it all the relevant context"
+# --------------------------------------------------------------------------------------
+# The terse framings above are what an SFT / from-scratch model is *trained* on. A base instruct
+# model has never seen this step vocabulary or the fab process order, so to predict a next step it
+# needs the relevant context spelled out in the prompt. Looking at the data, the relevant signals are:
+#   • product family            — the grammar / blocks differ per family (MOSFET/IGBT/IC)
+#   • allowed step vocabulary   — the 137–157 legal steps, so it emits an exact in-vocab step rather
+#                                 than free text (the single biggest lever for a base model)
+#   • recent-step descriptions  — the NL meaning of what just happened, from the Longdescr CSVs
+#   • a reference recipe         — a typical valid ordering for the family (optional; see note)
+#   • the process so far         — the prefix to continue
+# These builders only FORMAT context the caller supplies (the predictor caches the per-family
+# vocab / descriptions and skips any block left empty — e.g. an unseen OOD family). No IO here.
+#
+# NOTE on the reference recipe: it is the strongest ordering hint, but at the 60/80% eval cuts —
+# which land in the shared back-half backbone — it makes next-step closer to a lookup than to
+# learned process logic. It is therefore optional (pass ``reference=None``; the served/local base
+# predictors honor ``ZO_BASE_PROMPT_REFERENCE=0``). Candidates + descriptions are always-safe context.
+
+# The 10 process-logic rules, compact — gives a base model a fighting chance at anomaly + attribution.
+RULE_HELP: tuple[tuple[str, str], ...] = (
+    ("RULE_DEP_NO_CLEAN", "a deposition must be preceded by a clean within ~12 steps"),
+    ("RULE_METAL_ETCH_NO_LITHO", "a metal etch needs EXPOSE + DEVELOP within ~15 steps before it"),
+    ("RULE_ETCH_NO_MASK", "a patterned etch needs a DEVELOP within ~12 steps (spacer etch exempt)"),
+    ("RULE_LITHO_LEVEL_SKIP", "mask levels must run in order (level N+1 not before level N completes)"),
+    ("RULE_IMPLANT_NO_MASK", "an implant needs a prior oxide-etch / develop within ~15 steps"),
+    ("RULE_CMP_NO_DEP", "CMP must follow a deposition / fill within ~6 steps"),
+    ("RULE_PAD_OPEN_BEFORE_DEP", "a pad-window open must come after DEPOSIT + CURE PASSIVATION"),
+    ("RULE_TEST_BEFORE_PASSIVATION", "electrical tests must come after CURE PASSIVATION"),
+    ("RULE_SHIP_BEFORE_TEST", "SHIP LOT must come after WAFER SORT TEST"),
+    ("RULE_BACKSIDE_BEFORE_PASSIVATION", "DEPOSIT BACKSIDE METAL must come after CURE PASSIVATION"),
+)
+
+
+def _candidates_block(candidates) -> str:
+    if not candidates:
+        return ""
+    body = "\n".join(f"- {s}" for s in candidates)
+    return f"\nAllowed process steps (pick ONLY from this list, copy names verbatim):\n{body}\n"
+
+
+def _reference_block(reference, family) -> str:
+    if not reference:
+        return ""
+    return (
+        f"\nReference recipe — a typical valid {family} ordering (guidance, not a script to copy):\n"
+        f"{SEP.join(reference)}\n"
+    )
+
+
+def _recent_desc_block(prefix, descriptions, n_recent: int = 8) -> str:
+    """Descriptions of the last ``n_recent`` distinct steps of ``prefix``, in chronological order."""
+    if not descriptions:
+        return ""
+    seen: set[str] = set()
+    picked: list[str] = []
+    for s in reversed(prefix):
+        if s in seen or s not in descriptions:
+            continue
+        seen.add(s)
+        d = (descriptions[s] or {}).get("description")
+        if d:
+            picked.append(f"- {s}: {d}")
+        if len(picked) >= n_recent:
+            break
+    if not picked:
+        return ""
+    return "\nMeaning of the most recent steps:\n" + "\n".join(reversed(picked)) + "\n"
+
+
+def nextstep_context_example(
+    family,
+    prefix,
+    target="",
+    *,
+    candidates=None,
+    reference=None,
+    descriptions=None,
+    top_k: int = 5,
+    n_recent: int = 8,
+) -> dict:
+    """Next-step prompt for a base model with all the relevant context laid out (see section note)."""
+    p = (
+        "You are assisting a semiconductor process engineer. A wafer lot is fabricated as an ordered "
+        "sequence of process steps; given the steps completed so far, predict the most likely NEXT step.\n"
+        f"\nProduct family: {family}\n"
+        f"{_candidates_block(candidates)}"
+        f"{_reference_block(reference, family)}"
+        f"{_recent_desc_block(prefix, descriptions, n_recent)}"
+        f"\nProcess so far ({len(prefix)} steps):\n{SEP.join(prefix)}\n"
+        f"\nList up to {top_k} candidate next steps, most likely first, separated by ' | '. "
+        "Use only names from the allowed list; output the step names only — no numbering, no commentary."
+    )
+    return {"prompt": p, "completion": " " + target, "family": family}
+
+
+def completion_context_example(
+    family, prefix, rest=None, *, candidates=None, reference=None, descriptions=None, n_recent: int = 8
+) -> dict:
+    """Sequence-completion prompt for a base model with the same relevant context."""
+    p = (
+        f"You are assisting a semiconductor process engineer fabricating a {family} wafer lot. Complete "
+        "the remaining process steps, in order, through to SHIP LOT.\n"
+        f"\nProduct family: {family}\n"
+        f"{_candidates_block(candidates)}"
+        f"{_reference_block(reference, family)}"
+        f"{_recent_desc_block(prefix, descriptions, n_recent)}"
+        f"\nProcess so far ({len(prefix)} steps):\n{SEP.join(prefix)}\n"
+        "\nOutput ONLY the remaining steps that come after the last one above, in order, separated by "
+        "' | '. Use only names from the allowed list; no commentary."
+    )
+    return {"prompt": p, "completion": " " + SEP.join(rest or []), "family": family}
+
+
+def anomaly_context_example(family, steps, is_valid=True, *, rules_help=RULE_HELP, descriptions=None) -> dict:
+    """Anomaly / attribution prompt for a base model, with the process-logic rules spelled out."""
+    rule_block = ""
+    if rules_help:
+        body = "\n".join(f"- {r}: {d}" for r, d in rules_help)
+        rule_block = f"\nProcess-logic rules a valid sequence must obey:\n{body}\n"
+    p = (
+        f"You are a semiconductor process-integration expert reviewing a {family} recipe for ordering "
+        "violations.\n"
+        f"\nProduct family: {family}\n"
+        f"{rule_block}"
+        f"\nProcess sequence ({len(steps)} steps):\n{SEP.join(steps)}\n"
+        "\nIs this a valid process sequence? Answer VALID or INVALID. If INVALID, name the single violated "
+        "rule id from the list above (e.g. RULE_DEP_NO_CLEAN)."
+    )
+    comp = " VALID." if is_valid else " INVALID."
+    return {"prompt": p, "completion": comp, "family": family, "is_valid": int(bool(is_valid))}
+
+
+# --------------------------------------------------------------------------------------
 # Build the full corpus to disk
 # --------------------------------------------------------------------------------------
 

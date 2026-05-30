@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 PREDICTOR_KINDS = (
     "ngram",
     "freq",
@@ -9,11 +11,18 @@ PREDICTOR_KINDS = (
     "llm",
     "hf",
     "llm-zeroshot",
+    "base",
+    "base-hf",
     "likelihood-ngram",
     "classifier",
 )
 
 BASELINE_PREDICTORS = frozenset({"ngram", "freq", "oracle"})
+
+# Default base (un-fine-tuned) LLM for the `base` / `base-hf` predictors, so the dashboard's
+# "default" model maps to a real repo. Overridable via env. 7B follows the rich-context prompt
+# well; on a CPU/MPS laptop a smaller Qwen (0.5B/1.5B) generates faster.
+BASE_LLM_DEFAULT = os.environ.get("ZO_BASE_LLM_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 
 
 class PredictorBuildError(ValueError):
@@ -56,6 +65,15 @@ def build_predictor(
         if kind == "llm":
             return ServedLLMPredictor(model=model, base_url=base_url)
         return HFGeneratePredictor(model=model)
+    if kind in ("base", "base-hf"):
+        # Base (un-fine-tuned) LLM with the rich-context next-step prompt. `base` = served
+        # (OpenAI endpoint, like `llm`); `base-hf` = local transformers.generate (like `hf`).
+        from zo_eval.predict_llm import HFGeneratePredictor, ServedLLMPredictor
+
+        m = model if (model and model != "default") else BASE_LLM_DEFAULT
+        if kind == "base":
+            return ServedLLMPredictor(model=m, base_url=base_url, style="base")
+        return HFGeneratePredictor(model=m, style="base")
     if kind == "likelihood-ngram":
         from zo_eval.anomaly_detect import LikelihoodDetector
         from zo_eval.baselines import NGramPredictor

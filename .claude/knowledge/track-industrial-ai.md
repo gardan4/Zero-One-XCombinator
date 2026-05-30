@@ -258,3 +258,27 @@ Code: `zo_eval/rules_context.py` (digest + messages), `RulesContextLLMPredictor`
   submissions. Honest framing holds: **submitted anomaly = the oracle**; the learned detector's OOD
   collapse (AUC 0.9999→0.50) is the science.
 - Fixed a stray `lib/` gitignore rule (Python template) that was silently ignoring `apps/frontend/lib/`.
+
+### Base-model next-step baseline (2026-05-30) — `base` / `base-hf` predictors
+A **base (un-fine-tuned) LLM given all the relevant context** as a next-step baseline — distinct from the
+SFT path. The terse SFT framing (`nextstep_example`) is too sparse for a base model; the new rich
+framing spells out what the data makes relevant for next-step prediction:
+- **family** (grammar differs per family) · **legal step vocabulary** (137–157/family — the biggest
+  lever: forces exact in-vocab output, no free text) · **recent-step descriptions** (Longdescr CSVs) ·
+  **process-so-far** · an **optional reference recipe** (typical ordering — strongest hint but at the
+  60/80% cuts it's closer to lookup than logic, so it's toggleable via `ZO_BASE_PROMPT_REFERENCE=0`).
+- Builders: `datagen.nextstep_context_example` (+ `completion_context_example`, `anomaly_context_example`
+  with `RULE_HELP`). Predictor: `predict_llm.py` gained `style="base"` + a cached `_family_context()`;
+  `base` = served (like `llm`), `base-hf` = local `transformers.generate` (like `hf`). Factory default
+  model `Qwen/Qwen2.5-7B-Instruct`, override with env `ZO_BASE_LLM_MODEL` or `--model`.
+- **Dashboard:** `base`/`base-hf` added to the `/inference` dropdown; runs tag `predictor:base[-hf]` →
+  `/compare`. Like hf/llm/classifier they need `ZO_ALLOW_DASHBOARD_INFERENCE=1` on the backend.
+- **`hub_inference.py` now loads fp16 on MPS / bf16 on CUDA** (was fp32 → a 7B was ~28 GB; this halves it
+  and speeds the existing `hf`/SFT-eval path too).
+- **Verified locally on Apple Silicon (M5 Pro, MPS):** `uv run zo-track predict -p base-hf --model
+  Qwen/Qwen2.5-0.5B-Instruct --valid <eval_input_valid.csv> --gold <gold.json> --tasks nextstep` on a
+  6-example MOSFET set → every prediction is an exact in-vocab step; gold in **top-3 at frac60**; 0.5B
+  scored top1=0 / top3=0.33 (tiny model — 1.5B/7B lift it). Make a tiny labeled set with
+  `zo-track make-local-eval --family MOSFET --n 3 --out <dir>`.
+- **Gotcha:** model download is bandwidth-bound and the 7B (~15 GB) is slow on a laptop — use **0.5B/1.5B
+  for local testing**, 7B served on the cluster. Two concurrent HF downloads starve each other.
