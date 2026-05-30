@@ -223,7 +223,8 @@ button { font-family: inherit; }
 .flow-head .route-id b { color: var(--ink-1); font-weight: 450; }
 
 /* ============================ process route track ============================ */
-.track-wrap { position: relative; flex: 1; min-height: 0; margin-top: 6px; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.track-frame { position: relative; flex: 1; min-height: 0; margin-top: 6px; display: flex; }
+.track-wrap { flex: 1; min-width: 0; display: flex; align-items: center; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
 .track-wrap::-webkit-scrollbar { display: none; }
 .track { position: relative; display: flex; align-items: center; flex: 0 0 auto; min-width: 100%; padding: 0 8px; gap: 0; }
 
