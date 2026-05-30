@@ -298,23 +298,25 @@ button { font-family: inherit; }
 .rail { display: flex; align-items: stretch; height: 42px; border-radius: 10px; overflow: hidden; border: 1px solid var(--hair); background: var(--fill-faint); }
 .rail .seg { position: relative; display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--hair-soft); overflow: hidden; min-width: 0; }
 .rail .seg:last-child { border-right: none; }
-.rail .seg .seg-name { font-size: 9px; font-weight: 500; letter-spacing: 0.03em; color: var(--ink-2); white-space: nowrap; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.rail .seg::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(90deg, var(--grid-dot) 0 1px, transparent 1px 9px); opacity: 0.45; pointer-events: none; }
+.rail .seg .seg-name { position: relative; z-index: 3; font-size: 9px; font-weight: 500; letter-spacing: 0.03em; color: var(--ink-2); white-space: nowrap; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+/* done = flat fill, no splits */
 .rail .seg.done { background: var(--fill-weak); }
-.rail .seg.current { background: linear-gradient(180deg, var(--teal-soft), var(--teal-faint)); box-shadow: inset 0 0 0 1px var(--teal-line); }
-.rail .seg.current .seg-name { color: var(--teal); font-weight: 500; }
 .rail .seg.future { background: transparent; opacity: 0.5; }
 .rail .seg.future .seg-name { color: var(--ink-3); }
 
-.rail-scale { position: relative; height: 24px; margin-top: 8px; }
-.rail-scale .cap { position: absolute; top: 6px; font-size: 9px; letter-spacing: 0.06em; color: var(--ink-3); display: flex; flex-direction: column; gap: 5px; }
+/* current = per-step meter that expands so its splits never crush */
+.rail .seg.current { background: var(--teal-faint); box-shadow: inset 0 0 0 1px var(--teal-line); }
+.rail .seg.current .seg-name { color: var(--teal); font-weight: 500; }
+.rail .seg.current .seg-count { color: var(--teal); opacity: 0.7; font-size: 8.5px; margin-left: 2px; }
+.rail .seg.current .seg-fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--fill); z-index: 0; background: linear-gradient(180deg, var(--teal-soft), var(--teal-faint)); }
+.rail .seg.current::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image: repeating-linear-gradient(90deg, var(--teal-line) 0 1px, transparent 1px calc(100% / var(--cells))); opacity: 0.4; }
+.rail .seg.current .seg-seam { position: absolute; top: 0; bottom: 0; left: var(--fill); width: 2px; transform: translateX(-1px); z-index: 2; background: var(--teal-bright); box-shadow: 0 0 8px var(--teal-glow); }
+
+.rail-scale { position: relative; height: 14px; margin-top: 8px; }
+.rail-scale .cap { position: absolute; top: 0; font-size: 9px; letter-spacing: 0.06em; color: var(--ink-3); display: flex; align-items: center; gap: 5px; }
 .rail-scale .cap .tk { width: 1px; height: 5px; background: var(--ink-4); }
-.rail-scale .cap.start { left: 0; align-items: flex-start; }
-.rail-scale .cap.end { right: 0; align-items: flex-end; }
-.rail-scale .here { position: absolute; top: -1px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.rail-scale .here .nib { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid var(--teal); }
-.rail-scale .here .htk { width: 1px; height: 6px; background: var(--teal-line); }
-.rail-scale .here .hnum { font-size: 9px; font-weight: 500; color: var(--teal); margin-top: 1px; }
+.rail-scale .cap.start { left: 0; }
+.rail-scale .cap.end { right: 0; flex-direction: row-reverse; }
 
 /* ============================ control bar ============================ */
 .control-bar { flex: 0 0 auto; padding: 16px 22px; display: flex; align-items: center; gap: 16px; }
