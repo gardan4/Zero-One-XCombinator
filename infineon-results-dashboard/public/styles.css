@@ -1248,6 +1248,54 @@ select:focus-visible {
   font-weight: 600;
 }
 
+/* ---------- Batch CSV ---------- */
+.batch-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-btn {
+  cursor: pointer;
+}
+
+.batch-controls .meta {
+  margin-right: auto;
+}
+
+.batch-status {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+  min-height: 18px;
+}
+
+.batch-status.is-error {
+  color: var(--danger, #c0392b);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 10px;
+}
+
+.batch-row-err td {
+  opacity: 0.75;
+}
+
+.batch-err {
+  color: var(--danger, #c0392b);
+  font-family: var(--sans);
+}
+
+.batch-warn {
+  color: #b8860b;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: help;
+}
+
 /* ---------- Loss chart ---------- */
 .chart {
   width: 100%;

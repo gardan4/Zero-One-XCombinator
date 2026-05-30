@@ -34,6 +34,7 @@ function renderDashboard() {
 
   $("modelName").textContent = c.modelName;
   $("demoModelName").textContent = c.modelName;
+  $("batchModelName").textContent = c.modelName;
   $("heroEyebrow").textContent = c.heroEyebrow;
   $("heroTitle").innerHTML = `${escapeHtml(c.heroTitlePre)} <em>${escapeHtml(
     c.heroTitleEmph,
@@ -565,6 +566,113 @@ function updateRouteMeta(sample) {
 function setStatus(text, online) {
   statusEl.querySelector(".status-text").textContent = text;
   statusEl.classList.toggle("online", !!online);
+}
+
+/* ------------------------------------------------------------------ *
+ *  Batch CSV — predict next step for every row
+ * ------------------------------------------------------------------ */
+const csvFileEl = $("csvFile");
+const csvTextEl = $("csvText");
+let batchResults = [];
+
+csvFileEl.addEventListener("change", async () => {
+  const file = csvFileEl.files?.[0];
+  if (!file) return;
+  $("csvFileName").textContent = file.name;
+  csvTextEl.value = await file.text();
+});
+$("runBatch").addEventListener("click", () => withButton("runBatch", "Predicting", runBatch));
+$("downloadBatch").addEventListener("click", downloadBatchCsv);
+
+async function runBatch() {
+  const csv = csvTextEl.value.trim();
+  if (!csv) {
+    setBatchStatus("Choose a CSV file or paste CSV text first.", true);
+    return;
+  }
+  setBatchStatus("Predicting next step for each row…");
+  $("downloadBatch").disabled = true;
+
+  const result = await api("/api/predict-batch", { csv });
+  batchResults = result.results || [];
+  renderBatch(result);
+}
+
+function renderBatch(result) {
+  const table = $("batchTable");
+  const tb = table.querySelector("tbody");
+  tb.innerHTML = "";
+
+  if (!batchResults.length) {
+    table.hidden = true;
+    setBatchStatus(result.parseErrors?.[0] || "No rows found in the CSV.", true);
+    return;
+  }
+
+  batchResults.forEach((r) => {
+    const predicted = r.error
+      ? `<span class="batch-err">${escapeHtml(r.error)}</span>`
+      : escapeHtml(r.predicted_next_step || "—");
+    const conf = r.confidence != null ? `${Math.round(r.confidence * 100)}%` : "—";
+    const unknown = r.unknown_steps?.length
+      ? ` <span class="batch-warn" title="Steps not in vocabulary: ${escapeHtml(r.unknown_steps.join(", "))}">⚠ ${r.unknown_steps.length}</span>`
+      : "";
+    tb.append(
+      el(
+        "tr",
+        r.error ? "batch-row-err" : null,
+        `<td>${escapeHtml(r.example_id || "—")}</td>
+         <td>${escapeHtml(r.family || "—")}</td>
+         <td>${escapeHtml(String(r.completion_fraction ?? "—"))}</td>
+         <td>${r.partial_length ?? "—"}${unknown}</td>
+         <td class="tuned-col" style="text-align:left">${predicted}</td>
+         <td>${conf}</td>`,
+      ),
+    );
+  });
+
+  table.hidden = false;
+  const ok = batchResults.filter((r) => !r.error).length;
+  const failed = batchResults.length - ok;
+  setBatchStatus(
+    `${ok} of ${batchResults.length} rows predicted${failed ? ` · ${failed} could not be parsed` : ""}.`,
+  );
+  $("downloadBatch").disabled = !ok;
+}
+
+function downloadBatchCsv() {
+  const header = "EXAMPLE_ID,FAMILY,COMPLETION_FRACTION,PARTIAL_LENGTH,PREDICTED_NEXT_STEP,CONFIDENCE,TOP5";
+  const rows = batchResults.map((r) =>
+    [
+      r.example_id ?? "",
+      r.family ?? "",
+      r.completion_fraction ?? "",
+      r.partial_length ?? "",
+      r.error ? `ERROR: ${r.error}` : r.predicted_next_step ?? "",
+      r.confidence != null ? r.confidence : "",
+      r.top5 ? r.top5.map((p) => p.step).join("|") : "",
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "next-step-predictions.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value) {
+  const s = String(value);
+  return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+}
+
+function setBatchStatus(text, isError = false) {
+  const node = $("batchStatus");
+  node.textContent = text;
+  node.classList.toggle("is-error", isError);
 }
 
 async function api(path, body) {
