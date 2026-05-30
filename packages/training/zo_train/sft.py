@@ -92,6 +92,9 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         **checkpoint_kwargs(cfg),
     )
     config_kwargs.update(sft_kwargs)
+    # Instruction tuning: prompt/completion dataset (no text_field) → loss on the answer only.
+    if _truthy(cfg.extra.get("completion_only_loss", False)):
+        config_kwargs["completion_only_loss"] = True
     args = SFTConfig(**_supported_kwargs(SFTConfig.__init__, config_kwargs))
 
     model = (
