@@ -59,8 +59,9 @@ export http_proxy="$HTTP_PROXY"; export https_proxy="$HTTP_PROXY"
 export NO_PROXY="localhost,127.0.0.1"; export no_proxy="$NO_PROXY"
 {% endif %}
 
-# GPU stack must be pre-staged on a login node:  cd {{ repo_dir }} && uv sync --extra gpu
-uv sync --extra gpu --offline
+# GPU stack pre-staged on a login node (`uv sync --extra gpu`). Do NOT sync here: concurrent jobs
+# share one .venv and parallel `uv sync` races corrupt it. Verify read-only.
+uv run --no-sync python -c "import torch, transformers" || { echo "ERROR: gpu env not staged — run 'uv sync --extra gpu' on a login node"; exit 1; }
 
 BATCH_ARGS=()
 if [[ -n "${ZO_TRACK_BATCH_SIZE:-}" ]]; then
@@ -68,7 +69,7 @@ if [[ -n "${ZO_TRACK_BATCH_SIZE:-}" ]]; then
 fi
 
 # Batch inference on a fine-tuned checkpoint (no vLLM server required).
-uv run zo-track predict \
+uv run --no-sync zo-track predict \
   --predictor {{ predictor }} \
   --version "{{ version }}" \
   --model "{{ model_path }}" \

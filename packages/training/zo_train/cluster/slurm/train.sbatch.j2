@@ -78,9 +78,11 @@ fi
 # The compute node then reuses that venv. `--offline` => no network here: it succeeds if already
 # staged, and fails loudly (instead of hanging on the dead network) if you forgot the login-node step.
 export PATH="$HOME/.local/bin:$PATH"
-uv sync --extra gpu --offline
+# Env is pre-staged on a login node (`uv sync --extra gpu`). Do NOT sync here: concurrent jobs
+# share one .venv and parallel `uv sync` runs race + corrupt it mid-training. Verify read-only.
+uv run --no-sync python -c "import torch, trl" || { echo "ERROR: gpu env not staged — run 'uv sync --extra gpu' on a login node"; exit 1; }
 
-uv run python - <<'PY'
+uv run --no-sync python - <<'PY'
 import os
 import sys
 
@@ -119,9 +121,9 @@ PY
 # Multi-GPU: shard a full fine-tune across the node's {{ gpus_per_node }} NVLinked A100s via FSDP.
 # One process per GPU; trl's Trainer + accelerate pick up the sharding from the launcher's
 # distributed env. Registry/checkpoint writes are rank-0 guarded in sft.py / rl.py.
-uv run accelerate launch --config_file "{{ accelerate_config }}" --num_processes {{ gpus_per_node }} \
+uv run --no-sync accelerate launch --config_file "{{ accelerate_config }}" --num_processes {{ gpus_per_node }} \
     -m zo_train.cli {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
 {% else %}
 # Single process (LoRA on one GPU, or a model that fits a single 64GB A100).
-uv run zo-train {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
+uv run --no-sync zo-train {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
 {% endif %}

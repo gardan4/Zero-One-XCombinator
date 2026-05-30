@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Build per-size INSTRUCT corpora (instruct_all.jsonl) for the data-scaling study.
 
-Uses the shared instruct system-prompt stack (zo_train.prompts) so the scaling models match
-leonardo_sft_fab_instruct.yaml's framing (system + task chat rows, completion-only loss).
-Small sizes SUBSAMPLE the vendored pool; the large size GENERATES fresh valid routes
-(the grammar space is billions+, so we are not capped at the vendored 1,000).
+Mirrors ``datagen.build_all``'s instruct rows on a SUBSAMPLE of N sequences/family, in the
+**unified JSON format** (numbered input, ``{"reasoning":…, "steps":[…]}`` /
+``{"reasoning":…, "valid":…, "rule":…}`` assistant labels via ``zo_train.prompts``). Small sizes
+subsample the vendored pool; the large size GENERATES fresh valid routes.
 
-Per training sequence we emit the same row mix datagen uses: 1 anomaly(VALID) + 2 completion
-(60/80 cuts) + up to 4 next-step. Output: data/generated_scale/<N>/instruct_all.jsonl.
+Per training sequence: 1 anomaly(VALID) + 2 completion(60/80) + up to 4 next-step, PLUS ~1 balanced
+INVALID anomaly negative per sequence (so the model learns to FLAG violations, not always say valid).
+Output: data/generated_scale/<N>/instruct_all.jsonl. The scaling study is report-only (W&B / REPORT) —
+the copilot dashboard panel was removed upstream.
 
 Run:  uv run python scripts/build_scaling_corpora.py
 """
@@ -18,10 +20,10 @@ import json
 import random
 from pathlib import Path
 
-from zo_train.datagen import ALL_RULES, SEP, anomaly_example, make_negative, nextstep_example
+from zo_train.datagen import ALL_RULES, anomaly_example, make_negative, nextstep_example
 from zo_train.fab import read_sequences
 from zo_train.grammar import generate_dataset
-from zo_train.prompts import PromptItem, build_instruct_messages
+from zo_train.prompts import PromptItem, build_instruct_messages, build_json_completion_completion
 
 OUT = Path("data/generated_scale")
 FAMILIES = ["MOSFET", "IGBT", "IC"]
@@ -30,44 +32,49 @@ SIZES = [(100, "sub"), (300, "sub"), (800, "sub"), (2000, "gen")]  # sequences p
 
 def rows_for(fam: str, seqs, rng: random.Random) -> list[dict]:
     out: list[dict] = []
+    seqs = [list(s) for s in seqs]
     for s in seqs:
-        s = list(s)
+        # anomaly — VALID
+        ex_valid = anomaly_example(fam, list(s), True)
         out.append({
-            "messages": build_instruct_messages("anomaly", PromptItem(fam, sequence=s), " VALID."),
+            "messages": build_instruct_messages(
+                "anomaly", PromptItem(fam, sequence=list(s)), ex_valid["completion"].lstrip()
+            ),
             "family": fam, "task": "anomaly",
         })
+        # completion — 60/80 cuts
         for frac in (0.6, 0.8):
             cut = int(len(s) * frac)
+            comp = build_json_completion_completion(list(s[cut:]))
             out.append({
                 "messages": build_instruct_messages(
-                    "completion", PromptItem(fam, partial_sequence=s[:cut]), " " + SEP.join(s[cut:])
+                    "completion", PromptItem(fam, partial_sequence=list(s[:cut])), comp
                 ),
                 "family": fam, "task": "completion",
             })
+        # next-step — up to 4 sampled positions
         if len(s) >= 3:
             for i in rng.sample(range(1, len(s)), k=min(4, len(s) - 1)):
                 ex = nextstep_example(fam, s[:i], s[i])
                 out.append({
                     "messages": build_instruct_messages(
-                        "nextstep", PromptItem(fam, partial_sequence=s[:i]), ex["completion"]
+                        "nextstep", PromptItem(fam, partial_sequence=list(s[:i])), ex["completion"].lstrip()
                     ),
                     "family": fam, "task": "nextstep",
                 })
-    # Balanced INVALID anomaly negatives (mirror datagen.build_all) so the model learns to FLAG
-    # rule violations instead of always answering VALID. ~1 negative per sequence → anomaly ≈ 50/50.
-    pool = [list(s) for s in seqs]
-    n_neg, made, guard, ti = len(pool), 0, 0, 0
+    # anomaly — balanced INVALID negatives (mirror datagen.build_all): ~1 per sequence → anomaly ≈ 50/50
+    n_neg, made, guard, ti = len(seqs), 0, 0, 0
     while made < n_neg and guard < n_neg * 40:
         guard += 1
         rule = ALL_RULES[ti % len(ALL_RULES)]
         ti += 1
-        neg = make_negative(rng.choice(pool), rng, rule=rule)
+        neg = make_negative(rng.choice(seqs), rng, rule=rule)
         if not neg:
             continue
         ex = anomaly_example(fam, neg["steps"], False, neg["rules"])
         out.append({
             "messages": build_instruct_messages(
-                "anomaly", PromptItem(fam, sequence=list(neg["steps"])), ex["completion"]
+                "anomaly", PromptItem(fam, sequence=list(neg["steps"])), ex["completion"].lstrip()
             ),
             "family": fam, "task": "anomaly",
         })
