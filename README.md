@@ -64,6 +64,21 @@ just wt grpo-reward-v2   # new git worktree + branch ../zo-grpo-reward-v2, isola
 Each worktree is an independent checkout, so teammates (or parallel Claude sessions) can train
 and eval different ideas at once without stepping on each other. See [`CLAUDE.md`](CLAUDE.md).
 
+## Track eval, artifacts, and known gaps
+
+Industrial AI (Infineon) scoring uses three submission CSVs and metrics documented in
+`data/industrial-infineon/training_data/generation_rules.md`. The organizer scorer
+`eval_metrics.py` and kickoff eval CSVs are **not** in the public repo — see
+**[docs/track-industrial-sources.md](docs/track-industrial-sources.md)**.
+
+| Where | What |
+|-------|------|
+| Hugging Face **`XCombinator`** | Fine-tuned checkpoints (not committed to git) |
+| W&B **`XCombinator/XCombinator`** | Training logs and loss curves (`WANDB_ENTITY` / `WANDB_PROJECT` in `.env`) |
+| `experiments/<run_id>/` | Registry runs, metrics, `results/*.csv`, `metrics_report.md` |
+
+Repro eval: `just track "-p hf --model XCombinator/<repo> --version <tag> …"` (see `docs/leonardo-eval.md`).
+
 ## Leonardo inference & eval
 
 **Judges:** see **[docs/judge-quickstart.md](docs/judge-quickstart.md)** — Python + pip only; **uv is optional**.

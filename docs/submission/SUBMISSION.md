@@ -100,7 +100,12 @@ Before hitting submit on the Tally form, confirm:
 
 ## What we judge
 
-Each track has its own rubric in [`/judging/rubrics.md`](../judging/rubrics.md). Across all tracks we look for:
+Each track may reference a rubric in [`/judging/rubrics.md`](../judging/rubrics.md) — **that file is not
+in the public hackathon repo.** For Industrial AI, use the track brief (`data/industrial-infineon/Track_industrial_en.md`
+or `docs/Track One Assignment.txt`), `generation_rules.md` §5, and the checklist below. Team notes:
+[docs/track-industrial-sources.md](../track-industrial-sources.md).
+
+Across all tracks we look for:
 
 1. **Working artifact** that actually runs
 2. **Honest, reproducible evaluation** with real numbers

@@ -77,11 +77,16 @@ Point at any organizer-format inputs; omit `--gold` if you have no labels (outpu
 
 ```bash
 uv run zo-track predict -p hf \
+  --version leonardo-smoke-v1 \
+  --model-ref XCombinator/leonardo-smoke-qwen-0.5b-lora \
   --model "XCombinator/leonardo-smoke-qwen-0.5b-lora" \
+  --eval-set local \
   --valid  /path/to/eval_input_valid.csv \
   --anomaly /path/to/eval_input_anomaly.csv \
+  --gold   /path/to/gold.json \
   --out    extras/results \
-  --tasks  nextstep,completion,anomaly
+  --tasks  nextstep,completion,anomaly \
+  --tags   split:id
 ```
 
 LoRA adapters auto-resolve the base model from `adapter_config.json` (Leonardo scratch paths

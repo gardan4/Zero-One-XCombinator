@@ -130,7 +130,7 @@ def make_local_eval_set(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    valid_rows, gold_next, gold_compl, fam_of = [], {}, {}, {}
+    valid_rows, gold_next, gold_compl, fam_of, cut_of = [], {}, {}, {}, {}
     i = 0
     for fam, steps in valid_seqs:
         for frac in fractions:
@@ -143,6 +143,7 @@ def make_local_eval_set(
             gold_next[ex] = steps[cut]
             gold_compl[ex] = steps[cut:]
             fam_of[ex] = fam
+            cut_of[ex] = frac
     with (out_dir / "eval_input_valid.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["EXAMPLE_ID", "FAMILY", "COMPLETION_FRACTION", "PARTIAL_SEQUENCE"])
@@ -161,7 +162,13 @@ def make_local_eval_set(
         w.writerow(["EXAMPLE_ID", "FAMILY", "SEQUENCE"])
         w.writerows(anom_rows)
 
-    gold = {"next": gold_next, "completion": gold_compl, "anomaly": gold_anom, "family_of": fam_of}
+    gold = {
+        "next": gold_next,
+        "completion": gold_compl,
+        "anomaly": gold_anom,
+        "family_of": fam_of,
+        "cut_fraction_of": cut_of,
+    }
     (out_dir / "gold.json").write_text(json.dumps(gold, indent=2))
     return gold
 

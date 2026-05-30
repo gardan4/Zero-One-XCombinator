@@ -112,6 +112,11 @@ Supported families: `mosfet`, `igbt`, `ic`
 
 ## 🧪 Evaluation Tasks
 
+> **Not in the public Lumos repo:** `eval_metrics.py`, kickoff `eval_input_*.csv`, and
+> `judging/rubrics.md`. We score locally with `zo_eval/track_metrics.py` and proxy inputs in
+> `extras/eval_local/`. See **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**
+> (metrics list, HF org **`XCombinator`**, W&B **`XCombinator/XCombinator`**).
+
 The organizers distribute two eval input files at the start of the hackathon:
 
 | File                     | Purpose     | Content                                      |

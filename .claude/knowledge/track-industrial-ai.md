@@ -32,10 +32,19 @@ Sanity-checked on load: MOSFET/IGBT/IC = 1,000 seqs each, lengths ~125/148/115, 
 `RECEIVE WAFER LOT` / end `SHIP LOT`, all pass `validate_sequence`. To refresh from upstream:
 sparse-clone the repo and copy those two folders (see INDEX "Sources").
 
-> **Not in the public repo (expect at kickoff):** **`eval_metrics.py`** and **`judging/rubrics.md`**
-> are referenced by the READMEs/SUBMISSION but are **absent upstream** — the organizers distribute
-> them (with the eval input CSVs) at the start. Don't assume we have the scorer until then; build to
-> the documented submission formats (below) and wrap the scorer when it lands.
+> **Not in the public repo (expect at kickoff):** **`eval_metrics.py`**, kickoff **`eval_input_*.csv`**,
+> and **`judging/rubrics.md`** (SUBMISSION links the rubric file, but it is **not published** — judge
+> from SUBMISSION.md general criteria + track brief + `generation_rules.md` §5). Full team notes:
+> **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**. Don't wait on the
+> official scorer; build to the documented CSV formats and reconcile with `eval_metrics.py` when it lands.
+
+### Artifact locations (not in git)
+- **Checkpoints:** Hugging Face org **`XCombinator`** (e.g. `XCombinator/sft-fab-all`, LOFO variants).
+  Upload via Leonardo `scripts/leonardo_upload_artifact.sh` / training `extra.hub_model_id`.
+- **Training logs / loss curves:** Weights & Biases **`XCombinator/XCombinator`** (`WANDB_ENTITY` /
+  `WANDB_PROJECT` in `.env`; offline on compute nodes, `wandb sync` on login).
+- **Eval outputs + scored reports:** `experiments/<run_id>/results/` + `metrics_report.json` /
+  `metrics_report.md` (tag runs with `version:<id>`, `model-ref:<hf-repo>`, `eval-set:local|kickoff`).
 
 ## The data (3 product families)
 Long format, **one step per row**: `SEQUENCE_ID,STEP` (e.g. `MOSFET_0001,RECEIVE WAFER LOT`).

@@ -34,9 +34,12 @@ just leonardo-smoke --dry-run
 
 ---
 
-## Inference (`feature/leonardo-inference-eval`)
+## Inference & track eval
 
-Run a finetuned checkpoint locally or batch-eval on Leonardo.
+Run a finetuned checkpoint locally or batch-eval on Leonardo. Organizer `eval_metrics.py` and
+kickoff CSVs may not be in the repo — see [track-industrial-sources.md](track-industrial-sources.md).
+Team checkpoints: Hugging Face **`XCombinator`**; training logs: W&B **`XCombinator/XCombinator`**.
+Every `zo-track predict` run requires `--version` and writes `metrics_report.md` under the run results dir.
 
 ### Laptop — pip only (local inference)
 

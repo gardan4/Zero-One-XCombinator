@@ -181,10 +181,161 @@ def score_anomaly(
 
 def per_family(score_fn, preds: dict, gold: dict, family_of: dict[str, str]) -> dict:
     """Run ``score_fn`` overall + split by family (the per-family breakdown the report needs)."""
+    return per_group(score_fn, preds, gold, family_of)
+
+
+def _frac_key(frac: float) -> str:
+    """Stable suffix for completion-fraction breakdowns (0.6 → ``frac60``)."""
+    return f"frac{int(round(float(frac) * 100))}"
+
+
+def per_cut_fraction(
+    score_fn, preds: dict, gold: dict, cut_of: dict[str, float]
+) -> dict:
+    """Run ``score_fn`` overall + split by ``COMPLETION_FRACTION`` (60% vs 80% cuts)."""
+    return per_group(
+        score_fn,
+        preds,
+        gold,
+        {ex: _frac_key(cut_of[ex]) for ex in gold if ex in cut_of},
+    )
+
+
+def per_group(score_fn, preds: dict, gold: dict, group_of: dict[str, str]) -> dict:
+    """Run ``score_fn`` overall + split by an arbitrary example-id → group label map."""
     out = {"overall": score_fn(preds, gold)}
-    fams = sorted(set(family_of.get(ex, "?") for ex in gold))
-    for fam in fams:
-        g = {ex: v for ex, v in gold.items() if family_of.get(ex) == fam}
+    groups = sorted(set(group_of.get(ex, "?") for ex in gold))
+    for grp in groups:
+        g = {ex: v for ex, v in gold.items() if group_of.get(ex) == grp}
         p = {ex: preds[ex] for ex in g if ex in preds}
-        out[fam] = score_fn(p, g)
+        out[grp] = score_fn(p, g)
     return out
+
+
+# --------------------------------------------------------------------------- reporting
+
+_TASK_METRIC_KEYS = {
+    "nextstep": ("top1", "top3", "top5", "mrr"),
+    "completion": ("exact_match", "norm_edit_dist", "token_acc", "block_acc"),
+    "anomaly": (
+        "binary_acc",
+        "precision",
+        "recall",
+        "f1",
+        "roc_auc",
+        "rule_attribution_acc",
+    ),
+}
+
+_FLAT_NEXT = {"top1": "top1", "top3": "top3", "top5": "top5", "mrr": "mrr"}
+_FLAT_COMPL = {
+    "exact_match": "em",
+    "norm_edit_dist": "ned",
+    "token_acc": "token_acc",
+    "block_acc": "block_acc",
+}
+_FLAT_ANOM = {
+    "binary_acc": "anomaly_acc",
+    "precision": "anomaly_p",
+    "recall": "anomaly_r",
+    "f1": "anomaly_f1",
+    "roc_auc": "anomaly_auc",
+    "rule_attribution_acc": "rule_attr_acc",
+}
+
+
+def flatten_breakdown(
+    per_result: dict,
+    name_map: dict[str, str],
+    *,
+    include_confusion: bool = False,
+) -> dict[str, float]:
+    """``per_family`` / ``per_cut_fraction`` output → flat registry scalars."""
+    out: dict[str, float] = {}
+    for grp, scores in per_result.items():
+        suffix = "" if grp == "overall" else f"_{grp}"
+        for raw, flat in name_map.items():
+            v = scores.get(raw)
+            if isinstance(v, (int, float)):
+                out[f"{flat}{suffix}"] = round(float(v), 4)
+        if include_confusion and grp == "overall":
+            conf = scores.get("confusion")
+            if conf:
+                out.update({f"cm_{k}": conf[k] for k in ("tp", "fp", "tn", "fn")})
+    return out
+
+
+def build_metrics_report(
+    *,
+    version: str,
+    predictor: str,
+    model_ref: str | None = None,
+    eval_set: str | None = None,
+    tags: list[str] | None = None,
+    nextstep: dict | None = None,
+    completion: dict | None = None,
+    anomaly: dict | None = None,
+) -> dict:
+    """Structured report for ``metrics_report.json`` / REPORT.md (all documented metrics)."""
+    return {
+        "version": version,
+        "predictor": predictor,
+        "model_ref": model_ref,
+        "eval_set": eval_set,
+        "tags": tags or [],
+        "tasks": {
+            k: v
+            for k, v in (
+                ("nextstep", nextstep),
+                ("completion", completion),
+                ("anomaly", anomaly),
+            )
+            if v
+        },
+        "metric_keys": _TASK_METRIC_KEYS,
+    }
+
+
+def format_report_markdown(report: dict) -> str:
+    """Human-readable summary for ``metrics_report.md`` and REPORT.md paste-in."""
+    lines = [
+        f"# Track eval — {report.get('version', '?')}",
+        "",
+        f"- **Predictor:** `{report.get('predictor', '?')}`",
+    ]
+    if report.get("model_ref"):
+        lines.append(f"- **Model:** `{report['model_ref']}`")
+    if report.get("eval_set"):
+        lines.append(f"- **Eval set:** `{report['eval_set']}`")
+    if report.get("tags"):
+        lines.append(f"- **Tags:** `{', '.join(report['tags'])}`")
+    lines.append("")
+
+    def _section_lines(task_name: str, label: str, scores: dict) -> list[str]:
+        keys = _TASK_METRIC_KEYS.get(task_name, ())
+        parts = [
+            f"{k}={round(scores[k], 4)}"
+            for k in keys
+            if k in scores and isinstance(scores.get(k), (int, float))
+        ]
+        if scores.get("confusion"):
+            c = scores["confusion"]
+            parts.append(f"confusion=tp{c['tp']}/fp{c['fp']}/tn{c['tn']}/fn{c['fn']}")
+        return [f"- **{label}:** " + ", ".join(parts)] if parts else []
+
+    for task, data in (report.get("tasks") or {}).items():
+        lines.append(f"## {task}")
+        sections: list[tuple[str, dict]] = []
+        if "by_family" in data or "by_cut" in data:
+            for key in ("by_family", "by_cut"):
+                block = data.get(key) or {}
+                for grp, scores in sorted(block.items()):
+                    prefix = f"{key}/{grp}" if grp != "overall" else f"{key}/overall"
+                    sections.append((prefix, scores))
+        else:
+            for grp, scores in sorted(data.items()):
+                sections.append((grp, scores))
+        for label, scores in sections:
+            lines.extend(_section_lines(task, label, scores))
+        lines.append("")
+    return "\n".join(lines).strip() + "\n"

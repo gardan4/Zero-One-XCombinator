@@ -46,7 +46,7 @@ Repo-layout conventions the template assumes: eval outputs + raw scores in **`ex
 optional architecture sketch in **`extras/`**. (Minor inconsistency: SUBMISSION.md says `REPORT.md` at
 **repo root**, REPORT_TEMPLATE.md's header says `/submissions/{team}/REPORT.md` — go with **root**, it's
 the authoritative checklist.) Note `judging/rubrics.md` is linked from SUBMISSION.md but **absent
-upstream** — only the general rubric below is published.
+upstream** — only the general rubric below is published. Industrial AI: [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md); HF **`XCombinator`**; W&B **`XCombinator/XCombinator`**.
 
 > **Action items this implies for us:** confirm the root `LICENSE` is MIT (it exists — verify text),
 > write a root **`REPORT.md`** from the vendored template, ensure a **`requirements.txt`**-equivalent

@@ -90,6 +90,10 @@ Understanding the grammar helps interpret why sequences look the way they do and
 
 ## Evaluation Tasks
 
+> Organizer scorer `eval_metrics.py` and kickoff CSVs are distributed at the hackathon, not in git.
+> Local stand-in: `uv run zo-track predict` + `packages/eval/zo_eval/track_metrics.py`.
+> See **[docs/track-industrial-sources.md](../../../docs/track-industrial-sources.md)**.
+
 The organizers will distribute two eval input files at the start of the hackathon:
 
 | File                     | Used for    | Contents                                                                            |

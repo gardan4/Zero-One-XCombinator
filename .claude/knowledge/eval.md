@@ -3,11 +3,10 @@
 Code: `packages/eval/zo_eval/` (`tasks.py`, `harness.py`, `cli.py`). Tasks: `packages/eval/tasks/*.yaml`.
 
 > **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** the scored eval is **3 process
-> tasks** (next-step / completion / anomaly) graded by the organizer-provided `eval_metrics.py`
-> against held-out inputs — **not** the OpenAI `exact_match` harness below. Plan to wrap
-> `eval_metrics.py` as zo-eval tasks (and use `validate_sequence()` as a rule-based anomaly baseline).
-> The harness pattern below (iterate items → score → `append_metric` → final number) is still the
-> right shape; just swap the scoring + drop the served-model requirement for a from-scratch seq-model.
+> tasks** (next-step / completion / anomaly). **`eval_metrics.py` and kickoff CSVs are not in the public
+> repo** — use `track_metrics.py` + `extras/eval_local/` until kickoff. **`judging/rubrics.md` is also
+> unpublished**; see [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
+> Checkpoints: HF **`XCombinator`**; logs: W&B **`XCombinator/XCombinator`**. Not the OpenAI harness below.
 
 ## How it works
 - A **task** is a YAML: an id, a list of items (`prompt` + expected answer), and a `metric`.
@@ -55,6 +54,11 @@ The shared, model-agnostic path every stream uses (there was NO inference code b
   scalars in the registry. Driver mirrors the organizers' `eval_metrics.py` (drop-in at kickoff).
 - **Metric/tag convention (dashboard contract):** flat scalars `top1/top3/top5/mrr`,
   `em/ned/token_acc/block_acc`, `anomaly_acc/anomaly_p/anomaly_r/anomaly_f1/anomaly_auc/rule_attr_acc`,
-  `cm_tp/fp/tn/fn`; per-family adds `_MOSFET|_IGBT|_IC`. **ID vs OOD is a run TAG** (`split:id|ood`),
-  not a metric name. Tags: `eval:<task>`, `split:id|ood`, `family:*`, `predictor:ngram|oracle|llm|...`.
+  `cm_tp/fp/tn/fn`; per-family adds `_MOSFET|_IGBT|_IC`; per-cut adds `_frac60` / `_frac80` (60%/80%).
+  **ID vs OOD is a run TAG** (`split:id|ood`), not a metric name. Required repro tags:
+  `version:<label>`, `model-ref:<hf-repo-or-path>`, `eval-set:local|kickoff`, plus
+  `predictor:ngram|oracle|freq|hf|llm|featherless|likelihood-ngram|classifier`.
+- Each eval run writes `results/metrics_report.json` + `metrics_report.md` (paste into REPORT.md).
+- Predictors for reproducible matrix: `ngram`/`freq` (baselines), `oracle` (submitted anomaly),
+  `hf`/`llm`/`featherless` (finetuned), `likelihood-ngram` (learned anomaly science), `classifier` (LLM verdict).
 - `zo-eval` now depends on `zo-train` (declared) so it can import grammar/fab/datagen.
