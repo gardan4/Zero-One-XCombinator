@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 import typer
@@ -19,6 +20,14 @@ from zo_train.cluster._remote import (
 )
 
 app = typer.Typer(help="Submit training jobs to the Leonardo SLURM cluster.", no_args_is_help=True)
+
+
+@dataclass(frozen=True)
+class SubmitResult:
+    run_id: str
+    sbatch_path: Path
+    job_id: str | None = None
+    rendered_only: bool = False
 
 
 def _cluster_experiments_dir(repo_dir: str) -> str:
@@ -63,12 +72,13 @@ def _render(subcommand: str, run_id: str, cluster_config_path: str) -> str:
     return Template(tpl).render(**ctx)
 
 
-@app.command()
-def submit(
-    config: str = typer.Option(..., "--config", "-c"),
-    kind: str = typer.Option("sft", help="sft | grpo"),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Render the sbatch but don't ssh."),
-) -> None:
+def submit_run(
+    config: str,
+    kind: str = "sft",
+    *,
+    dry_run: bool = False,
+) -> SubmitResult:
+    """Render (and optionally submit) a SLURM training job. Returns run metadata."""
     load_dotenv()
     ensure_remote_path_vars()
     cfg = _resolve_config(config)
@@ -82,39 +92,50 @@ def submit(
 
     remote_dir = f"{experiments_dir}/{run.id}"
     sbatch = _render(kind, run.id, f"{remote_dir}/config.yaml")
-    write_sbatch(local_dir / "job.sbatch", sbatch)
-    typer.echo(f"run {run.id} -> {local_dir / 'job.sbatch'}")
+    sbatch_path = local_dir / "job.sbatch"
+    write_sbatch(sbatch_path, sbatch)
 
     if dry_run or not (host and user):
-        if not (host and user):
-            typer.secho(
-                "ZO_CLUSTER_HOST / ZO_CLUSTER_USER not set — wrote sbatch locally only.",
-                fg="yellow",
-            )
         update_run(run.id, status="queued", notes="rendered, not submitted")
-        raise typer.Exit()
+        return SubmitResult(run_id=run.id, sbatch_path=sbatch_path, rendered_only=True)
 
     target = f"{user}@{host}"
     ssh_run(target, f"mkdir -p {remote_dir}", check=True)
     scp_upload(local_dir / "meta.json", target, f"{remote_dir}/meta.json")
     scp_upload(local_dir / "config.yaml", target, f"{remote_dir}/config.yaml")
-    scp_upload(local_dir / "job.sbatch", target, f"{remote_dir}/job.sbatch")
+    scp_upload(sbatch_path, target, f"{remote_dir}/job.sbatch")
     result = ssh_run(
         target,
         f"cd {repo_dir} && sbatch {remote_dir}/job.sbatch",
         capture_output=True,
     )
-    typer.echo((result.stdout + result.stderr).strip())
     job_id = (
         result.stdout.strip().split()[-1]
         if result.returncode == 0 and result.stdout.strip()
         else None
     )
     update_run(run.id, status="queued" if job_id else "failed", slurm_job_id=job_id)
-    if job_id:
-        typer.secho(f"submitted SLURM job {job_id}  (watch: `just cluster-watch`)", fg="green")
-    else:
-        raise typer.Exit(result.returncode or 1)
+    if not job_id:
+        raise RuntimeError((result.stdout + result.stderr).strip() or "sbatch failed")
+    return SubmitResult(run_id=run.id, sbatch_path=sbatch_path, job_id=job_id)
+
+
+@app.command()
+def submit(
+    config: str = typer.Option(..., "--config", "-c"),
+    kind: str = typer.Option("sft", help="sft | grpo"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Render the sbatch but don't ssh."),
+) -> None:
+    result = submit_run(config, kind, dry_run=dry_run)
+    typer.echo(f"run {result.run_id} -> {result.sbatch_path}")
+    if result.rendered_only:
+        if not (env("ZO_CLUSTER_HOST") and env("ZO_CLUSTER_USER")):
+            typer.secho(
+                "ZO_CLUSTER_HOST / ZO_CLUSTER_USER not set — wrote sbatch locally only.",
+                fg="yellow",
+            )
+        raise typer.Exit()
+    typer.secho(f"submitted SLURM job {result.job_id}  (watch: `just cluster-watch`)", fg="green")
 
 
 @app.command("leonardo-smoke")

@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import re
-import subprocess
 import time
-from pathlib import Path
 
 import typer
 
@@ -71,17 +68,11 @@ def run_leonardo_smoke(
 
 
 def _submit(config: str, *, dry_run: bool) -> tuple[str | None, str | None]:
-    cmd = ["uv", "run", "zo-cluster", "submit", "--config", config]
-    if dry_run:
-        cmd.append("--dry-run")
-    result = subprocess.run(cmd, cwd=repo_root(), capture_output=True, text=True)
-    out = (result.stdout or "") + (result.stderr or "")
-    typer.echo(out.strip())
-    if result.returncode != 0:
-        raise typer.Exit(result.returncode)
-    run_m = re.search(r"run (\d{8}_\d{6}_\S+)", out)
-    job_m = re.search(r"submitted SLURM job (\d+)", out)
-    return (run_m.group(1) if run_m else None, job_m.group(1) if job_m else None)
+    from zo_train.cluster.submit import submit_run
+
+    result = submit_run(config, "sft", dry_run=dry_run)
+    typer.echo(f"run {result.run_id} -> {result.sbatch_path}")
+    return result.run_id, result.job_id
 
 
 def _wait_and_upload(

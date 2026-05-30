@@ -70,10 +70,11 @@ End-to-end: sync repo → prestage on login → SLURM LoRA train → optional HF
 
 ```bash
 cp .env.example .env   # ZO_CLUSTER_USER, HF_TOKEN, ZO_CLUSTER_* paths
-uv run python scripts/leonardo_smoke.py --dry-run   # render sbatch locally
-uv run python scripts/leonardo_smoke.py             # full pipeline over SSH
-uv run python scripts/leonardo_smoke.py --wait-upload
+python -m pip install -r requirements-orchestrator.txt
+python scripts/leonardo_smoke.py --dry-run   # render sbatch locally (no cluster)
+python scripts/leonardo_smoke.py             # full pipeline over SSH
+python scripts/leonardo_smoke.py --wait-upload
 ```
 
-Same via `uv run zo-cluster leonardo-smoke`. Legacy wrappers: `scripts/leonardo_smoke_hf.ps1` (Windows),
+Same via `uv run zo-cluster leonardo-smoke` if you use uv. Legacy wrappers: `scripts/leonardo_smoke_hf.ps1` (Windows),
 `scripts/leonardo_smoke_hf.sh` (macOS/Linux with rsync). Config: `packages/training/configs/leonardo_smoke_hf.yaml`.
