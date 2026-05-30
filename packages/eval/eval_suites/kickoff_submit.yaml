@@ -1,0 +1,17 @@
+# Final kickoff submission run — produces gradeable CSVs + proxy sanity metrics.
+# Usage: uv run zo-track suite packages/eval/eval_suites/kickoff_submit.yaml --model XCombinator/sft-fab-all
+
+defaults:
+  eval_set: kickoff
+  run_proxy: true
+  self_check: false
+  tags:
+    - split:id
+    - role:submission
+
+runs:
+  - name: kickoff-final
+    predictor: hf
+    model: default  # override via --model on CLI
+    version: kickoff-final-v1
+    promote: kickoff-final

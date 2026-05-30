@@ -44,6 +44,13 @@ def test_build_and_format_report():
     assert "by_cut/frac60" in md
 
 
+def test_block_level_matches_major_process_blocks():
+    pred = ["SPIN COAT PHOTORESIST", "EXPOSE LITHO LEVEL 1", "DEPOSIT POLYSILICON"]
+    ref = ["SPIN COAT PHOTORESIST", "ALIGN MASK LEVEL 1", "DEPOSIT POLYSILICON"]
+    assert M.block_level_accuracy(pred, ref) == 1.0  # LITHO→DEPOSITION signatures match
+    assert M.token_accuracy(["A", "B", "C"], ["A", "X", "C"]) == 2 / 3
+
+
 def test_gold_includes_cut_fraction_of():
     import json
     import tempfile

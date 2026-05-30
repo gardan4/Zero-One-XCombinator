@@ -21,8 +21,9 @@ In Markdown we use the same labels in a blockquote or horizontal-rule block.
 | `data/industrial-infineon/Track_industrial_en.md` | Errata block at top |
 | `data/industrial-infineon/Track_industrial.md` | Errata block at top (DE) |
 | `data/industrial-infineon/README.md` | Eval section: team block + **original** self-eval text preserved |
-| `data/industrial-infineon/training_data/README.md` | Eval section: team block + **original** `eval_metrics.py` text preserved |
+| `data/industrial-infineon/eval/README.md` | Kickoff eval inputs + usage |
+| `docs/eval-and-artifacts.md` | Eval workflow, tagging, HF model cards, command reference |
 | `docs/submission/SUBMISSION.md` | Team block after original rubrics link (Industrial AI scoring) |
 | `docs/submission/REPORT_TEMPLATE.md` | Team blocks for Results + Industrial checklist (original lines kept) |
 
-**Team-authored docs** (entire file is ours, not upstream): `docs/track-industrial-sources.md`, this file, root `README.md` track section, `.claude/knowledge/*` updates.
+**Team-authored docs** (entire file is ours, not upstream): [eval-and-artifacts.md](eval-and-artifacts.md), `docs/track-industrial-sources.md`, this file, root `README.md` track section, `.claude/knowledge/*` updates.

@@ -114,7 +114,9 @@ def submit_run(
     repo_dir = cluster_repo_dir()
     experiments_dir = _cluster_experiments_dir(repo_dir)
 
-    run = new_run(cfg.name, effective_kind, config=cfg.model_dump(), cluster=host, tags=["cluster"])
+    cfg_tags = list(cfg.extra.get("tags") or [])
+    run_tags = ["cluster", *cfg_tags]
+    run = new_run(cfg.name, effective_kind, config=cfg.model_dump(), cluster=host, tags=run_tags)
     local_dir = run_dir(run.id)
     cfg.to_yaml(local_dir / "config.yaml")
 

@@ -4,9 +4,10 @@
 ========== XCombinator-TEAM-START ==========
 (not in original organizer / Lumos Track One Assignment)
 
-We do not receive eval_metrics.py — organizers score our submitted CSVs with their script.
-Self-eval on hold-out data: packages/eval/zo_eval/track_metrics.py (metrics in generation_rules.md §5).
-judging/rubrics.md is not published; judging criteria are in this file, SUBMISSION.md, and §5.
+**Update (2026-05-30):** Organizer eval inputs + `eval_metrics.py` are vendored at
+`data/industrial-infineon/eval/`. Kickoff CSVs have no public labels — organizers score submissions;
+local self-eval: `track_metrics.py` + `extras/eval_local/gold.json`, or `zo-track score-official`
+when ground-truth CSVs exist. Grammar proxy: `zo-track validate` / `generate_sequences.py --validate`.
 See docs/track-industrial-sources.md and docs/XCOMBINATOR-TEAM-ADDITIONS.md.
 
 ========== XCombinator-TEAM-END ==========
