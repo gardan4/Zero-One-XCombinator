@@ -100,9 +100,13 @@ if os.environ.get("WANDB_MODE") == "online" and os.environ.get("WANDB_API_KEY") 
 PY
 
 # --- launch ------------------------------------------------------------------
-# Single process (LoRA on one GPU, or device_map across the node's GPUs).
+{% if gpus_per_node | int > 1 %}
+# Multi-GPU: shard a full fine-tune across the node's {{ gpus_per_node }} NVLinked A100s via FSDP.
+# One process per GPU; trl's Trainer + accelerate pick up the sharding from the launcher's
+# distributed env. Registry/checkpoint writes are rank-0 guarded in sft.py / rl.py.
+uv run accelerate launch --config_file "{{ accelerate_config }}" --num_processes {{ gpus_per_node }} \
+    -m zo_train.cli {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
+{% else %}
+# Single process (LoRA on one GPU, or a model that fits a single 64GB A100).
 uv run zo-train {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
-
-# Multi-GPU / multi-node alternative (uncomment, comment the line above):
-# uv run accelerate launch --multi_gpu --num_processes {{ gpus_per_node }} \
-#     -m zo_train.cli {{ subcommand }} --config "{{ config_path }}" --run-id "{{ run_id }}"
+{% endif %}

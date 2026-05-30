@@ -1,0 +1,24 @@
+# CoT-SFT (R1 arm of the reasoning ablation): teach the model to emit a <think> rationale then the
+# answer, warm-started from the instruction-tuned checkpoint on the correct-by-construction
+# cot_anomaly rationales (verifier-minted — never a wrong rationale). Pairs with
+# grpo_r1zero_validate_format.yaml (R2) for the warm-start-vs-emergent comparison.
+#   set ZO_SFT_CHECKPOINT_DIR to the instruct-all artifacts dir on scratch.
+name: sft-cot-instruct-all
+kind: sft
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_cot_anomaly.jsonl,data/generated/IGBT_cot_anomaly.jsonl,data/generated/IC_cot_anomaly.jsonl
+text_field: ""                 # prompt/completion path -> completion-only loss on the rationale+answer
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+epochs: 2
+batch_size: 4
+grad_accum: 4
+seed: 42
+extra:
+  local_files_only: true
+  completion_only_loss: true
+  gradient_checkpointing: true
+  push_to_hub: false
+  tags: [leonardo, sft, cot, reasoning, r1, all-families, "stream:2"]

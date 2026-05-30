@@ -1,0 +1,27 @@
+# REQUIRED FSDP launch-layer smoke — proves the multi-GPU path BEFORE the 7B hero.
+# Uses the already-staged 1.5B instruct base (no 7B prestage needed) on 4 GPUs for 10 steps.
+# Gate before trusting FSDP: `nvidia-smi -L` shows 4 devices, accelerate spawns 4 processes, the
+# saved checkpoint reloads, and metrics.jsonl has no duplicate/garbled lines (rank-0 guard working).
+name: leonardo-smoke-fsdp
+kind: sft
+model: $SCRATCH/hf-local/Qwen2.5-1.5B-Instruct
+dataset: data/generated/instruct_all.jsonl
+text_field: ""
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+epochs: 1
+batch_size: 1
+grad_accum: 2
+seed: 42
+extra:
+  gpus_per_node: 4              # -> accelerate launch + FSDP (the thing under test)
+  slurm_cpus: 32
+  slurm_time: "00:30:00"
+  local_files_only: true
+  completion_only_loss: true
+  gradient_checkpointing: false
+  max_steps: 10
+  push_to_hub: false
+  tags: [leonardo, smoke, fsdp, multi-gpu]

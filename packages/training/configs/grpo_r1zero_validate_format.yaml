@@ -1,0 +1,23 @@
+# R1-zero (R2 arm): GRPO straight from the instruct base (NO CoT-SFT) with the validate+format
+# reward — let reasoning emerge from the verifiable reward + a clean <think>-shape bonus. Compare
+# against sft_cot_instruct.yaml (R1: warm-started reasoning) to test whether reasoning needs a warm
+# start or emerges from RL alone.
+#   set ZO_SFT_CHECKPOINT_DIR to the instruct-all artifacts dir on scratch.
+name: grpo-r1zero-validate-format
+kind: grpo
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_eval_nextstep.jsonl,data/generated/IGBT_eval_nextstep.jsonl,data/generated/IC_eval_nextstep.jsonl
+learning_rate: 1.0e-6
+batch_size: 8
+grad_accum: 1
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+extra:
+  num_generations: 8
+  max_completion_length: 128   # room for a <think> rationale + the answer
+  reward: validate+format      # outcome validity + a clean think-then-answer shape bonus
+  local_files_only: true
+  # max_steps: 50
+  tags: [leonardo, grpo, rlvr, r1-zero, reasoning, "reward:validate+format", "task:nextstep", "stream:2"]

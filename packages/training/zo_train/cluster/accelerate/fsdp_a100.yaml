@@ -1,0 +1,23 @@
+# accelerate launch config — FSDP full fine-tune across ONE Leonardo node (4× A100-64GB, NVLinked).
+# Used by train.sbatch.j2 when gpus_per_node > 1 (a config sets extra.gpus_per_node: 4).
+# Sharding the optimizer+grads+params across 4×64GB = 256GB lets a 7-13B model train full-FT.
+compute_environment: LOCAL_MACHINE
+distributed_type: FSDP
+mixed_precision: bf16
+use_cpu: false
+machine_rank: 0
+num_machines: 1
+num_processes: 4              # overridden by --num_processes on the launch line
+rdzv_backend: static
+same_network: true
+downcast_bf16: 'no'
+fsdp_config:
+  fsdp_sharding_strategy: FULL_SHARD
+  fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+  fsdp_transformer_layer_cls_to_wrap: Qwen2DecoderLayer   # Qwen2.5 uses the Qwen2 arch
+  fsdp_backward_prefetch: BACKWARD_PRE
+  fsdp_state_dict_type: FULL_STATE_DICT     # rank-0 consolidated save → a directly servable checkpoint
+  fsdp_use_orig_params: true                # required for full-FT optimizer sharding
+  fsdp_cpu_ram_efficient_loading: true      # stream shards in; avoids 4× full-model RAM on load
+  fsdp_sync_module_states: true
+  fsdp_offload_params: false                # 256GB sharded fits 7-13B; flip on only if OOM

@@ -52,13 +52,20 @@ def load_sft_dataset(cfg: ExperimentConfig):
 
 
 def load_prompt_dataset(cfg: ExperimentConfig):
-    """For GRPO: needs a `prompt` column. Falls back to a toy prompt set."""
+    """For GRPO: needs a `prompt` column. Falls back to a toy prompt set.
+
+    Like ``load_sft_dataset``, ``cfg.dataset`` may be a comma-separated list of paths or a glob,
+    all loaded as a single concatenated ``train`` split — so an all-families GRPO run is the three
+    families' ``*_eval_nextstep.jsonl`` / ``*_sft_completion.jsonl`` joined with a comma (no need to
+    pre-concatenate a combined file). A single path or a HuggingFace id still work.
+    """
     from datasets import load_dataset
 
     if not cfg.dataset:
         return _toy_prompts()
-    if Path(cfg.dataset).exists():
-        return load_dataset("json", data_files=cfg.dataset, split="train")
+    files = _resolve_local_files(cfg.dataset)
+    if files:
+        return load_dataset("json", data_files=files, split="train")
     return load_dataset(cfg.dataset, split=cfg.dataset_split)
 
 

@@ -1,0 +1,25 @@
+# GRPO cross-product — OUTCOME reward × NEXT-STEP task × all families.
+# Ablation axis: {output, process} × {nextstep, completion}. This is the lowest-risk arm (closest
+# to the original grpo_fab.yaml) — run it first as the Wave-A proof.
+# Starts FROM the instruction-tuned SFT checkpoint:
+#   set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch
+#   (e.g. $SCRATCH/zo-experiments/<instruct_run_id>/artifacts).
+# Smoke first:  uncomment extra.max_steps; reward should rise, completion length stay >= MIN_STEPS.
+name: grpo-out-nextstep-all
+kind: grpo
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_eval_nextstep.jsonl,data/generated/IGBT_eval_nextstep.jsonl,data/generated/IC_eval_nextstep.jsonl
+learning_rate: 1.0e-6
+batch_size: 8
+grad_accum: 1
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+extra:
+  num_generations: 8
+  max_completion_length: 64    # next-step: short continuations
+  reward: validate             # OUTCOME: 1 - n_violations/n_steps
+  local_files_only: true
+  # max_steps: 50              # GPU smoke gate before the full run
+  tags: [leonardo, grpo, rlvr, "reward:output", "task:nextstep", all-families, "stream:2"]

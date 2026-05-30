@@ -1,0 +1,23 @@
+# GRPO cross-product — OUTCOME reward × COMPLETION task × all families.
+# The meatier task: generate the ~40-60 remaining steps of a partial route; reward grammar-validity
+# of the continuation. Token budget retargeted from the next-step defaults (measured: completion
+# targets reach ~328 tokens, prompts ~690). Starts FROM the instruction-tuned SFT checkpoint:
+#   set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch.
+name: grpo-out-completion-all
+kind: grpo
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_sft_completion.jsonl,data/generated/IGBT_sft_completion.jsonl,data/generated/IC_sft_completion.jsonl
+learning_rate: 1.0e-6
+batch_size: 4                  # longer generations → smaller batch for memory
+grad_accum: 2
+epochs: 1
+max_seq_len: 1024              # caps the prompt (max ~690 tokens); completion capped separately
+lora: true
+bf16: true
+extra:
+  num_generations: 6           # fewer samples per prompt (long completions cost memory)
+  max_completion_length: 384   # fits the ~328-token continuation targets
+  reward: validate             # OUTCOME: 1 - n_violations/n_steps
+  local_files_only: true
+  # max_steps: 50
+  tags: [leonardo, grpo, rlvr, "reward:output", "task:completion", all-families, "stream:2"]

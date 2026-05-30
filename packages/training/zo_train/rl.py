@@ -59,7 +59,8 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
 
     class _RegistryCallback(TrainerCallback):
         def on_log(self, args, state, control, logs=None, **kwargs):  # noqa: ANN001
-            if not logs:
+            # Rank-0-only registry writes (GRPO stays single-GPU today, but keep it multi-GPU safe).
+            if not logs or not state.is_world_process_zero:
                 return
             scalars = {k: float(v) for k, v in logs.items() if isinstance(v, (int, float))}
             if scalars:

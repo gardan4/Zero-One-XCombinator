@@ -1,0 +1,22 @@
+# GRPO cross-product — PROCESS reward × COMPLETION task × all families.
+# The headline arm: a dense "how far the continuation stays legal" reward on the long-completion
+# task is where process-vs-outcome should diverge most. Starts FROM the instruction-tuned SFT
+# checkpoint: set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch.
+name: grpo-proc-completion-all
+kind: grpo
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_sft_completion.jsonl,data/generated/IGBT_sft_completion.jsonl,data/generated/IC_sft_completion.jsonl
+learning_rate: 1.0e-6
+batch_size: 4
+grad_accum: 2
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+extra:
+  num_generations: 6
+  max_completion_length: 384
+  reward: process              # PROCESS: longest_valid_prefix / n_steps
+  local_files_only: true
+  # max_steps: 50
+  tags: [leonardo, grpo, rlvr, "reward:process", "task:completion", all-families, "stream:2"]
