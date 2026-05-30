@@ -200,9 +200,16 @@ function main() {
     baselineSlugs[0] ||
     null;
 
-  // ---- best: role:finetuned + split:id ----
+  // ---- best: role:finetuned + split:id, EXCLUDING data-size scaling points ----
+  // (scaling-study runs are also role:finetuned+split:id but tagged data-size:<N>; the headline
+  // "best" is the full-data canonical model, never a scaling point.)
   const bestSlug =
-    slugs.find((s) => hasTag(index[s], "role:finetuned") && hasTag(index[s], "split:id")) || null;
+    slugs.find(
+      (s) =>
+        hasTag(index[s], "role:finetuned") &&
+        hasTag(index[s], "split:id") &&
+        dataSizeTag(index[s]) == null,
+    ) || null;
 
   // ---- oracle: role:oracle ----
   const oracleSlug = slugs.find((s) => hasTag(index[s], "role:oracle")) || null;

@@ -100,25 +100,25 @@ export default function ProcessRoute(props: Props) {
                 <span className="r-ghost" />
                 {!predicting && prediction && <span className="r-plabel mono">{prediction.step}</span>}
                 {!predicting && prediction && (
-                  <span
-                    className={`r-pchip${predValid ? ' ok' : ' warn'}`}
-                    title={
-                      predValid
-                        ? 'Appending this step keeps the route grammar-valid.'
-                        : predViolation
-                          ? RULE_SHORT[predViolation.rule] ?? predViolation.description
-                          : 'Appending this step would break a process-logic rule.'
-                    }
-                  >
-                    {predValid ? '✓ valid next step' : `⚠ would break ${predViolation ? prettyRule(predViolation.rule) : 'a rule'}`}
-                  </span>
-                )}
-                {!predicting && prediction && (
-                  <span className="r-pconf mono">
-                    <span className="pc-k">model confidence</span>
-                    <span className="pc-bar"><span className="pc-fill" style={{ width: `${Math.round(prediction.confidence * 100)}%` }} /></span>
-                    <span className="pc-v">{Math.round(prediction.confidence * 100)}%</span>
-                  </span>
+                  <div className="r-pcard">
+                    <span
+                      className={`r-pchip${predValid ? ' ok' : ' warn'}`}
+                      title={
+                        predValid
+                          ? 'Appending this step keeps the route grammar-valid.'
+                          : predViolation
+                            ? RULE_SHORT[predViolation.rule] ?? predViolation.description
+                            : 'Appending this step would break a process-logic rule.'
+                      }
+                    >
+                      {predValid ? '✓ valid next step' : `⚠ would break ${predViolation ? prettyRule(predViolation.rule) : 'a rule'}`}
+                    </span>
+                    <span className="r-pconf">
+                      <span className="pc-k">model confidence</span>
+                      <span className="pc-bar"><span className="pc-fill" style={{ width: `${Math.round(prediction.confidence * 100)}%` }} /></span>
+                      <span className="pc-v mono">{Math.round(prediction.confidence * 100)}%</span>
+                    </span>
+                  </div>
                 )}
               </div>
             )}

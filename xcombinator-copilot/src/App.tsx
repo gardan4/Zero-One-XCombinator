@@ -210,6 +210,8 @@ export default function App() {
           category={categoryOf(selStep)}
           description={describe(selStep)}
           prediction={prediction}
+          predValid={predCheck.valid}
+          predViolation={predCheck.violation}
           rule={stepRule}
           fraction={detailFraction}
           isHead={selectedIdx === headIdx}

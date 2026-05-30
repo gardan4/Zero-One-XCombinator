@@ -1,0 +1,24 @@
+# Data-scaling study (INSTRUCT framing): SFT-all on 300 seqs/family. Matches
+# leonardo_sft_fab_instruct.yaml except dataset size + epochs:1 (constant compute,
+# vary only the data) to plot accuracy vs #training sequences.
+name: leonardo-sft-scale-instruct-300
+kind: sft
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct
+dataset: data/generated_scale/300/instruct_all.jsonl
+text_field: messages
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+warmup_ratio: 0.05
+epochs: 1
+batch_size: 4
+grad_accum: 4
+seed: 42
+extra:
+  local_files_only: true
+  gradient_checkpointing: true
+  completion_only_loss: true
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-1.5B-Instruct
+  tags: [leonardo, sft, fab, instruct, scale, "data-size:300", all-families]

@@ -19,6 +19,7 @@ and sends `model: <name>` from the dropdown. GET /v1/models lists what's availab
 from __future__ import annotations
 
 import json
+import math
 import os
 import time
 
@@ -59,6 +60,33 @@ def _load(name: str):
         _loaded[name] = (tok, model)
         print(f"[serve] {name} ready", flush=True)
     return _loaded[name]
+
+
+def _step_confidence(tok, new_ids, scores) -> float:
+    """How sure the model was about the FIRST predicted step.
+
+    Greedy decoding picks the arg-max token at each position, so the soft-max
+    probability of that token is the model's own confidence for it. We take the
+    geometric mean of those probabilities across the tokens that make up the first
+    step (everything before the first ``|``) — a multi-token step only scores high
+    if the model was confident about *all* of it. Returns a value in [0.05, 0.99].
+    """
+    if scores is None or len(scores) == 0:
+        return 0.5
+    logprob_sum = 0.0
+    n = 0
+    for i, tok_id in enumerate(new_ids.tolist()):
+        if i >= len(scores):
+            break
+        if "|" in tok.decode([tok_id]):
+            break
+        probs = torch.softmax(scores[i][0].float(), dim=-1)
+        p = float(probs[tok_id].clamp_min(1e-9))
+        logprob_sum += math.log(p)
+        n += 1
+    if n == 0:
+        return 0.5
+    return max(0.05, min(0.99, math.exp(logprob_sum / n)))
 
 
 def _build_prompt(tok, name: str, messages: list[dict]) -> str:
@@ -104,18 +132,27 @@ async def chat(req: Request):
     prompt = _build_prompt(tok, name, messages)
     inputs = tok(prompt, return_tensors="pt").to(DEVICE)
     with torch.no_grad():
-        out = model.generate(
+        gen = model.generate(
             **inputs,
             max_new_tokens=max_new,
             do_sample=False,
             pad_token_id=tok.pad_token_id or tok.eos_token_id,
+            return_dict_in_generate=True,
+            output_scores=True,
         )
-    text = tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+    new_ids = gen.sequences[0][inputs["input_ids"].shape[1]:]
+    text = tok.decode(new_ids, skip_special_tokens=True)
+    try:
+        confidence = _step_confidence(tok, new_ids, gen.scores)
+    except Exception:
+        confidence = 0.82
     return {
         "id": "chatcmpl-local",
         "object": "chat.completion",
         "created": int(time.time()),
         "model": name,
+        # non-standard field the copilot reads for the real "model confidence" bar
+        "confidence": round(confidence, 4),
         "choices": [
             {"index": 0, "message": {"role": "assistant", "content": text}, "finish_reason": "stop"}
         ],

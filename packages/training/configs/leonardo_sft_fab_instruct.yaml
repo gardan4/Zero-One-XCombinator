@@ -4,7 +4,7 @@
 # Start from the base instruct model (already instruction-capable); teach it the fab tasks.
 name: leonardo-sft-fab-instruct-all
 kind: sft
-model: $SCRATCH/hf-local/Qwen2.5-1.5B-Instruct
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct
 dataset: data/generated/instruct_all.jsonl
 text_field: messages       # shared system+user+assistant rows from datagen instruct_all.jsonl
 lora: false
