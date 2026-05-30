@@ -13,7 +13,8 @@ _run_id: str | None = None
 
 
 def wandb_enabled() -> bool:
-    if os.environ.get("WANDB_MODE", "").lower() == "disabled":
+    mode = os.environ.get("WANDB_MODE", "").replace("\r", "").strip().lower()
+    if mode == "disabled":
         return False
     if not os.environ.get("WANDB_API_KEY"):
         return False

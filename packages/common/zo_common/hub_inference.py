@@ -135,6 +135,9 @@ def cuda_vram_gb(device: str | None = None) -> float | None:
     return float(torch.cuda.get_device_properties(idx).total_memory) / (1024**3)
 
 
+DEFAULT_INFER_BATCH_SIZE = 16
+
+
 def default_infer_batch_size(
     model: str | None,
     *,
@@ -143,18 +146,10 @@ def default_infer_batch_size(
     vram_gb: float | None = None,
     params_b: float | None = None,
 ) -> int:
-    """Pick a conservative HF generation batch size from model size, output length, and VRAM."""
+    """Fixed default HF generation batch size (override via ``ZO_TRACK_BATCH_SIZE`` or CLI)."""
+    del model, max_new_tokens, vram_gb, params_b  # kept for call-site compatibility
     dev = device or _default_device()
-    if dev == "cpu" and vram_gb is None:
-        return 1
-    params = params_b or parse_model_param_b(model) or 1.5
-    tier = _token_tier(max_new_tokens)
-    base = _BATCH_BY_PARAMS[_snap_param_b(params)][tier]
-    vram = vram_gb if vram_gb is not None else cuda_vram_gb(dev if dev.startswith("cuda") else None)
-    if vram is None:
-        return base
-    scaled = max(1, int(base * vram / 64.0))
-    return min(base, scaled) if vram < 64 else base
+    return 1 if dev == "cpu" else DEFAULT_INFER_BATCH_SIZE
 
 
 @dataclass(frozen=True)
@@ -257,7 +252,10 @@ class HubInferenceClient:
         self.device = device
         self.max_new_tokens = max_new_tokens
         explicit = batch_size if batch_size is not None else os.environ.get("ZO_TRACK_BATCH_SIZE")
-        self._batch_size_override = int(explicit) if explicit not in (None, "", "auto") else None
+        if explicit in (None, "", "auto"):
+            self._batch_size_override = DEFAULT_INFER_BATCH_SIZE
+        else:
+            self._batch_size_override = max(1, int(explicit))
         self._model = None
         self._tok = None
         self._last_batch_log: tuple[int, int] | None = None
@@ -424,13 +422,10 @@ class HubInferenceClient:
         )
 
     def _resolve_batch_size(self, *, max_new_tokens: int, override: int | None = None) -> int:
+        del max_new_tokens
         if override is not None:
             return max(1, override)
-        if self._batch_size_override is not None:
-            return max(1, self._batch_size_override)
-        base = self.spec.base_model or self.model_id
-        device = getattr(self, "_device", None) or self.device
-        return default_infer_batch_size(base, max_new_tokens=max_new_tokens, device=device)
+        return max(1, self._batch_size_override)
 
 
 def hub_chat_fn(client: HubInferenceClient):

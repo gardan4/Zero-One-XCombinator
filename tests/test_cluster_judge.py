@@ -45,11 +45,13 @@ def test_render_infer_sbatch(tmp_path, monkeypatch):
             eval_set="local",
             out_dir="/scratch/zo-experiments/run123/results",
             run_id="20260530_120000_eval_judge_abc123",
+            track_batch_size="16",
         ),
     )
     assert "#SBATCH --reservation=s_tra_ncc" in sbatch
     assert "zo-track predict" in sbatch
     assert '--version "sft-fab-all-v1"' in sbatch
     assert '--run-id "20260530_120000_eval_judge_abc123"' in sbatch
+    assert 'export ZO_TRACK_BATCH_SIZE="16"' in sbatch
     assert "/scratch/zo-models/XCombinator--sft-fab-all" in sbatch
     assert "--predictor hf" in sbatch

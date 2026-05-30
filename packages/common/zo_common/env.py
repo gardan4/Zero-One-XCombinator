@@ -18,8 +18,8 @@ _STRIP_SECRET_KEYS = frozenset({"HF_TOKEN", "HUGGINGFACE_HUB_TOKEN", "WANDB_API_
 
 
 def normalize_env_value(key: str, value: str) -> str:
-    """Strip quotes and trailing/leading whitespace (W&B rejects padded API keys)."""
-    val = value.strip().strip('"').strip("'")
+    """Strip quotes, CR/LF, and outer whitespace (W&B rejects padded or CRLF-polluted values)."""
+    val = value.replace("\r", "").replace("\n", "").strip().strip('"').strip("'")
     if key in _STRIP_SECRET_KEYS:
         val = val.strip()
     return val

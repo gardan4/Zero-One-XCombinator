@@ -59,13 +59,21 @@ def test_parse_model_param_b():
     assert parse_model_param_b("unknown-model") is None
 
 
-def test_default_infer_batch_size_heuristic():
-    from zo_common.hub_inference import default_infer_batch_size
+def test_resolve_infer_model_explicit_hf_uses_staged_path(monkeypatch):
+    from zo_train.cluster._slurm import resolve_infer_model
 
-    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=64, vram_gb=64) == 16
-    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=1024, vram_gb=64) == 4
-    assert default_infer_batch_size("Qwen/Qwen2.5-0.5B-Instruct", max_new_tokens=64, vram_gb=64) == 32
-    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=64, vram_gb=16) == 4
+    monkeypatch.setenv("ZO_CLUSTER_SCRATCH", "/scratch")
+    monkeypatch.setenv("ZO_INFER_MODEL_PATH", "/scratch/zo-models/wrong-adapter")
+    assert resolve_infer_model("Qwen/Qwen2.5-1.5B-Instruct") == "/scratch/hf-local/Qwen2.5-1.5B-Instruct"
+
+
+def test_default_infer_batch_size_fixed():
+    from zo_common.hub_inference import DEFAULT_INFER_BATCH_SIZE, default_infer_batch_size
+
+    assert DEFAULT_INFER_BATCH_SIZE == 16
+    assert default_infer_batch_size(
+        "Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=1024, device="cuda"
+    ) == 16
     assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=64, device="cpu") == 1
 
 

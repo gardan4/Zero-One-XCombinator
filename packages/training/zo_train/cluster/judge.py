@@ -81,13 +81,25 @@ def _submit_sbatch(sbatch_path: Path, *, local: bool) -> str | None:
             text=True,
         )
     elif has_ssh_tools() and _ssh_target():
+        from zo_train.cluster._remote import expand_cluster_path, scp_upload, ssh_run
+
         target = _ssh_target()
-        remote = f"{repo_dir}/{sbatch_path.relative_to(_repo()).as_posix()}"
-        subprocess.run(["scp", str(sbatch_path), f"{target}:{remote}"], check=True)
-        result = subprocess.run(
-            ["ssh", target, f"cd {repo_dir} && sbatch {remote}"],
+        repo = _repo()
+        try:
+            remote = f"{repo_dir}/{sbatch_path.relative_to(repo).as_posix()}"
+        except ValueError:
+            run_id = sbatch_path.parent.name
+            experiments = expand_cluster_path(
+                cluster_env("ZO_CLUSTER_EXPERIMENTS_DIR") or cluster_env("ZO_EXPERIMENTS_DIR") or ""
+            )
+            remote = f"{experiments.rstrip('/')}/{run_id}/infer.sbatch"
+            ssh_run(target, f"mkdir -p '{experiments.rstrip('/')}/{run_id}'", check=True)
+        scp_upload(sbatch_path, target, remote)
+        result = ssh_run(
+            target,
+            f"cd {repo_dir} && sbatch {remote}",
+            check=False,
             capture_output=True,
-            text=True,
         )
     else:
         return None
@@ -146,7 +158,7 @@ def stage_model(
 
     dest = Path(os.path.expandvars(out or staged_model_path(hf_id))).expanduser()
     dest.parent.mkdir(parents=True, exist_ok=True)
-    typer.secho(f"Downloading {hf_id} → {dest}", fg="cyan")
+    typer.secho(f"Downloading {hf_id} -> {dest}", fg="cyan")
 
     try:
         from huggingface_hub import snapshot_download
@@ -186,6 +198,7 @@ def judge_eval(
     stage: bool = typer.Option(True, "--stage/--no-stage", help="Auto-download HF weights if missing."),
     self_check: bool = typer.Option(False, "--self-check", help="Run official eval_metrics.py (needs gold)."),
     promote: str = typer.Option(None, "--promote", help="Copy results to extras/results/<slug>/ on compute node."),
+    batch_size: int = typer.Option(16, "--batch-size", help="HF infer batch size (default: 16)."),
 ) -> None:
     """Submit a GPU batch job that runs track eval and writes scored results."""
     ensure_cluster_env()
@@ -274,17 +287,21 @@ def judge_eval(
         self_check=self_check,
         promote=promote or "",
         run_proxy=eval_set == "kickoff",
+        track_batch_size=str(batch_size),
     )
     sbatch = render_template("infer.sbatch.j2", **ctx)
     sbatch_path = run_dir(run.id) / "infer.sbatch"
     _write_sbatch(sbatch_path, sbatch)
-    typer.echo(f"run {run.id} → {sbatch_path}")
+    typer.echo(f"run {run.id} -> {sbatch_path}")
 
     if dry_run:
         update_run(run.id, status="queued", notes="rendered infer.sbatch (dry-run)")
         typer.secho("Dry-run — sbatch not submitted.", fg="yellow")
         raise typer.Exit()
 
+    from zo_train.cluster._remote import push_run_meta_to_cluster
+
+    push_run_meta_to_cluster(run.id)
     job_id = _submit_sbatch(sbatch_path, local=local)
     if not job_id:
         hint = (

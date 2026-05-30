@@ -102,6 +102,8 @@ def ssh_run(
         check=check,
         capture_output=capture_output,
         text=text,
+        encoding="utf-8" if text else None,
+        errors="replace" if text else None,
     )
 
 
@@ -273,6 +275,24 @@ def sync_code_to_cluster(target: str, remote_repo: str) -> None:
             "requirements.txt",
         ],
     )
+
+
+def push_run_meta_to_cluster(run_id: str, *, target: str | None = None) -> None:
+    """Upload local ``meta.json`` so cluster jobs can resume the same registry run id."""
+    from zo_common.registry import run_dir
+
+    target = target or ssh_target()
+    if not target:
+        return
+    meta = run_dir(run_id) / "meta.json"
+    if not meta.is_file():
+        return
+    experiments = expand_cluster_path(
+        env("ZO_CLUSTER_EXPERIMENTS_DIR") or env("ZO_EXPERIMENTS_DIR") or ""
+    )
+    remote_dir = f"{experiments.rstrip('/')}/{run_id}"
+    ssh_run(target, f"mkdir -p '{remote_dir}'", check=True)
+    scp_upload(meta, target, f"{remote_dir}/meta.json")
 
 
 def push_cluster_env(target: str, remote_repo: str) -> None:

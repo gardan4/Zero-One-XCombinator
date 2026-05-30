@@ -38,6 +38,13 @@ def test_normalize_env_value_strips_api_key():
 
     assert normalize_env_value("WANDB_API_KEY", "  abc123  ") == "abc123"
     assert normalize_env_value("ZO_FOO", "  bar  ") == "bar"
+    assert normalize_env_value("WANDB_MODE", "online\r") == "online"
+
+
+def test_wandb_enabled_ignores_crlf_mode(monkeypatch):
+    monkeypatch.setenv("WANDB_API_KEY", "test-key")
+    monkeypatch.setenv("WANDB_MODE", "online\r")
+    assert wandb_enabled() is True
 
 
 def test_merge_tags_dedupes():

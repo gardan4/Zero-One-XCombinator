@@ -22,11 +22,17 @@ if [[ -f .env ]]; then
   set +a
 fi
 # W&B rejects API keys with leading/trailing whitespace (common .env copy/paste issue).
+_trim_env() {
+  printf '%s' "${1:-}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/\r$//'
+}
 if [[ -n "${WANDB_API_KEY:-}" ]]; then
-  export WANDB_API_KEY="$(printf '%s' "$WANDB_API_KEY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  export WANDB_API_KEY="$(_trim_env "$WANDB_API_KEY")"
 fi
 if [[ -n "${HF_TOKEN:-}" ]]; then
-  export HF_TOKEN="$(printf '%s' "$HF_TOKEN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  export HF_TOKEN="$(_trim_env "$HF_TOKEN")"
+fi
+if [[ -n "${WANDB_MODE:-}" ]]; then
+  export WANDB_MODE="$(_trim_env "$WANDB_MODE")"
 fi
 
 export ZO_EXPERIMENTS_DIR="{{ experiments_dir }}"
@@ -38,6 +44,7 @@ export WANDB_PROJECT="${WANDB_PROJECT:-XCombinator}"
 export WANDB_NAME="{{ run_id }}"
 export WANDB_INIT_TIMEOUT="${WANDB_INIT_TIMEOUT:-120}"
 export ZO_TRACK_EVAL_BATCH_SIZE="${ZO_TRACK_EVAL_BATCH_SIZE:-200}"
+export ZO_TRACK_BATCH_SIZE="{{ track_batch_size }}"
 export ZO_INFER_TORCH_DTYPE="${ZO_INFER_TORCH_DTYPE:-bfloat16}"
 mkdir -p "$WANDB_DIR"
 {% if proxy %}

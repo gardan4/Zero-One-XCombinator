@@ -85,6 +85,10 @@ def default_model_cache_dir() -> str:
 
 
 def staged_model_path(hf_repo: str) -> str:
+    short = hf_repo.split("/")[-1]
+    scratch = cluster_env("ZO_CLUSTER_SCRATCH") or os.environ.get("SCRATCH")
+    if scratch:
+        return posix_path(Path(os.path.expandvars(scratch)) / "hf-local" / short)
     slug = hf_repo.replace("/", "--")
     return posix_path(Path(default_model_cache_dir()) / slug)
 
@@ -100,6 +104,9 @@ def resolve_infer_model(model: str | None = None) -> str:
             "(local checkpoint directory on shared storage)."
         )
     if is_hf_repo_id(raw):
+        # Explicit --model HF id always maps to that repo's staged dir (not a stale ZO_INFER_MODEL_PATH).
+        if model and is_hf_repo_id(model.strip()):
+            return staged_model_path(model.strip())
         staged = cluster_env("ZO_INFER_MODEL_PATH")
         if staged:
             return posix_path(os.path.expandvars(staged))

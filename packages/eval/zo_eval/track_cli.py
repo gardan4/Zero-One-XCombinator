@@ -80,7 +80,7 @@ def predict(
     promote: str = typer.Option(None, "--promote", help="Copy results to extras/results/<slug>/"),
     wandb_log: bool = typer.Option(True, "--wandb/--no-wandb", help="Publish metrics+artifacts to W&B"),
     wandb_artifact_alias: str = typer.Option("latest", help="Comma-separated W&B artifact aliases"),
-    batch_size: int | None = typer.Option(None, "--batch-size", help="HF batch size (default: auto from model + VRAM)"),
+    batch_size: int = typer.Option(16, "--batch-size", help="HF batch size (default: 16)"),
 ):
     from zo_eval.track import run_track
 
@@ -88,8 +88,7 @@ def predict(
     mref = model_ref or (model if "/" in model and not model.startswith("default") else None)
     pred = _build_predictor(predictor, train_families, order, model, base_url)
     os.environ["ZO_TRACK_USE_WANDB"] = "1" if wandb_log else "0"
-    if batch_size is not None:
-        os.environ["ZO_TRACK_BATCH_SIZE"] = str(batch_size)
+    os.environ["ZO_TRACK_BATCH_SIZE"] = str(batch_size)
     if wandb_artifact_alias:
         os.environ["ZO_WANDB_ARTIFACT_ALIASES"] = wandb_artifact_alias
     res = run_track(
