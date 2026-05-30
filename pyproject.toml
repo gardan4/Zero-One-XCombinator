@@ -50,5 +50,8 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
 
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q -m 'not integration'"
 testpaths = ["tests"]
+markers = [
+    "integration: live/networked tests (HF hub, served models, real GPU). Opt in with `-m integration`; skipped by default so a populated .env (HF_TOKEN) doesn't fail the laptop suite.",
+]
