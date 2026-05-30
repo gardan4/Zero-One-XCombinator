@@ -83,6 +83,7 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         max_seq_length=cfg.max_seq_len,
         max_length=cfg.max_seq_len,
         bf16=cfg.bf16,
+        gradient_checkpointing=_truthy(cfg.extra.get("gradient_checkpointing", False)),
         logging_steps=1,
         max_steps=int(cfg.extra.get("max_steps", -1)),
         report_to=_report_to(),

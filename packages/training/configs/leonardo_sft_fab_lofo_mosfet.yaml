@@ -1,0 +1,22 @@
+# Leave-one-family-out OOD model: Qwen2.5-1.5B full FT on IGBT+IC, MOSFET HELD OUT.
+# Same best-config as leonardo_sft_fab.yaml; only the training data differs. Evaluate on MOSFET (OOD).
+name: leonardo-sft-fab-lofo-mosfet
+kind: sft
+model: /leonardo_scratch/large/REPLACE_WITH_YOUR_USER/hf-local/Qwen2.5-1.5B-Instruct
+dataset: data/generated/IGBT_sft_lm.jsonl,data/generated/IC_sft_lm.jsonl
+text_field: text
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+warmup_ratio: 0.05
+epochs: 2
+batch_size: 4
+grad_accum: 4
+seed: 42
+extra:
+  local_files_only: true
+  gradient_checkpointing: true
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-1.5B-Instruct
+  tags: [leonardo, sft, fab, full-ft, "lofo:mosfet"]

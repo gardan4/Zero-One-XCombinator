@@ -44,7 +44,7 @@ import os
 from huggingface_hub import snapshot_download
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-repo_id = "Qwen/Qwen2.5-0.5B-Instruct"
+repo_id = os.environ.get("ZO_PRESTAGE_MODEL", "Qwen/Qwen2.5-0.5B-Instruct").strip()
 local_dir = os.environ["ZO_SMOKE_BASE_MODEL_DIR"].strip()
 snapshot_download(repo_id=repo_id, local_dir=local_dir)
 AutoTokenizer.from_pretrained(local_dir, local_files_only=True)

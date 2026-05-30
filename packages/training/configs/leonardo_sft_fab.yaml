@@ -1,0 +1,26 @@
+# Leonardo Qwen2.5-1.5B FULL fine-tune on ALL three families' fab sequences — the submission model.
+# Run via the prestage+submit orchestrator (set the 1.5B model + dir first):
+#   ZO_PRESTAGE_MODEL=Qwen/Qwen2.5-1.5B-Instruct \
+#   ZO_SMOKE_BASE_MODEL_DIR=$SCRATCH/hf-local/Qwen2.5-1.5B-Instruct \
+#   ./scripts/leonardo_smoke_hf.sh packages/training/configs/leonardo_sft_fab.yaml
+name: leonardo-sft-fab-all
+kind: sft
+# Pre-staged 1.5B dir on scratch (set to your absolute ZO_SMOKE_BASE_MODEL_DIR; configs don't expand $SCRATCH):
+model: /leonardo_scratch/large/REPLACE_WITH_YOUR_USER/hf-local/Qwen2.5-1.5B-Instruct
+dataset: data/generated/MOSFET_sft_lm.jsonl,data/generated/IGBT_sft_lm.jsonl,data/generated/IC_sft_lm.jsonl
+text_field: text
+lora: false              # full fine-tune (serves with `just serve <dir>`, no LoRA merge)
+bf16: true
+max_seq_len: 1024        # longest example ~843 tokens (measured) — fits with margin, no truncation
+learning_rate: 1.0e-5    # full-FT LR; low enough to learn the grammar without overfitting the backbone
+warmup_ratio: 0.05
+epochs: 2                # ~2400 examples -> ~300 optimizer steps; modest so OOD generalization holds
+batch_size: 4
+grad_accum: 4            # effective batch 16
+seed: 42
+extra:
+  local_files_only: true
+  gradient_checkpointing: true   # memory headroom for 1.5B full-FT on one 64GB A100
+  push_to_hub: false             # set true + add hub_model_id to upload the checkpoint to HF
+  base_model_hub_id: Qwen/Qwen2.5-1.5B-Instruct
+  tags: [leonardo, sft, fab, full-ft, all-families, "stream:1"]
