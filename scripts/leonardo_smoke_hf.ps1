@@ -5,7 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Leonardo pipeline (staging login -> GPU compute -> staging upload):
+# Leonardo pipeline — prefer:  uv run python scripts/leonardo_smoke.py
+# This PowerShell wrapper is kept for compatibility; same tar+ssh flow as the Python script.
 # 1. Sync repo to the login node.
 # 2. Pre-stage on login: uv/gpu deps, HF weights, import warm-up (leonardo_remote_prestage.sh).
 # 3. SLURM GPU job: offline HF, live W&B via proxy (XCombinator/XCombinator).

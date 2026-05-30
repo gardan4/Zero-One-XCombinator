@@ -63,3 +63,17 @@ just wt grpo-reward-v2   # new git worktree + branch ../zo-grpo-reward-v2, isola
 
 Each worktree is an independent checkout, so teammates (or parallel Claude sessions) can train
 and eval different ideas at once without stepping on each other. See [`CLAUDE.md`](CLAUDE.md).
+
+## Leonardo smoke finetune (Windows / macOS / Linux)
+
+End-to-end: sync repo → prestage on login → SLURM LoRA train → optional HF upload.
+
+```bash
+cp .env.example .env   # ZO_CLUSTER_USER, HF_TOKEN, ZO_CLUSTER_* paths
+uv run python scripts/leonardo_smoke.py --dry-run   # render sbatch locally
+uv run python scripts/leonardo_smoke.py             # full pipeline over SSH
+uv run python scripts/leonardo_smoke.py --wait-upload
+```
+
+Same via `uv run zo-cluster leonardo-smoke`. Legacy wrappers: `scripts/leonardo_smoke_hf.ps1` (Windows),
+`scripts/leonardo_smoke_hf.sh` (macOS/Linux with rsync). Config: `packages/training/configs/leonardo_smoke_hf.yaml`.

@@ -46,6 +46,10 @@ submit config:
 cluster-watch:
     uv run zo-cluster watch
 
+# Leonardo smoke finetune (cross-platform — or: uv run python scripts/leonardo_smoke.py).
+leonardo-smoke *args:
+    uv run zo-cluster leonardo-smoke {{args}}
+
 # --- eval / agent ------------------------------------------------------------
 
 eval task model:

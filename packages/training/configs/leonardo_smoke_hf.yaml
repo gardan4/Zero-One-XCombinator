@@ -1,9 +1,10 @@
 # End-to-end Leonardo smoke finetune: tiny LoRA SFT. The GPU job writes artifacts to scratch;
 # upload the adapter to Hugging Face from the login node afterward.
-# Submit with: ./scripts/leonardo_smoke_hf.sh
+# Run from any OS:  uv run python scripts/leonardo_smoke.py
+#                  uv run zo-cluster leonardo-smoke
 name: leonardo-smoke-hf
 kind: sft
-model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-0.5B-Instruct
+model: ${ZO_SMOKE_BASE_MODEL_DIR}
 dataset: null            # null -> built-in toy SFT dataset in zo_train.data
 text_field: text
 epochs: 1

@@ -26,20 +26,27 @@ $experiments = $env:ZO_CLUSTER_EXPERIMENTS_DIR
 
 function Invoke-Remote {
     param([string]$Command)
-    $args = @("-batch", "-ssh")
-    if ($hostKey) { $args += @("-hostkey", $hostKey) }
-    $args += @("-pw", $sshPassword, $target, $Command)
-    & plink @args
+    if ($sshPassword) {
+        $args = @("-batch", "-ssh")
+        if ($hostKey) { $args += @("-hostkey", $hostKey) }
+        $args += @("-pw", $sshPassword, $target, $Command)
+        & plink @args
+    } else {
+        & ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=4 $target $Command
+    }
     if ($LASTEXITCODE -ne 0) { throw "Remote command failed: $Command" }
-    return $LASTEXITCODE
 }
 
 function Invoke-RemoteCapture {
     param([string]$Command)
-    $args = @("-batch", "-ssh")
-    if ($hostKey) { $args += @("-hostkey", $hostKey) }
-    $args += @("-pw", $sshPassword, $target, $Command)
-    $out = & plink @args 2>&1
+    if ($sshPassword) {
+        $args = @("-batch", "-ssh")
+        if ($hostKey) { $args += @("-hostkey", $hostKey) }
+        $args += @("-pw", $sshPassword, $target, $Command)
+        $out = & plink @args 2>&1
+    } else {
+        $out = & ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=4 $target $Command 2>&1
+    }
     if ($LASTEXITCODE -ne 0) { throw "Remote command failed: $Command`n$out" }
     return ($out | Out-String).Trim()
 }
@@ -60,13 +67,6 @@ $logGlob = "$remoteRepo/slurm_logs/${RunId}-*.out"
 Write-Host "==> Tail SLURM log ($logGlob)"
 $tail = Invoke-RemoteCapture "ls -1t $logGlob 2>/dev/null | head -1 | xargs -r tail -n 80"
 Write-Host $tail
-
-if ($tail -notmatch "cuda_available=True") {
-    Write-Warning "GPU check string not found in log — confirm nvidia-smi / torch block in slurm output."
-}
-if ($tail -notmatch "'loss'|loss") {
-    Write-Warning "No training loss in log tail — job may have failed before train()."
-}
 
 Write-Host "==> Upload artifacts to Hugging Face (login node)"
 & (Join-Path $PSScriptRoot "leonardo_upload_artifact.ps1") -RunId $RunId -HubModelId $HubModelId

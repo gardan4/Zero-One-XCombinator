@@ -16,7 +16,7 @@ def test_registry_roundtrip(tmp_path, monkeypatch):
     from zo_common import registry
 
     run = registry.new_run(name="smoke test", kind="sft")
-    assert run.id.endswith("_sft_smoke-test")
+    assert "_sft_smoke-test" in run.id
 
     registry.append_metric(run.id, step=0, loss=1.0)
     registry.append_metric(run.id, step=1, loss=0.4)

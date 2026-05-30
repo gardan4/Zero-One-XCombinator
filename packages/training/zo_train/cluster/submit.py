@@ -1,105 +1,66 @@
 from __future__ import annotations
 
-import os
-import subprocess
 from pathlib import Path
 
 import typer
 from zo_common import ExperimentConfig, new_run, update_run
-from zo_common.paths import repo_root
 from zo_common.registry import run_dir
+
+from zo_train.cluster._remote import (
+    cluster_repo_dir,
+    ensure_remote_path_vars,
+    env,
+    expand_cluster_path,
+    load_dotenv,
+    scp_upload,
+    ssh_run,
+    ssh_target,
+    write_sbatch,
+)
 
 app = typer.Typer(help="Submit training jobs to the Leonardo SLURM cluster.", no_args_is_help=True)
 
 
-def _load_dotenv() -> None:
-    """Best-effort: populate os.environ from <repo>/.env (no extra dependency)."""
-    env_file = repo_root() / ".env"
-    if not env_file.exists():
-        return
-    for line in env_file.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, val = line.split("=", 1)
-        os.environ.setdefault(key.strip(), val.strip())
-
-
-def _env(key: str, default: str | None = None) -> str | None:
-    return os.environ.get(key, default)
-
-
-def _remote_expand(path: str) -> str:
-    """Expand simple remote env path forms before passing paths to scp/pscp."""
-    home = _env("ZO_CLUSTER_HOME")
-    scratch = _env("ZO_CLUSTER_SCRATCH")
-    if home:
-        path = path.replace("$HOME", home)
-    if scratch:
-        path = path.replace("$SCRATCH", scratch)
-    return path
-
-
 def _cluster_experiments_dir(repo_dir: str) -> str:
-    value = _env("ZO_CLUSTER_EXPERIMENTS_DIR", f"{repo_dir}/experiments") or f"{repo_dir}/experiments"
-    return _remote_expand(value)
+    value = env("ZO_CLUSTER_EXPERIMENTS_DIR", f"{repo_dir}/experiments") or f"{repo_dir}/experiments"
+    return expand_cluster_path(value)
 
 
-def _ssh(target: str, command: str, **kwargs) -> subprocess.CompletedProcess[str]:
-    password = _env("ZO_CLUSTER_PASSWORD")
-    hostkey = _env("ZO_CLUSTER_HOSTKEY")
-    if password:
-        args = ["plink", "-batch", "-ssh"]
-        if hostkey:
-            args += ["-hostkey", hostkey]
-        args += ["-pw", password, target, command]
-    else:
-        args = ["ssh", target, command]
-    return subprocess.run(args, **kwargs)
-
-
-def _scp(local: Path, target: str, remote: str) -> None:
-    password = _env("ZO_CLUSTER_PASSWORD")
-    hostkey = _env("ZO_CLUSTER_HOSTKEY")
-    if password:
-        args = ["pscp", "-batch"]
-        if hostkey:
-            args += ["-hostkey", hostkey]
-        args += ["-pw", password, str(local), f"{target}:{remote}"]
-    else:
-        args = ["scp", str(local), f"{target}:{remote}"]
-    subprocess.run(args, check=True)
+def _resolve_config(config: str) -> ExperimentConfig:
+    cfg = ExperimentConfig.from_yaml(config)
+    if isinstance(cfg.model, str) and cfg.model:
+        cfg.model = expand_cluster_path(cfg.model)
+    return cfg
 
 
 def _render(subcommand: str, run_id: str, cluster_config_path: str) -> str:
     from jinja2 import Template
 
-    repo_dir = _remote_expand(_env("ZO_CLUSTER_REPO_DIR", "$HOME/Zero-One-Philyr") or "$HOME/Zero-One-Philyr")
-    gpus = int(_env("ZO_SLURM_GPUS_PER_NODE", "1"))
-    # Leonardo fair share (deck pp. 87–91): mem = 120GB × gpus, cpus = 8 × gpus. Allow overrides.
-    mem = _env("ZO_SLURM_MEM") or f"{120 * gpus}GB"
-    cpus = int(_env("ZO_SLURM_CPUS") or str(8 * gpus))
+    repo_dir = cluster_repo_dir()
+    gpus = int(env("ZO_SLURM_GPUS_PER_NODE", "1"))
+    mem = env("ZO_SLURM_MEM") or f"{120 * gpus}GB"
+    cpus = int(env("ZO_SLURM_CPUS") or str(8 * gpus))
     ctx = dict(
         job_name=run_id,
-        account=_env("ZO_SLURM_ACCOUNT", ""),
-        partition=_env("ZO_SLURM_PARTITION", "boost_usr_prod"),
-        reservation=_env("ZO_SLURM_RESERVATION", ""),
-        qos=_env("ZO_SLURM_QOS", ""),
-        nodes=int(_env("ZO_SLURM_NODES", "1")),
+        account=env("ZO_SLURM_ACCOUNT", ""),
+        partition=env("ZO_SLURM_PARTITION", "boost_usr_prod"),
+        reservation=env("ZO_SLURM_RESERVATION", ""),
+        qos=env("ZO_SLURM_QOS", ""),
+        nodes=int(env("ZO_SLURM_NODES", "1")),
         gpus_per_node=gpus,
         mem=mem,
         cpus=cpus,
-        time=_env("ZO_SLURM_TIME", "02:00:00"),
+        time=env("ZO_SLURM_TIME", "02:00:00"),
         repo_dir=repo_dir,
         experiments_dir=_cluster_experiments_dir(repo_dir),
-        hf_home=_remote_expand(_env("HF_HOME") or f"{repo_dir}/hf_cache"),
-        proxy=_env("ZO_CLUSTER_PROXY", ""),
+        hf_home=expand_cluster_path(env("HF_HOME") or f"{repo_dir}/hf_cache"),
+        proxy=env("ZO_CLUSTER_PROXY", ""),
         subcommand=subcommand,
         config_path=cluster_config_path,
         run_id=run_id,
     )
     tpl = (Path(__file__).parent / "slurm" / "train.sbatch.j2").read_text()
-    return Template(tpl).render(**ctx).replace("\r\n", "\n")
+    return Template(tpl).render(**ctx)
 
 
 @app.command()
@@ -108,10 +69,11 @@ def submit(
     kind: str = typer.Option("sft", help="sft | grpo"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Render the sbatch but don't ssh."),
 ) -> None:
-    _load_dotenv()
-    cfg = ExperimentConfig.from_yaml(config)
-    host, user = _env("ZO_CLUSTER_HOST"), _env("ZO_CLUSTER_USER")
-    repo_dir = _remote_expand(_env("ZO_CLUSTER_REPO_DIR", "$HOME/Zero-One-Philyr") or "$HOME/Zero-One-Philyr")
+    load_dotenv()
+    ensure_remote_path_vars()
+    cfg = _resolve_config(config)
+    host, user = env("ZO_CLUSTER_HOST"), env("ZO_CLUSTER_USER")
+    repo_dir = cluster_repo_dir()
     experiments_dir = _cluster_experiments_dir(repo_dir)
 
     run = new_run(cfg.name, kind, config=cfg.model_dump(), cluster=host, tags=["cluster"])
@@ -120,7 +82,7 @@ def submit(
 
     remote_dir = f"{experiments_dir}/{run.id}"
     sbatch = _render(kind, run.id, f"{remote_dir}/config.yaml")
-    (local_dir / "job.sbatch").write_bytes(sbatch.encode())
+    write_sbatch(local_dir / "job.sbatch", sbatch)
     typer.echo(f"run {run.id} -> {local_dir / 'job.sbatch'}")
 
     if dry_run or not (host and user):
@@ -133,15 +95,14 @@ def submit(
         raise typer.Exit()
 
     target = f"{user}@{host}"
-    _ssh(target, f"mkdir -p {remote_dir}", check=True)
-    _scp(local_dir / "meta.json", target, f"{remote_dir}/meta.json")
-    _scp(local_dir / "config.yaml", target, f"{remote_dir}/config.yaml")
-    _scp(local_dir / "job.sbatch", target, f"{remote_dir}/job.sbatch")
-    result = _ssh(
+    ssh_run(target, f"mkdir -p {remote_dir}", check=True)
+    scp_upload(local_dir / "meta.json", target, f"{remote_dir}/meta.json")
+    scp_upload(local_dir / "config.yaml", target, f"{remote_dir}/config.yaml")
+    scp_upload(local_dir / "job.sbatch", target, f"{remote_dir}/job.sbatch")
+    result = ssh_run(
         target,
         f"cd {repo_dir} && sbatch {remote_dir}/job.sbatch",
         capture_output=True,
-        text=True,
     )
     typer.echo((result.stdout + result.stderr).strip())
     job_id = (
@@ -156,15 +117,39 @@ def submit(
         raise typer.Exit(result.returncode or 1)
 
 
+@app.command("leonardo-smoke")
+def leonardo_smoke_cmd(
+    config: str = typer.Option(
+        "packages/training/configs/leonardo_smoke_hf.yaml",
+        "--config",
+        "-c",
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Render sbatch only; skip sync/prestage."),
+    skip_sync: bool = typer.Option(False, help="Skip repo sync (already on cluster)."),
+    skip_prestage: bool = typer.Option(False, help="Skip login-node prestage."),
+    wait_upload: bool = typer.Option(False, "--wait-upload", help="Poll job and upload to HF."),
+) -> None:
+    """Full Leonardo smoke pipeline from Windows, macOS, or Linux (Python + ssh only)."""
+    from zo_train.cluster.leonardo_smoke import run_leonardo_smoke
+
+    run_leonardo_smoke(
+        config=config,
+        dry_run=dry_run,
+        skip_sync=skip_sync,
+        skip_prestage=skip_prestage,
+        wait_upload=wait_upload,
+    )
+
+
 @app.command()
 def watch() -> None:
     """Show your SLURM queue on the cluster."""
-    _load_dotenv()
-    host, user = _env("ZO_CLUSTER_HOST"), _env("ZO_CLUSTER_USER")
-    if not (host and user):
+    load_dotenv()
+    target = ssh_target()
+    if not target:
         typer.secho("Set ZO_CLUSTER_HOST and ZO_CLUSTER_USER in .env.", fg="red")
         raise typer.Exit(1)
-    _ssh(f"{user}@{host}", "squeue --me --long")
+    ssh_run(target, "squeue --me --long")
 
 
 if __name__ == "__main__":

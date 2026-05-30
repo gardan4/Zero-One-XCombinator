@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Leonardo pipeline (staging login -> GPU compute -> staging upload):
+# Leonardo pipeline — prefer the cross-platform Python entry point:
+#   uv run python scripts/leonardo_smoke.py
+# This bash wrapper uses rsync (macOS/Linux with OpenSSH).
 # 1. Sync repo to the login node.
 # 2. Pre-stage on login: uv/gpu deps, HF weights, import warm-up (leonardo_remote_prestage.sh).
 # 3. SLURM GPU job: offline HF, live W&B via proxy (entity/project: XCombinator/XCombinator).

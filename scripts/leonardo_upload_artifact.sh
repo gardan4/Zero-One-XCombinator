@@ -38,6 +38,7 @@ if [[ ! -d "$ARTIFACT_DIR" ]]; then
 fi
 
 uv run python - <<PY
+import os
 from pathlib import Path
 
 from huggingface_hub import HfApi
@@ -46,14 +47,13 @@ artifact = Path("$ARTIFACT_DIR")
 readme = artifact / "README.md"
 if readme.exists():
     text = readme.read_text()
-    text = text.replace(
-        "/leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-0.5B-Instruct",
-        "Qwen/Qwen2.5-0.5B-Instruct",
-    )
+    base_dir = os.environ.get("ZO_SMOKE_BASE_MODEL_DIR", "")
+    hub_base = os.environ.get("ZO_SMOKE_BASE_MODEL_HF_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    if base_dir and base_dir in text:
+        text = text.replace(base_dir, hub_base)
     readme.write_text(text)
 
-api = HfApi(token="${HF_TOKEN:?Set HF_TOKEN in .env}")
-api.create_repo(repo_id="$HUB_MODEL_ID", repo_type="model", private=True, exist_ok=True)
+api = HfApi(token="${HF_TOKEN:?Set HF_TOKEN in .env}")api.create_repo(repo_id="$HUB_MODEL_ID", repo_type="model", private=True, exist_ok=True)
 api.upload_folder(
     repo_id="$HUB_MODEL_ID",
     repo_type="model",
