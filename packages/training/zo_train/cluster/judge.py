@@ -245,8 +245,15 @@ def judge_eval(
         tags=tag_list,
         cluster=cluster_env("ZO_CLUSTER_HOST"),
     )
-    out_dir = run_dir(run.id) / "results"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Registry meta lives locally when submitting from a laptop; GPU job writes to cluster scratch.
+    local_out = run_dir(run.id) / "results"
+    local_out.mkdir(parents=True, exist_ok=True)
+    from zo_train.cluster._remote import expand_cluster_path
+
+    cluster_experiments = expand_cluster_path(
+        cluster_env("ZO_CLUSTER_EXPERIMENTS_DIR") or cluster_env("ZO_EXPERIMENTS_DIR") or ""
+    )
+    cluster_out = f"{cluster_experiments.rstrip('/')}/{run.id}/results"
 
     ctx = slurm_context(
         job_name=f"zo-infer-{run.id[-8:]}",
@@ -262,7 +269,7 @@ def judge_eval(
         model_ref=mref or "",
         eval_set=eval_set,
         train_run_id=train_run or "",
-        out_dir=_cluster_path(out_dir),
+        out_dir=cluster_out,
         run_id=run.id,
         self_check=self_check,
         promote=promote or "",
@@ -304,7 +311,7 @@ def judge_eval(
     update_run(run.id, status="queued", slurm_job_id=job_id)
     typer.secho(
         f"Submitted SLURM job {job_id}. Watch: `just cluster-watch`\n"
-        f"Results: {out_dir}\n"
+        f"Results: {cluster_out}\n"
         f"Logs:    tail -f slurm_logs/zo-infer-{run.id[-8:]}-{job_id}.out",
         fg="green",
     )

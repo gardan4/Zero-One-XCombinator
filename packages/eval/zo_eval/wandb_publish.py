@@ -60,23 +60,29 @@ def publish_eval_run(
 
         warnings.warn(f"W&B eval run {run_id}: {w}", stacklevel=2)
 
-    init_run(
-        run_id,
-        job_type,
-        tags=tag_list,
-        config=config or {},
-    )
-    if metrics:
-        log_metrics(metrics, step=0, use_eval_map=True)
-    aliases = artifact_aliases or ["latest"]
-    ver_tag = next((t.split(":", 1)[1] for t in tag_list if t.startswith("version:")), None)
-    if ver_tag and f"version:{ver_tag}" not in aliases:
-        aliases.append(f"version:{ver_tag}")
-    log_artifact(
-        results_dir,
-        name=f"eval-{run_id}",
-        artifact_type=ARTIFACT_EVAL_RESULTS,
-        aliases=aliases,
-        metadata={"run_id": run_id, "tags": tag_list},
-    )
-    finish_run(exit_code=0)
+    try:
+        init_run(
+            run_id,
+            job_type,
+            tags=tag_list,
+            config=config or {},
+        )
+        if metrics:
+            log_metrics(metrics, step=0, use_eval_map=True)
+        aliases = artifact_aliases or ["latest"]
+        ver_tag = next((t.split(":", 1)[1] for t in tag_list if t.startswith("version:")), None)
+        if ver_tag and f"version:{ver_tag}" not in aliases:
+            aliases.append(f"version:{ver_tag}")
+        log_artifact(
+            results_dir,
+            name=f"eval-{run_id}",
+            artifact_type=ARTIFACT_EVAL_RESULTS,
+            aliases=aliases,
+            metadata={"run_id": run_id, "tags": tag_list},
+        )
+        finish_run(exit_code=0)
+    except Exception as exc:
+        import warnings
+
+        warnings.warn(f"W&B publish failed for {run_id} (results on disk): {exc}", stacklevel=2)
+        finish_run(exit_code=0)

@@ -14,6 +14,16 @@ from pathlib import Path
 
 from zo_common.paths import repo_root
 
+_STRIP_SECRET_KEYS = frozenset({"HF_TOKEN", "HUGGINGFACE_HUB_TOKEN", "WANDB_API_KEY"})
+
+
+def normalize_env_value(key: str, value: str) -> str:
+    """Strip quotes and trailing/leading whitespace (W&B rejects padded API keys)."""
+    val = value.strip().strip('"').strip("'")
+    if key in _STRIP_SECRET_KEYS:
+        val = val.strip()
+    return val
+
 
 def expand_env_refs(text: str) -> str:
     """Expand ``${VAR}`` and ``$VAR`` using ``os.environ`` (works on Windows, unlike expandvars)."""
@@ -39,4 +49,4 @@ def load_dotenv(path: str | Path | None = None) -> None:
         key, _, val = s.partition("=")
         key = key.strip()
         if key:
-            os.environ.setdefault(key, val.strip().strip('"').strip("'"))
+            os.environ.setdefault(key, normalize_env_value(key, val))

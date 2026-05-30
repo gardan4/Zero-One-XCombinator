@@ -34,6 +34,20 @@ class TracingPredictor:
         )
         return out
 
+    def next_step_batch(self, items: list[ValidInput]) -> list[list[str]]:
+        if hasattr(self._inner, "next_step_batch"):
+            raw = self._inner.next_step_batch(items)
+            out: list[list[str]] = []
+            for item, result in zip(items, raw, strict=False):
+                if isinstance(result, tuple) and len(result) == 2:
+                    ranks, trace = result
+                else:
+                    ranks, trace = result, {"source": getattr(self._inner, "name", "?"), "prediction": result}
+                self._set(item.example_id, "nextstep", trace)
+                out.append(ranks)
+            return out
+        return [self.next_step(item) for item in items]
+
     def complete(self, item: ValidInput) -> list[str]:
         if hasattr(self._inner, "complete_with_trace"):
             steps, trace = self._inner.complete_with_trace(item)
@@ -46,6 +60,20 @@ class TracingPredictor:
             {"source": getattr(self._inner, "name", "?"), "prediction": out},
         )
         return out
+
+    def complete_batch(self, items: list[ValidInput]) -> list[list[str]]:
+        if hasattr(self._inner, "complete_batch"):
+            raw = self._inner.complete_batch(items)
+            out: list[list[str]] = []
+            for item, result in zip(items, raw, strict=False):
+                if isinstance(result, tuple) and len(result) == 2:
+                    steps, trace = result
+                else:
+                    steps, trace = result, {"source": getattr(self._inner, "name", "?"), "prediction": result}
+                self._set(item.example_id, "completion", trace)
+                out.append(steps)
+            return out
+        return [self.complete(item) for item in items]
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
         if hasattr(self._inner, "anomaly_with_trace"):
@@ -65,6 +93,27 @@ class TracingPredictor:
             },
         )
         return out
+
+    def anomaly_batch(self, items: list[AnomalyInput]) -> list[tuple[int, float, str | None]]:
+        if hasattr(self._inner, "anomaly_batch"):
+            raw = self._inner.anomaly_batch(items)
+            out: list[tuple[int, float, str | None]] = []
+            for item, result in zip(items, raw, strict=False):
+                if isinstance(result, tuple) and len(result) == 2 and isinstance(result[1], dict):
+                    pred, trace = result
+                else:
+                    pred = result
+                    iv, sc, rule = pred
+                    trace = {
+                        "source": getattr(self._inner, "name", "?"),
+                        "is_valid": iv,
+                        "score": sc,
+                        "rule": rule,
+                    }
+                self._set(item.example_id, "anomaly", trace)
+                out.append(pred)
+            return out
+        return [self.anomaly(item) for item in items]
 
 
 def wrap_with_tracing(predictor):

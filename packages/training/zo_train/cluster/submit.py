@@ -18,6 +18,8 @@ from zo_train.cluster._remote import (
     scp_upload,
     ssh_run,
     ssh_target,
+    sync_code_to_cluster,
+    sync_paths_to_cluster,
     write_sbatch,
 )
 from zo_train.cluster._slurm import ensure_cluster_env, render_template, slurm_context
@@ -212,6 +214,34 @@ def pull_run_cmd(
 ) -> None:
     """Sync ``meta.json`` + ``metrics.jsonl`` from cluster scratch to the local run store."""
     pull_run_from_cluster(run_id)
+
+
+@app.command("sync-code")
+def sync_code_cmd() -> None:
+    """Fast-sync source/config files to the cluster without data, outputs, or node_modules."""
+    ensure_cluster_env()
+    ensure_remote_path_vars()
+    target = ssh_target()
+    if not target:
+        raise typer.BadParameter("Set ZO_CLUSTER_HOST and ZO_CLUSTER_USER in .env.")
+    repo_dir = cluster_repo_dir()
+    sync_code_to_cluster(target, repo_dir)
+    typer.secho(f"synced code/config to {target}:{repo_dir}", fg="green")
+
+
+@app.command("sync-paths")
+def sync_paths_cmd(
+    paths: list[str],
+) -> None:
+    """Upload only specific repo-relative files/dirs to the cluster."""
+    ensure_cluster_env()
+    ensure_remote_path_vars()
+    target = ssh_target()
+    if not target:
+        raise typer.BadParameter("Set ZO_CLUSTER_HOST and ZO_CLUSTER_USER in .env.")
+    repo_dir = cluster_repo_dir()
+    sync_paths_to_cluster(target, repo_dir, paths)
+    typer.secho(f"synced {len(paths)} path(s) to {target}:{repo_dir}", fg="green")
 
 
 @app.command("leonardo-smoke")

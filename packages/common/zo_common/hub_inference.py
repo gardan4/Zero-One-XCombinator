@@ -16,6 +16,7 @@ Set ``HF_TOKEN`` in the environment or in ``.env`` at the repo root for private 
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,80 @@ def _default_device() -> str:
 
 def hf_token() -> str | None:
     return os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+
+
+_PARAM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*[bB]", re.IGNORECASE)
+
+# Conservative generation batch sizes for bf16 on a 64 GB A100 (short ≤128, medium ≤512, long >512).
+_BATCH_BY_PARAMS: dict[float, dict[str, int]] = {
+    0.5: {"short": 32, "medium": 16, "long": 8},
+    1.5: {"short": 16, "medium": 8, "long": 4},
+    3.0: {"short": 8, "medium": 4, "long": 2},
+    7.0: {"short": 4, "medium": 2, "long": 1},
+    13.0: {"short": 2, "medium": 1, "long": 1},
+}
+
+
+def parse_model_param_b(model: str | None) -> float | None:
+    """Best-effort parameter count from a HF id or local path (e.g. ``Qwen2.5-1.5B-Instruct`` → 1.5)."""
+    if not model:
+        return None
+    for part in Path(model.replace("\\", "/")).parts[::-1]:
+        m = _PARAM_RE.search(part)
+        if m:
+            return float(m.group(1))
+    m = _PARAM_RE.search(model)
+    return float(m.group(1)) if m else None
+
+
+def _token_tier(max_new_tokens: int) -> str:
+    if max_new_tokens <= 128:
+        return "short"
+    if max_new_tokens <= 512:
+        return "medium"
+    return "long"
+
+
+def _snap_param_b(params_b: float) -> float:
+    known = sorted(_BATCH_BY_PARAMS)
+    return min(known, key=lambda k: abs(k - params_b))
+
+
+def cuda_vram_gb(device: str | None = None) -> float | None:
+    """Return total VRAM (GiB) for the active CUDA device, if available."""
+    try:
+        import torch
+    except ImportError:
+        return None
+    dev = device or ("cuda" if torch.cuda.is_available() else None)
+    if not dev or not str(dev).startswith("cuda"):
+        return None
+    idx = 0 if dev == "cuda" else int(str(dev).split(":")[-1])
+    if idx >= torch.cuda.device_count():
+        return None
+    return float(torch.cuda.get_device_properties(idx).total_memory) / (1024**3)
+
+
+def default_infer_batch_size(
+    model: str | None,
+    *,
+    max_new_tokens: int = 256,
+    device: str | None = None,
+    vram_gb: float | None = None,
+    params_b: float | None = None,
+) -> int:
+    """Pick a conservative HF generation batch size from model size, output length, and VRAM."""
+    dev = device or _default_device()
+    if dev == "cpu" and vram_gb is None:
+        return 1
+    params = params_b or parse_model_param_b(model) or 1.5
+    tier = _token_tier(max_new_tokens)
+    base = _BATCH_BY_PARAMS[_snap_param_b(params)][tier]
+    vram = vram_gb if vram_gb is not None else cuda_vram_gb(dev if dev.startswith("cuda") else None)
+    if vram is None:
+        return base
+    scaled = max(1, int(base * vram / 64.0))
+    return min(base, scaled) if vram < 64 else base
 
 
 @dataclass(frozen=True)
@@ -171,6 +246,7 @@ class HubInferenceClient:
         base_model: str | None = None,
         device: str | None = None,
         max_new_tokens: int = 256,
+        batch_size: int | None = None,
         token: str | None = None,
     ):
         self.token = token or hf_token()
@@ -180,8 +256,11 @@ class HubInferenceClient:
         )
         self.device = device
         self.max_new_tokens = max_new_tokens
+        explicit = batch_size if batch_size is not None else os.environ.get("ZO_TRACK_BATCH_SIZE")
+        self._batch_size_override = int(explicit) if explicit not in (None, "", "auto") else None
         self._model = None
         self._tok = None
+        self._last_batch_log: tuple[int, int] | None = None
 
     @property
     def model_id(self) -> str:
@@ -205,12 +284,19 @@ class HubInferenceClient:
             model_src = self.spec.local_path or self.spec.repo_id
 
         kwargs: dict[str, Any] = {"token": self.token}
+        if device == "cuda":
+            dtype = os.environ.get("ZO_INFER_TORCH_DTYPE", "bfloat16").lower()
+            if dtype in {"bf16", "bfloat16"} and torch.cuda.is_bf16_supported():
+                kwargs["torch_dtype"] = torch.bfloat16
+            elif dtype in {"fp16", "float16", "half"}:
+                kwargs["torch_dtype"] = torch.float16
         if os.path.isdir(str(model_src)):
             kwargs["local_files_only"] = True
 
         self._tok = AutoTokenizer.from_pretrained(tok_src or model_src, **kwargs)
         if self._tok.pad_token is None:
             self._tok.pad_token = self._tok.eos_token
+        self._tok.padding_side = "left"
 
         if adapter:
             from peft import PeftModel
@@ -248,6 +334,45 @@ class HubInferenceClient:
             out = self._model.generate(**ids, **gen_kw)
         return self._tok.decode(out[0][ids["input_ids"].shape[1] :], skip_special_tokens=True)
 
+    def _generate_texts(
+        self,
+        texts: list[str],
+        *,
+        max_new_tokens: int | None = None,
+        temperature: float = 0.0,
+        batch_size: int | None = None,
+    ) -> list[str]:
+        import torch
+
+        self._load()
+        if not texts:
+            return []
+        gen_kw: dict[str, Any] = {"max_new_tokens": max_new_tokens or self.max_new_tokens}
+        if temperature <= 0:
+            gen_kw["do_sample"] = False
+        else:
+            gen_kw["do_sample"] = True
+            gen_kw["temperature"] = temperature
+        outputs: list[str] = []
+        ntok = max_new_tokens or self.max_new_tokens
+        bs = self._resolve_batch_size(max_new_tokens=ntok, override=batch_size)
+        log_key = (bs, ntok)
+        if self._last_batch_log != log_key:
+            print(
+                f"[hub_inference] batch_size={bs} model={self.model_id!r} max_new_tokens={ntok}",
+                flush=True,
+            )
+            self._last_batch_log = log_key
+        for start in range(0, len(texts), bs):
+            chunk = texts[start : start + bs]
+            ids = self._tok(chunk, return_tensors="pt", padding=True).to(self._device)
+            prompt_width = ids["input_ids"].shape[1]
+            with torch.inference_mode():
+                out = self._model.generate(**ids, **gen_kw)
+            for row in out:
+                outputs.append(self._tok.decode(row[prompt_width:], skip_special_tokens=True))
+        return outputs
+
     def complete(self, prompt: str, **kwargs: Any) -> str:
         return self.generate(prompt, **kwargs)
 
@@ -267,6 +392,36 @@ class HubInferenceClient:
         with torch.no_grad():
             out = self._model.generate(**ids, **gen_kw)
         return self._tok.decode(out[0][ids["input_ids"].shape[1] :], skip_special_tokens=True)
+
+    def chat_batch(
+        self,
+        messages_batch: list[list[dict[str, Any]]],
+        *,
+        max_new_tokens: int | None = None,
+        temperature: float = 0.0,
+        batch_size: int | None = None,
+        **_: Any,
+    ) -> list[str]:
+        self._load()
+        texts = [
+            self._tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+            for messages in messages_batch
+        ]
+        return self._generate_texts(
+            texts,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            batch_size=batch_size,
+        )
+
+    def _resolve_batch_size(self, *, max_new_tokens: int, override: int | None = None) -> int:
+        if override is not None:
+            return max(1, override)
+        if self._batch_size_override is not None:
+            return max(1, self._batch_size_override)
+        base = self.spec.base_model or self.model_id
+        device = getattr(self, "_device", None) or self.device
+        return default_infer_batch_size(base, max_new_tokens=max_new_tokens, device=device)
 
 
 def hub_chat_fn(client: HubInferenceClient):

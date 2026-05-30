@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from pathlib import Path
 
 from zo_common import append_metric, new_run, update_run
@@ -270,23 +271,42 @@ def run_track(
         except Exception:
             return default
 
+    def _chunks(items, size: int):
+        for start in range(0, len(items), size):
+            yield items[start : start + size]
+
+    eval_batch_size = max(1, int(os.environ.get("ZO_TRACK_EVAL_BATCH_SIZE", "200")))
+
     if {"nextstep", "completion"} & set(tasks) and valid_csv:
         valid_inputs = sub.read_valid_inputs(valid_csv)
         if "nextstep" in tasks:
+            t0 = time.perf_counter()
             nextstep_preds = {}
-            for it in valid_inputs:
-                ranks = _fallback(traced.next_step, it, [])
-                nextstep_preds[it.example_id] = ranks
-                if trace_col is not None:
-                    trace_col.add(
-                        example_id=it.example_id,
-                        task="nextstep",
-                        family=it.family,
-                        input_payload=valid_input_payload(it),
-                        prediction=ranks,
-                        gold=gold.get("next", {}).get(it.example_id) if gold else None,
-                        trace=traced.pop_trace(it.example_id, "nextstep"),
-                    )
+            for chunk in _chunks(valid_inputs, eval_batch_size):
+                if hasattr(traced, "next_step_batch"):
+                    try:
+                        preds = traced.next_step_batch(chunk)
+                    except Exception:
+                        preds = [_fallback(traced.next_step, it, []) for it in chunk]
+                else:
+                    preds = [_fallback(traced.next_step, it, []) for it in chunk]
+                for it, ranks in zip(chunk, preds, strict=False):
+                    nextstep_preds[it.example_id] = ranks
+                    if trace_col is not None:
+                        trace_col.add(
+                            example_id=it.example_id,
+                            task="nextstep",
+                            family=it.family,
+                            input_payload=valid_input_payload(it),
+                            prediction=ranks,
+                            gold=gold.get("next", {}).get(it.example_id) if gold else None,
+                            trace=traced.pop_trace(it.example_id, "nextstep"),
+                        )
+                print(
+                    f"[zo-track] nextstep {len(nextstep_preds)}/{len(valid_inputs)} "
+                    f"elapsed={time.perf_counter() - t0:.1f}s",
+                    flush=True,
+                )
             sub.write_nextstep(list(nextstep_preds.items()), out / "nextstep.csv")
             if gold and gold.get("next"):
                 fam_br = M.per_family(M.score_nextstep, nextstep_preds, gold["next"], fam_of)
@@ -298,20 +318,33 @@ def run_track(
                     entry["by_cut"] = cut_br
                 report_tasks["nextstep"] = entry
         if "completion" in tasks:
+            t0 = time.perf_counter()
             completion_preds = {}
-            for it in valid_inputs:
-                steps = _fallback(traced.complete, it, [])
-                completion_preds[it.example_id] = steps
-                if trace_col is not None:
-                    trace_col.add(
-                        example_id=it.example_id,
-                        task="completion",
-                        family=it.family,
-                        input_payload=valid_input_payload(it),
-                        prediction=steps,
-                        gold=gold.get("completion", {}).get(it.example_id) if gold else None,
-                        trace=traced.pop_trace(it.example_id, "completion"),
-                    )
+            for chunk in _chunks(valid_inputs, eval_batch_size):
+                if hasattr(traced, "complete_batch"):
+                    try:
+                        preds = traced.complete_batch(chunk)
+                    except Exception:
+                        preds = [_fallback(traced.complete, it, []) for it in chunk]
+                else:
+                    preds = [_fallback(traced.complete, it, []) for it in chunk]
+                for it, steps in zip(chunk, preds, strict=False):
+                    completion_preds[it.example_id] = steps
+                    if trace_col is not None:
+                        trace_col.add(
+                            example_id=it.example_id,
+                            task="completion",
+                            family=it.family,
+                            input_payload=valid_input_payload(it),
+                            prediction=steps,
+                            gold=gold.get("completion", {}).get(it.example_id) if gold else None,
+                            trace=traced.pop_trace(it.example_id, "completion"),
+                        )
+                print(
+                    f"[zo-track] completion {len(completion_preds)}/{len(valid_inputs)} "
+                    f"elapsed={time.perf_counter() - t0:.1f}s",
+                    flush=True,
+                )
             sub.write_completion(list(completion_preds.items()), out / "completion.csv")
             if gold and gold.get("completion"):
                 fam_br = M.per_family(M.score_completion, completion_preds, gold["completion"], fam_of)
@@ -326,23 +359,37 @@ def run_track(
                 report_tasks["completion"] = entry
 
     if "anomaly" in tasks and anomaly_csv:
+        t0 = time.perf_counter()
         anomaly_inputs = sub.read_anomaly_inputs(anomaly_csv)
         rows = []
-        for it in anomaly_inputs:
-            iv, sc, rule = _fallback(traced.anomaly, it, (1, 0.5, None))
-            rows.append((it.example_id, iv, sc, rule))
-            pred_dict = {"is_valid": iv, "score": sc, "rule": rule}
-            anomaly_preds[it.example_id] = pred_dict
-            if trace_col is not None:
-                trace_col.add(
-                    example_id=it.example_id,
-                    task="anomaly",
-                    family=it.family,
-                    input_payload=anomaly_input_payload(it),
-                    prediction=pred_dict,
-                    gold=gold.get("anomaly", {}).get(it.example_id) if gold else None,
-                    trace=traced.pop_trace(it.example_id, "anomaly"),
-                )
+        for chunk in _chunks(anomaly_inputs, eval_batch_size):
+            if hasattr(traced, "anomaly_batch"):
+                try:
+                    preds = traced.anomaly_batch(chunk)
+                except Exception:
+                    preds = [_fallback(traced.anomaly, it, (1, 0.5, None)) for it in chunk]
+            else:
+                preds = [_fallback(traced.anomaly, it, (1, 0.5, None)) for it in chunk]
+            for it, pred in zip(chunk, preds, strict=False):
+                iv, sc, rule = pred
+                rows.append((it.example_id, iv, sc, rule))
+                pred_dict = {"is_valid": iv, "score": sc, "rule": rule}
+                anomaly_preds[it.example_id] = pred_dict
+                if trace_col is not None:
+                    trace_col.add(
+                        example_id=it.example_id,
+                        task="anomaly",
+                        family=it.family,
+                        input_payload=anomaly_input_payload(it),
+                        prediction=pred_dict,
+                        gold=gold.get("anomaly", {}).get(it.example_id) if gold else None,
+                        trace=traced.pop_trace(it.example_id, "anomaly"),
+                    )
+            print(
+                f"[zo-track] anomaly {len(anomaly_preds)}/{len(anomaly_inputs)} "
+                f"elapsed={time.perf_counter() - t0:.1f}s",
+                flush=True,
+            )
         sub.write_anomaly(rows, out / "anomaly.csv")
         if gold and gold.get("anomaly"):
             anom_for_score = {

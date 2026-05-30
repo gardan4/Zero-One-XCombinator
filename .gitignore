@@ -184,12 +184,21 @@ cython_debug/
 # Zero One Philyr additions
 # ============================================================================
 
-# Node / Next.js (apps/frontend)
+# Node / Next.js (apps/frontend + infineon dashboard)
 node_modules/
 .next/
 out/
 next-env.d.ts
 *.tsbuildinfo
+.turbo/
+.wrangler/
+dist/
+apps/frontend/node_modules/
+apps/frontend/.next/
+apps/frontend/out/
+infineon-results-dashboard/node_modules/
+infineon-results-dashboard/.wrangler/
+infineon-results-dashboard/dist/
 
 # Experiment outputs: keep the dir + docs, ignore individual runs.
 experiments/*/
@@ -203,9 +212,13 @@ data/generated/*
 !data/generated/splits.json
 !data/generated/manifest.json
 
-# Local scratch eval sets (regenerable via `just local-eval`); real deliverables → extras/results/.
+# Local scratch eval sets (regenerable via `just local-eval`).
 extras/eval_local/
 extras/eval_local_smoke/
+extras/eval_sbatch_local/
+
+# Suite comparison scratch (regenerable via `just eval-suite`); pitch finals → `just promote`.
+extras/results/suite_*/
 
 # Agent worktrees the harness creates for parallel subagents.
 .claude/worktrees/

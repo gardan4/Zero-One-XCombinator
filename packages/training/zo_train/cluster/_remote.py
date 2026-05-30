@@ -161,16 +161,42 @@ _SYNC_EXCLUDES = (
     ".git",
     ".env",
     ".venv",
-    "apps/frontend/node_modules",
     "experiments",
+    "extras/results",
     "hf_cache",
+    "infineon-results-dashboard",
     "slurm_logs",
     "wandb",
 )
 
+_SYNC_EXCLUDE_PARTS = {
+    ".mypy_cache",
+    ".next",
+    ".pytest_cache",
+    ".ruff_cache",
+    "__pycache__",
+    "node_modules",
+}
+
+
+def _skip_sync_path(rel: str) -> bool:
+    rel = rel.replace("\\", "/").strip("/")
+    if not rel:
+        return False
+    parts = set(rel.split("/"))
+    if parts & _SYNC_EXCLUDE_PARTS:
+        return True
+    if rel.endswith((".pyc", ".pyo")):
+        return True
+    return any(rel == ex or rel.startswith(f"{ex}/") for ex in _SYNC_EXCLUDES)
+
+
+def _tar_filter(info):
+    return None if _skip_sync_path(info.name) else info
+
 
 def sync_repo_to_cluster(target: str, remote_repo: str) -> None:
-    """Tar-based repo sync (Windows 10+, macOS, Linux ÔÇö no rsync required)."""
+    """Tar-based repo sync (Windows 10+, macOS, Linux — no rsync required)."""
     import tarfile
     import tempfile
 
@@ -181,9 +207,9 @@ def sync_repo_to_cluster(target: str, remote_repo: str) -> None:
     try:
         with tarfile.open(tar_path, "w") as tar:
             for item in root.iterdir():
-                if item.name in _SYNC_EXCLUDES:
+                if _skip_sync_path(item.name):
                     continue
-                tar.add(item, arcname=item.name)
+                tar.add(item, arcname=item.name, filter=_tar_filter)
         scp_upload(tar_path, target, f"{remote_repo}/repo.tar")
         ssh_run(
             target,
@@ -193,6 +219,60 @@ def sync_repo_to_cluster(target: str, remote_repo: str) -> None:
         )
     finally:
         tar_path.unlink(missing_ok=True)
+
+
+def sync_paths_to_cluster(target: str, remote_repo: str, paths: list[str]) -> None:
+    """Upload a small set of repo-relative files/dirs without a full repo tarball."""
+    import tarfile
+    import tempfile
+
+    root = repo_root()
+    chosen = [p.replace("\\", "/").strip("/") for p in paths if p.strip()]
+    if not chosen:
+        return
+    ssh_run(target, f"mkdir -p '{remote_repo}'", check=True)
+    with tempfile.NamedTemporaryFile(suffix=".tar", delete=False) as tmp:
+        tar_path = Path(tmp.name)
+    try:
+        with tarfile.open(tar_path, "w") as tar:
+            for rel in chosen:
+                if _skip_sync_path(rel):
+                    continue
+                local = root / rel
+                if not local.exists():
+                    continue
+                tar.add(local, arcname=rel, filter=_tar_filter)
+        scp_upload(tar_path, target, f"{remote_repo}/repo-delta.tar")
+        ssh_run(
+            target,
+            f"cd '{remote_repo}' && tar -xf repo-delta.tar && rm -f repo-delta.tar && "
+            "find scripts -name '*.sh' -exec sed -i 's/\\r$//' {} + 2>/dev/null || true",
+            check=True,
+        )
+    finally:
+        tar_path.unlink(missing_ok=True)
+
+
+def sync_code_to_cluster(target: str, remote_repo: str) -> None:
+    """Fast sync for code/config changes; assumes data/models are already staged."""
+    sync_paths_to_cluster(
+        target,
+        remote_repo,
+        [
+            "apps/backend",
+            "packages",
+            "scripts",
+            "tests",
+            "docs",
+            ".claude",
+            "pyproject.toml",
+            "uv.lock",
+            "justfile",
+            "requirements-inference.txt",
+            "requirements-orchestrator.txt",
+            "requirements.txt",
+        ],
+    )
 
 
 def push_cluster_env(target: str, remote_repo: str) -> None:
@@ -209,9 +289,12 @@ def push_cluster_env(target: str, remote_repo: str) -> None:
             continue
         if s.startswith("ZO_CLUSTER_PASSWORD=") or s.startswith("ZO_CLUSTER_HOSTKEY="):
             continue
-        key = s.split("=", 1)[0]
+        key, _, val = s.partition("=")
+        key = key.strip()
         if key.startswith("ZO_") or key in ("HF_TOKEN", "HF_HOME") or key.startswith("WANDB_"):
-            lines.append(s)
+            from zo_common.env import normalize_env_value
+
+            lines.append(f"{key}={normalize_env_value(key, val)}")
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".env", delete=False) as tmp:
         tmp.write("\n".join(lines) + "\n")
         tmp_path = Path(tmp.name)

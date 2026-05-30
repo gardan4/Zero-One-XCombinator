@@ -50,6 +50,25 @@ def test_hub_chat_fn_shape():
     assert resp["choices"][0]["message"]["content"] == "VALID."
 
 
+def test_parse_model_param_b():
+    from zo_common.hub_inference import parse_model_param_b
+
+    assert parse_model_param_b("Qwen/Qwen2.5-1.5B-Instruct") == 1.5
+    assert parse_model_param_b("/scratch/hf-local/Qwen2.5-0.5B-Instruct") == 0.5
+    assert parse_model_param_b("meta-llama/Llama-3.1-8B") == 8.0
+    assert parse_model_param_b("unknown-model") is None
+
+
+def test_default_infer_batch_size_heuristic():
+    from zo_common.hub_inference import default_infer_batch_size
+
+    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=64, vram_gb=64) == 16
+    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=1024, vram_gb=64) == 4
+    assert default_infer_batch_size("Qwen/Qwen2.5-0.5B-Instruct", max_new_tokens=64, vram_gb=64) == 32
+    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=64, vram_gb=16) == 4
+    assert default_infer_batch_size("Qwen/Qwen2.5-1.5B-Instruct", max_new_tokens=64, device="cpu") == 1
+
+
 @pytest.mark.integration
 def test_xcombinator_model_live():
     import os

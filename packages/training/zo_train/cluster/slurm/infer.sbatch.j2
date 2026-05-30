@@ -16,16 +16,43 @@
 set -euo pipefail
 cd "{{ repo_dir }}"
 mkdir -p slurm_logs "{{ out_dir }}"
+if [[ -f .env ]]; then
+  set -a
+  source .env
+  set +a
+fi
+# W&B rejects API keys with leading/trailing whitespace (common .env copy/paste issue).
+if [[ -n "${WANDB_API_KEY:-}" ]]; then
+  export WANDB_API_KEY="$(printf '%s' "$WANDB_API_KEY" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+fi
+if [[ -n "${HF_TOKEN:-}" ]]; then
+  export HF_TOKEN="$(printf '%s' "$HF_TOKEN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+fi
 
 export ZO_EXPERIMENTS_DIR="{{ experiments_dir }}"
 export HF_HOME="{{ hf_home }}"
+export WANDB_MODE="${WANDB_MODE:-online}"
+export WANDB_DIR="${ZO_EXPERIMENTS_DIR}/{{ run_id }}/wandb"
+export WANDB_ENTITY="${WANDB_ENTITY:-XCombinator}"
+export WANDB_PROJECT="${WANDB_PROJECT:-XCombinator}"
+export WANDB_NAME="{{ run_id }}"
+export WANDB_INIT_TIMEOUT="${WANDB_INIT_TIMEOUT:-120}"
+export ZO_TRACK_EVAL_BATCH_SIZE="${ZO_TRACK_EVAL_BATCH_SIZE:-200}"
+export ZO_INFER_TORCH_DTYPE="${ZO_INFER_TORCH_DTYPE:-bfloat16}"
+mkdir -p "$WANDB_DIR"
 {% if proxy %}
 export HTTP_PROXY="{{ proxy }}"; export HTTPS_PROXY="$HTTP_PROXY"
 export http_proxy="$HTTP_PROXY"; export https_proxy="$HTTP_PROXY"
+export NO_PROXY="localhost,127.0.0.1"; export no_proxy="$NO_PROXY"
 {% endif %}
 
 # GPU stack must be pre-staged on a login node:  cd {{ repo_dir }} && uv sync --extra gpu
 uv sync --extra gpu --offline
+
+BATCH_ARGS=()
+if [[ -n "${ZO_TRACK_BATCH_SIZE:-}" ]]; then
+  BATCH_ARGS+=(--batch-size "$ZO_TRACK_BATCH_SIZE")
+fi
 
 # Batch inference on a fine-tuned checkpoint (no vLLM server required).
 uv run zo-track predict \
@@ -44,7 +71,8 @@ uv run zo-track predict \
 {% endif %}  --tasks "{{ tasks }}" \
   --out "{{ out_dir }}" \
   --tags "{{ tags }}" \
-  --run-id "{{ run_id }}"
+  --run-id "{{ run_id }}" \
+  "${BATCH_ARGS[@]}"
 
 echo "=== judge eval complete ==="
 echo "Results: {{ out_dir }}"

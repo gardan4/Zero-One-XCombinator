@@ -33,6 +33,13 @@ def test_wandb_disabled_without_key(monkeypatch):
     assert wandb_enabled() is False
 
 
+def test_normalize_env_value_strips_api_key():
+    from zo_common.env import normalize_env_value
+
+    assert normalize_env_value("WANDB_API_KEY", "  abc123  ") == "abc123"
+    assert normalize_env_value("ZO_FOO", "  bar  ") == "bar"
+
+
 def test_merge_tags_dedupes():
     assert merge_tags(["a", "b"], ["b", "c"]) == ["a", "b", "c"]
 
