@@ -152,12 +152,14 @@ def run_examples(
     elif outcome == "wrong":
         rows = [r for r in rows if r.get("correct") is False]
     meta = get_run(run_id)
+    total = len(rows)
     return {
         "run_id": run_id,
         "task": task,
         "outcome": outcome,
         "examples": rows[:limit],
-        "count": min(len(rows), limit),
+        "count": len(rows[:limit]),
+        "total": total,
         "model": (build_compare_row(meta)["model"] if meta else None),
     }
 

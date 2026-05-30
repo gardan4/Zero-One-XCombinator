@@ -32,13 +32,31 @@
         <span class="divider" aria-hidden="true"></span>
         <span class="product">Fab Route Copilot</span>
       </div>
-      <div class="status" id="modelStatus">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="status-text">Results overview</span>
+      <div class="status-row">
+        <div class="status" id="controlPlaneStatus">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="status-text">Control plane</span>
+        </div>
+        <div class="status" id="modelStatus">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="status-text">Results overview</span>
+        </div>
       </div>
     </header>
 
     <main class="page">
+      <div class="cp-offline-banner" id="cpOfflineBanner" hidden>
+        <strong>Control plane offline.</strong>
+        <span class="cp-offline-msg">Start the FastAPI backend at <code>http://localhost:8000</code> for live registry, comparison, and inference jobs. Static results and the live demo still work below.</span>
+      </div>
+
+      <nav class="page-tabs" id="pageTabs" aria-label="Dashboard sections">
+        <button type="button" class="page-tab active" data-tab="results">Results &amp; demo</button>
+        <button type="button" class="page-tab" data-tab="compare">Compare runs</button>
+        <button type="button" class="page-tab" data-tab="registry">Run registry</button>
+      </nav>
+
+      <div class="tab-panel active" data-tab="results" id="tab-panel-results">
       <!-- ============ HERO ============ -->
       <section class="hero reveal" style="--d: 1">
         <span class="model-badge">
@@ -52,12 +70,13 @@
         <p class="model-blurb" id="modelBlurb"></p>
 
         <div class="deltas" id="deltas" aria-label="Headline results"></div>
+        <p class="data-legend" id="heroDataLegend"></p>
       </section>
 
       <!-- ============ LIVE DEMO ============ -->
       <section class="section reveal" style="--d: 2" id="demo">
         <div class="section-head">
-          <p class="eyebrow">Live demo</p>
+          <p class="eyebrow">Live demo <span class="data-badge demo" title="Live Worker retrieval baseline on this page">DEMO</span></p>
           <h2>Try it on a real route</h2>
           <p class="demo-note">
             Build a route step by step — load a sample, <b>click any predicted candidate to add it</b>,
@@ -156,7 +175,7 @@
       <!-- ============ BATCH CSV ============ -->
       <section class="section reveal" style="--d: 2" id="batch">
         <div class="section-head">
-          <p class="eyebrow">Batch · CSV upload</p>
+          <p class="eyebrow">Batch · CSV upload <span class="data-badge demo" title="Live Worker batch predict on this page">DEMO</span></p>
           <h2>Predict next step for a CSV of partial routes</h2>
           <p class="demo-note">
             Upload a CSV with columns
@@ -210,18 +229,18 @@
       <!-- ============ NEXT STEP ============ -->
       <section class="section reveal" style="--d: 2">
         <div class="section-head">
-          <p class="eyebrow">Task 1 · Next-step prediction</p>
+          <p class="eyebrow">Task 1 · Next-step prediction <span class="data-badge partial" title="Measured baseline + illustrative finetuned in results.js">PARTIAL</span></p>
           <h2>Top-5 next step</h2>
           <p id="blurbNextstep"></p>
         </div>
         <div class="panel-grid lead">
           <section class="card card-pad">
-            <p class="card-sub">Baseline vs. fine-tuned on 600 held-out partial routes</p>
+            <p class="card-sub">Baseline vs. fine-tuned on 600 held-out partial routes <span class="data-badge partial">PARTIAL</span></p>
             <div class="legend"><span><i class="base"></i>Retrieval+rule baseline</span><span><i class="tuned"></i>FabSeq-S</span></div>
             <div class="compare" id="nextstepCompare"></div>
           </section>
           <section class="card card-pad">
-            <p class="card-sub">Top-1 / Top-5 accuracy by product line</p>
+            <p class="card-sub">Top-1 / Top-5 accuracy by product line <span class="data-badge partial">PARTIAL</span></p>
             <table class="table" id="familyTable">
               <thead>
                 <tr><th>Family</th><th>Base T1</th><th>Tuned T1</th><th>Tuned T5</th><th>Δ T1</th></tr>
@@ -232,14 +251,15 @@
         </div>
       </section>
 
-      <!-- ============ COMPLETION ============ -->
+      <!-- ============ COMPLETION (static) ============ -->
       <section class="section reveal" style="--d: 2">
         <div class="section-head">
-          <p class="eyebrow">Task 2 · Sequence completion</p>
+          <p class="eyebrow">Task 2 · Sequence completion <span class="data-badge partial">PARTIAL</span></p>
           <h2>Completing a partial route</h2>
           <p id="blurbCompletion"></p>
         </div>
         <section class="card card-pad">
+          <p class="card-sub">Baseline vs. fine-tuned <span class="data-badge partial">PARTIAL</span></p>
           <div class="legend"><span><i class="base"></i>Baseline</span><span><i class="tuned"></i>FabSeq-S</span></div>
           <div class="compare" id="completionCompare"></div>
         </section>
@@ -248,23 +268,23 @@
       <!-- ============ ANOMALY ============ -->
       <section class="section reveal" style="--d: 2">
         <div class="section-head">
-          <p class="eyebrow">Task 3 · Anomaly detection</p>
+          <p class="eyebrow">Task 3 · Anomaly detection <span class="data-badge partial">PARTIAL</span></p>
           <h2>Catching process-rule violations</h2>
           <p id="blurbAnomaly"></p>
         </div>
         <div class="panel-grid lead">
           <section class="card card-pad">
-            <p class="card-sub">Baseline vs. fine-tuned on 987 routes (~387 anomalous)</p>
+            <p class="card-sub">Baseline vs. fine-tuned on 987 routes (~387 anomalous) <span class="data-badge partial">PARTIAL</span></p>
             <div class="legend"><span><i class="base"></i>Baseline</span><span><i class="tuned"></i>FabSeq-S</span></div>
             <div class="compare" id="anomalyCompare"></div>
           </section>
           <section class="card card-pad">
-            <p class="card-sub">FabSeq-S confusion matrix</p>
+            <p class="card-sub">FabSeq-S confusion matrix <span class="data-badge mock">MOCK</span></p>
             <div class="confusion" id="confusion"></div>
           </section>
         </div>
         <section class="card card-pad" style="margin-top:18px">
-          <p class="card-sub">Rule-attribution accuracy — does it name the <em>right</em> broken rule?</p>
+          <p class="card-sub">Rule-attribution accuracy — does it name the <em>right</em> broken rule? <span class="data-badge mock">MOCK</span></p>
           <table class="table" id="ruleTable">
             <thead><tr><th>Rule</th><th>What it forbids</th><th>Attribution acc.</th></tr></thead>
             <tbody></tbody>
@@ -275,7 +295,7 @@
       <!-- ============ TRAINING ============ -->
       <section class="section reveal" style="--d: 2" hidden>
         <div class="section-head">
-          <p class="eyebrow">Training</p>
+          <p class="eyebrow">Training <span class="data-badge mock">MOCK</span></p>
           <h2>From scratch, no leakage</h2>
           <p id="blurbTraining"></p>
         </div>
@@ -288,7 +308,7 @@
       <!-- ============ OOD ============ -->
       <section class="section reveal" style="--d: 2" hidden>
         <div class="section-head">
-          <p class="eyebrow">Task 4 · Out-of-distribution</p>
+          <p class="eyebrow">Task 4 · Out-of-distribution <span class="data-badge mock">MOCK</span></p>
           <h2>Generalizing to an unseen family</h2>
           <p id="blurbOod"></p>
         </div>
@@ -304,9 +324,185 @@
         <div class="takeaways" id="takeaways"></div>
       </section>
 
+      </div><!-- /tab-panel-results -->
+
+      <div class="tab-panel hidden" data-tab="compare" id="tab-panel-compare">
+      <!-- ============ LIVE COMPARE ============ -->
+      <section class="section reveal" style="--d: 2" id="liveControl">
+        <div class="section-head">
+          <p class="eyebrow">Live · experiment registry <span class="data-badge live" title="Real metrics from the FastAPI experiment registry">LIVE</span></p>
+          <h2>Compare eval runs</h2>
+          <p class="demo-note">
+            Wired to <code>http://localhost:8000</code>. Pick runs below — the latest two eval runs with scored metrics are selected by default.
+            Empty cells mean that run did not log that task (e.g. dashboard inference without gold only has proxy metrics).
+          </p>
+          <div class="cp-toolbar">
+            <button id="cpRefreshBtn" class="btn ghost" type="button">Refresh</button>
+            <label class="field compact">
+              <span>Split</span>
+              <select id="cpFilterSplit">
+                <option value="">any</option>
+                <option value="id">id</option>
+                <option value="ood">ood</option>
+              </select>
+            </label>
+            <label class="field compact">
+              <span>Role</span>
+              <select id="cpFilterRole">
+                <option value="">any</option>
+                <option value="baseline">baseline</option>
+                <option value="finetuned">finetuned</option>
+                <option value="oracle">oracle</option>
+              </select>
+            </label>
+            <label class="field compact">
+              <span>Family</span>
+              <select id="cpFilterFamily">
+                <option value="">any</option>
+                <option value="MOSFET">MOSFET</option>
+                <option value="IGBT">IGBT</option>
+                <option value="IC">IC</option>
+              </select>
+            </label>
+            <label class="field compact">
+              <span>Metrics</span>
+              <select id="cpFilterTask">
+                <option value="all">all</option>
+                <option value="nextstep">nextstep</option>
+                <option value="completion">completion</option>
+                <option value="anomaly">anomaly</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <section class="card card-pad" style="margin-bottom:18px">
+          <p class="card-sub">Runs to compare <span class="data-badge live">LIVE</span></p>
+          <div id="cpRunPicker" class="run-picker"><p class="cp-empty">Loading runs…</p></div>
+          <p class="cp-meta" id="cpRunPickerHint">Latest 2 scored eval runs selected by default.</p>
+        </section>
+
+        <section class="card card-pad" style="margin-bottom:18px">
+          <p class="card-sub">Headline metrics for selected runs <span class="data-badge live">LIVE</span></p>
+          <div class="compare" id="cpSelectedCompare"></div>
+        </section>
+
+        <div class="panel-grid lead">
+          <section class="card card-pad">
+            <p class="card-sub">Metric matrix (selected runs only) <span class="data-badge live">LIVE</span></p>
+            <div id="cpCompareMatrix"><p class="cp-empty">Loading comparison…</p></div>
+          </section>
+          <section class="card card-pad">
+            <p class="card-sub">Anomaly ROC-AUC — selected runs <span class="data-badge live">LIVE</span></p>
+            <div class="compare" id="cpHeroBars"></div>
+          </section>
+        </div>
+
+        <div class="panel-grid two" style="margin-top:18px">
+          <section class="card card-pad">
+            <p class="card-sub">Anomaly metrics by predictor <span class="data-badge live">LIVE</span></p>
+            <div class="compare" id="cpPredictorBars"></div>
+          </section>
+          <section class="card card-pad">
+            <p class="card-sub">Anomaly confusion matrix <span class="data-badge live">LIVE</span></p>
+            <select id="cpAnomalyRunSelect" class="cp-select"></select>
+            <div class="confusion" id="cpLiveConfusion" style="margin-top:12px"></div>
+          </section>
+        </div>
+
+        <section class="card card-pad" style="margin-top:18px">
+          <p class="card-sub">Training loss curves (SFT / GRPO) <span class="data-badge live">LIVE</span></p>
+          <div id="cpLossChart"><p class="cp-empty">Loading…</p></div>
+        </section>
+
+        <section class="card card-pad" style="margin-top:18px" id="liveDiff">
+          <p class="card-sub">Per-example disagreements <span class="data-badge live">LIVE</span></p>
+          <div class="cp-toolbar">
+            <select id="cpDiffRunA" class="cp-select"><option value="">Run A…</option></select>
+            <select id="cpDiffRunB" class="cp-select"><option value="">Run B…</option></select>
+            <select id="cpDiffTask" class="cp-select">
+              <option value="nextstep">nextstep</option>
+              <option value="completion">completion</option>
+              <option value="anomaly">anomaly</option>
+            </select>
+            <select id="cpDiffMode" class="cp-select">
+              <option value="different">different</option>
+              <option value="both_wrong">both wrong</option>
+              <option value="only_a_correct">only A correct</option>
+              <option value="only_b_correct">only B correct</option>
+            </select>
+            <button id="cpDiffLoadBtn" class="btn primary" type="button">Compare examples</button>
+          </div>
+          <div id="cpDiffExamples" class="diff-list"><p class="cp-empty">Select two runs with <code>examples.jsonl</code> artifacts.</p></div>
+        </section>
+
+        <section class="card card-pad" style="margin-top:18px" id="liveInference">
+          <div class="section-head" style="margin-bottom:16px">
+            <p class="eyebrow">Inference <span class="data-badge live">LIVE</span></p>
+            <h2 style="font-size:22px;margin:0">Run a model on your input</h2>
+            <p class="demo-note">Pick a model and task, paste steps or upload a CSV. Results appear below — exportable when batch mode applies.</p>
+          </div>
+
+          <div class="infer-simple">
+            <label class="field">
+              <span>Model</span>
+              <select id="cpInferModelSelect">
+                <option value="ngram">NGram baseline</option>
+                <option value="freq">Frequency baseline</option>
+                <option value="oracle">Oracle (upper bound)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Task</span>
+              <select id="cpInferTask">
+                <option value="nextstep">Next-step prediction</option>
+                <option value="completion">Sequence completion</option>
+                <option value="anomaly">Anomaly detection</option>
+              </select>
+            </label>
+            <label class="field infer-input-field">
+              <span>Input</span>
+              <textarea id="cpInferInput" spellcheck="false" rows="5" placeholder="One fab step per line…"></textarea>
+              <span class="infer-input-hint" id="cpInferInputHint">Partial route steps (defaults: MOSFET, 60% observed).</span>
+            </label>
+            <div class="infer-file-row">
+              <label class="btn ghost file-btn">
+                Or upload CSV…
+                <input id="cpInferCsv" type="file" accept=".csv,text/csv" hidden />
+              </label>
+              <span class="meta" id="cpInferFileName">No CSV — using text input above</span>
+            </div>
+            <div class="infer-actions">
+              <button id="cpInferRun" class="btn primary" type="button">Run</button>
+              <span id="cpInferStatus" class="cp-meta"></span>
+            </div>
+          </div>
+
+          <div id="cpInferOutput" class="infer-output" hidden></div>
+          <div class="infer-export-row" id="cpInferExportRow" hidden>
+            <button id="cpInferExportCsv" class="btn ghost" type="button">Download results CSV</button>
+            <span class="cp-meta" id="cpInferExportMeta"></span>
+          </div>
+        </section>
+      </section>
+      </div><!-- /tab-panel-compare -->
+
+      <div class="tab-panel hidden" data-tab="registry" id="tab-panel-registry">
+        <section class="section reveal" style="--d: 2">
+          <div class="section-head">
+            <p class="eyebrow">Run registry <span class="data-badge live">LIVE</span></p>
+            <h2>All experiment runs</h2>
+            <p class="demo-note">Full list from the FastAPI control plane. Use the Compare runs tab to pick runs for charts.</p>
+          </div>
+          <section class="card card-pad">
+            <div id="cpRunRegistry"><p class="cp-empty">Loading runs…</p></div>
+          </section>
+        </section>
+      </div><!-- /tab-panel-registry -->
+
       <footer class="foot">
         <span>Infineon Industrial-AI track · Fab Route Copilot</span>
-        <span class="mono" id="footNote">Figures illustrative — wired to results.js for the trained model</span>
+        <span class="mono" id="footNote">Badges: MOCK / PARTIAL = static results.js · LIVE = registry · DEMO = Worker on this page</span>
       </footer>
     </main>
 

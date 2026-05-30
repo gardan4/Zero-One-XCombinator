@@ -1,4 +1,7 @@
 import { RESULTS as R } from "./results.js";
+import { initLiveDashboard } from "./live-dashboard.js";
+import { initTabs } from "./tabs.js";
+import { dataBadge } from "./badges.js";
 
 /* ------------------------------------------------------------------ *
  *  Formatting helpers
@@ -27,7 +30,9 @@ function flushBars() {
  *  Dashboard
  * ------------------------------------------------------------------ */
 renderDashboard();
+initTabs();
 initDemo().catch(() => setStatus("Demo backend offline", false));
+initLiveDashboard(escapeHtml, flushBars, queueBar).catch(() => {});
 
 function renderDashboard() {
   const c = R.copy;
@@ -35,12 +40,16 @@ function renderDashboard() {
   $("modelName").textContent = c.modelName;
   $("demoModelName").textContent = c.modelName;
   $("batchModelName").textContent = c.modelName;
-  $("heroEyebrow").textContent = c.heroEyebrow;
+  $("heroEyebrow").innerHTML = `${escapeHtml(c.heroEyebrow)} ${dataBadge("partial")}`;
   $("heroTitle").innerHTML = `${escapeHtml(c.heroTitlePre)} <em>${escapeHtml(
     c.heroTitleEmph,
   )}</em> ${escapeHtml(c.heroTitlePost || "")}`;
   $("heroLede").textContent = c.heroLede;
   $("modelBlurb").textContent = c.modelBlurb;
+  const legend = $("heroDataLegend");
+  if (legend) {
+    legend.innerHTML = `${dataBadge("partial")} Headline cards mix measured baselines with illustrative fine-tuned values from <code>results.js</code>. For real eval metrics use the <b>Compare runs</b> tab.`;
+  }
   if (c.sections) {
     $("blurbNextstep").textContent = c.sections.nextstep || "";
     $("blurbCompletion").textContent = c.sections.completion || "";
