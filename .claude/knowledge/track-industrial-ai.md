@@ -32,10 +32,19 @@ Sanity-checked on load: MOSFET/IGBT/IC = 1,000 seqs each, lengths ~125/148/115, 
 `RECEIVE WAFER LOT` / end `SHIP LOT`, all pass `validate_sequence`. To refresh from upstream:
 sparse-clone the repo and copy those two folders (see INDEX "Sources").
 
-> **Not in the public repo (expect at kickoff):** **`eval_metrics.py`** and **`judging/rubrics.md`**
-> are referenced by the READMEs/SUBMISSION but are **absent upstream** — the organizers distribute
-> them (with the eval input CSVs) at the start. Don't assume we have the scorer until then; build to
-> the documented submission formats (below) and wrap the scorer when it lands.
+> **Scoring:** We do **not** receive **`eval_metrics.py`** — organizers score our three output CSVs
+> with their script. Self-eval: **`zo_eval/track_metrics.py`** (metrics from `generation_rules.md` §5).
+> **`judging/rubrics.md`** is not published; criteria live in SUBMISSION.md + track brief + §5.
+> Optional kickoff **`eval_input_*.csv`** may be distributed for prediction inputs. Team notes:
+> **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**.
+
+### Artifact locations (not in git)
+- **Checkpoints:** Hugging Face org **`XCombinator`** (e.g. `XCombinator/sft-fab-all`, LOFO variants).
+  Upload via Leonardo `scripts/leonardo_upload_artifact.sh` / training `extra.hub_model_id`.
+- **Training logs / loss curves:** Weights & Biases **`XCombinator/XCombinator`** (`WANDB_ENTITY` /
+  `WANDB_PROJECT` in `.env`; offline on compute nodes, `wandb sync` on login).
+- **Eval outputs + scored reports:** `experiments/<run_id>/results/` + `metrics_report.json` /
+  `metrics_report.md` (tag runs with `version:<id>`, `model-ref:<hf-repo>`, `eval-set:local|kickoff`).
 
 ## The data (3 product families)
 Long format, **one step per row**: `SEQUENCE_ID,STEP` (e.g. `MOSFET_0001,RECEIVE WAFER LOT`).
@@ -116,20 +125,16 @@ Task 3 columns: `IS_VALID` 1/0 (required), `SCORE`∈[0,1] valid-prob (optional,
 family** after submission and report the ID→OOD performance drop. We don't submit anything for it,
 but our model must be runnable on an unseen family.
 
-**Self-scoring:** `eval_metrics.py` (organizer-provided, **not yet in the repo — arrives at
-kickoff**, stdlib only) gives per-task reports with family / truncation breakdowns:
-```
-python eval_metrics.py --task anomaly --ground-truth <gt.csv> --predictions <your_output.csv>
-```
-Until it lands, validate our own generated/predicted sequences with
-`data/industrial-infineon/training_data/generate_sequences.py --validate <csv>` (uses the same 10 rules).
+**Self-scoring:** `zo-track predict` + `track_metrics.py` on hold-out / `extras/eval_local/` + `gold.json`
+→ `metrics_report.md` (per-family + per-cut). Validate generated sequences with
+`generate_sequences.py --validate <csv>` (same 10 rules as Task 3).
 
 ## Track-specific repo deliverables (from SUBMISSION.md + REPORT_TEMPLATE.md)
 Beyond the general submission (see hackathon.md), the **Industrial AI** repo must contain:
 - The three eval outputs **in `extras/results/`**: `nextstep.csv`, `completion.csv`, `anomaly.csv`
   (the REPORT template's checklist points there; raw scorer output also belongs in `extras/results/`).
 - Training artifacts: checkpoint(s), training logs, **loss curves**.
-- `eval_metrics.py` scores on all three tasks, **with per-family breakdown** (paste into REPORT Results).
+- `metrics_report.md` scores on all three tasks (**with per-family breakdown** — paste into REPORT Results).
 - Demo: **baseline vs. trained output on identical inputs** (the side-by-side is what they want).
 - (Optional) an architecture sketch in `extras/`.
 - 🎁 **Bonus (rewarded, not required):** a small dashboard — loss curves, metric comparisons across
@@ -146,16 +151,15 @@ sequence modeling**. Concretely:
   Build a tiny `step↔id` map from `generation_rules.md` §1 / by scanning the variant CSVs.
 - **Data loader:** parse the long-format `*_variants.csv` (or `read_csv_sequences`) into per-sequence
   token-id lists. This is new code (suggest `packages/training/zo_train/data/process_seq.py`).
-- **Eval:** wrap `eval_metrics.py` as zo-eval tasks (next-step / completion / anomaly) instead of the
-  OpenAI-`exact_match` harness. Anomaly detection can reuse `validate_sequence()` as a *rule-based*
-  baseline to beat — a great baseline-vs-model story.
+- **Eval:** `zo-track` + `track_metrics.py` (documented metrics) instead of the OpenAI harness.
+  Anomaly: `validate_sequence()` oracle for submitted scores; learned detector for OOD science.
 - **Registry/dashboard/worktrees/cluster flow all still apply unchanged.** `--dry-run` + the
   registry→backend→frontend path are exactly what we want for the before/after demo and scaling plots.
 
 ## Strategy (fastest path to a strong submission)
 1. **Level 1:** load data → frequency / rule-based baselines for next-step + anomaly (`validate_sequence`).
 2. **Level 2:** train a small from-scratch sequence model; show baseline → trained → tuned deltas on
-   the three tasks with `eval_metrics.py`; per-family breakdown; loss curves on the dashboard.
+   the three tasks with `track_metrics.py`; per-family breakdown; loss curves on the dashboard.
 3. **Level 3 / stretch:** scaling study — models trained on 100 vs 1k vs 5k+ generated sequences,
    and/or model-size sweep; plot accuracy/F1 vs data/compute. Care about **OOD** (Task 4): don't
    overfit family-specific quirks; family-conditioning + diverse generation help generalization.

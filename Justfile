@@ -77,8 +77,8 @@ judge-serve *args:
 eval task model:
     uv run zo-eval run --task {{task}} --model {{model}}
 
-# Track eval: predict the 3 tasks → write submission CSVs → score → tagged run.
-# e.g. `just track "-p ngram --valid …/eval_input_valid.csv --gold …/gold.json --tags split:id"`
+# Track eval: predict → 3 CSVs + metrics_report.md + version-tagged registry run.
+# e.g. `just track "-p ngram -V ngram-v1 --valid extras/eval_local/eval_input_valid.csv --gold extras/eval_local/gold.json --tags split:id"`
 track *args:
     uv run zo-track predict {{args}}
 

@@ -40,12 +40,16 @@ def test_render_infer_sbatch(tmp_path, monkeypatch):
             gold_json="/home/user/Zero-One-Philyr/extras/eval_local/gold.json",
             tasks="nextstep,completion,anomaly",
             tags="judge,repro",
+            version="sft-fab-all-v1",
+            model_ref="XCombinator/sft-fab-all",
+            eval_set="local",
             out_dir="/scratch/zo-experiments/run123/results",
             run_id="20260530_120000_eval_judge_abc123",
         ),
     )
     assert "#SBATCH --reservation=s_tra_ncc" in sbatch
     assert "zo-track predict" in sbatch
+    assert '--version "sft-fab-all-v1"' in sbatch
     assert '--run-id "20260530_120000_eval_judge_abc123"' in sbatch
     assert "/scratch/zo-models/XCombinator--sft-fab-all" in sbatch
     assert "--predictor hf" in sbatch

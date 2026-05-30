@@ -90,6 +90,16 @@ Understanding the grammar helps interpret why sequences look the way they do and
 
 ## Evaluation Tasks
 
+> **========== XCombinator-TEAM-START ==========**  
+> *(not in original Lumos `training_data/README.md`)*
+>
+> Teams do not receive `eval_metrics.py` — organizers score your three output CSVs. Self-eval:
+> `packages/eval/zo_eval/track_metrics.py` (metrics in §5 below).
+> See **[docs/track-industrial-sources.md](../../../docs/track-industrial-sources.md)**.
+>
+> **========== XCombinator-TEAM-END ==========**  
+> *(original README continues below)*
+
 The organizers will distribute two eval input files at the start of the hackathon:
 
 | File                     | Used for    | Contents                                                                            |
@@ -106,6 +116,18 @@ Three tasks are scored by the organizers against a fixed ground truth:
 | 3   | **Anomaly detection**    | `eval_input_anomaly.csv` — given a full sequence, determine if it is valid or contains a process-rule violation | Binary Accuracy, Precision, Recall, F1, Confusion Matrix, ROC-AUC, Rule Attribution Accuracy |
 
 Submission file formats for all three tasks are documented in `generation_rules.md` (Section 5).
+
+> **========== XCombinator-TEAM-START ==========**  
+> Our self-eval command (`zo-track` + `track_metrics.py`, same metric names as §5.2):
+>
+> ```bash
+> uv run zo-track predict -p ngram -V v1 --valid .../eval_input_valid.csv \
+>   --anomaly .../eval_input_anomaly.csv --gold .../gold.json
+> ```
+>
+> **========== XCombinator-TEAM-END ==========**
+
+*Original upstream text (organizer brief — script not provided to teams):*
 
 You can self-evaluate your model locally using the provided `eval_metrics.py` script (no external dependencies):
 

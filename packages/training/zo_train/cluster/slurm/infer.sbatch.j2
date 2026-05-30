@@ -30,7 +30,10 @@ uv sync --extra gpu --offline
 # Batch inference on a fine-tuned checkpoint (no vLLM server required).
 uv run zo-track predict \
   --predictor {{ predictor }} \
+  --version "{{ version }}" \
   --model "{{ model_path }}" \
+  {% if model_ref %}--model-ref "{{ model_ref }}" \
+  {% endif %}--eval-set "{{ eval_set }}" \
   --valid "{{ valid_csv }}" \
   --anomaly "{{ anomaly_csv }}" \
   --gold "{{ gold_json }}" \

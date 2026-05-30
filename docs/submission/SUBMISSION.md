@@ -100,7 +100,25 @@ Before hitting submit on the Tally form, confirm:
 
 ## What we judge
 
-Each track has its own rubric in [`/judging/rubrics.md`](../judging/rubrics.md). Across all tracks we look for:
+Each track has its own rubric in [`/judging/rubrics.md`](../judging/rubrics.md).
+
+---
+
+**========== XCombinator-TEAM-START ==========**  
+*(not in original Lumos `submission/SUBMISSION.md`)*
+
+`judging/rubrics.md` is **not published** — we do not use it. Industrial AI criteria are in this
+file’s “What we judge”, `data/industrial-infineon/Track_industrial_en.md`, and
+`generation_rules.md` §5. We do not receive `eval_metrics.py` as teams; organizers score our CSVs.
+See [docs/track-industrial-sources.md](../track-industrial-sources.md) and
+[docs/XCOMBINATOR-TEAM-ADDITIONS.md](../XCOMBINATOR-TEAM-ADDITIONS.md).
+
+**========== XCombinator-TEAM-END ==========**  
+*(original SUBMISSION.md continues below)*
+
+---
+
+Across all tracks we look for:
 
 1. **Working artifact** that actually runs
 2. **Honest, reproducible evaluation** with real numbers
@@ -138,6 +156,10 @@ Each track expects additional outputs in the repo beyond the four submission fie
   - `anomaly.csv` (Task 3 format)
 - Training artifacts: checkpoint(s), training logs, loss curves
 - Scores from `eval_metrics.py` on all three tasks, with per-family breakdown
+
+**========== XCombinator-TEAM-START ==========**  
+*(organizer checklist line above is upstream; we use `metrics_report.md` from `zo-track` + `track_metrics.py` because teams do not receive `eval_metrics.py`.)*  
+**========== XCombinator-TEAM-END ==========**
 - Demo shows baseline vs. trained output on identical inputs
 
 ### 📈 Forecasting AI (Sybilion)

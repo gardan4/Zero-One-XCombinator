@@ -39,22 +39,35 @@ three `sft_fab_lofo_*` configs are the **honest OOD comparison**: each is tested
 never saw. Report both as the headline ID->OOD table. Caveat for the writeup: LOFO over the 3 real
 families is our only OOD proxy — the hidden 4th family (Task 4) can't be rehearsed locally.
 
+## Where trained weights and logs live
+
+| Artifact | Location |
+|----------|----------|
+| Published checkpoints | Hugging Face org **`XCombinator`** (`extra.hub_model_id` / `leonardo_upload_artifact.sh`) |
+| Training metrics | W&B project **`XCombinator/XCombinator`** (`WANDB_ENTITY` / `WANDB_PROJECT`) |
+| SLURM-local checkpoint | `experiments/<run_id>/artifacts/` before upload |
+
 ## Checkpoint -> submissions (the path)
 
-Training is **not** the submission step. After a run finishes, its checkpoint lives at
-`experiments/<run_id>/artifacts/`. Serve it and let the **shared driver** (built by Stream 0,
-the `zo-track` / `zo-eval track` CLI) produce the three submission CSVs:
+Training is **not** the submission step. After upload, point eval at the HF repo id. The **shared
+driver** (`zo-track`) produces the three submission CSVs + `metrics_report.md`:
 
 ```bash
 # 1. serve the full-FT checkpoint (vLLM, OpenAI-compatible; no merge needed)
 just serve experiments/<run_id>/artifacts
 
-# 2. generate + score submissions against the organizers' kickoff eval inputs
-zo-track predict --predictor llm \
+# 2. generate submissions; self-score with gold.json (organizers score CSVs with their script)
+zo-track predict -p hf --model XCombinator/sft-fab-lofo-mosfet \
+  --version sft-lofo-mosfet-v1 --model-ref XCombinator/sft-fab-lofo-mosfet \
   --valid   eval_input_valid.csv \
   --anomaly eval_input_anomaly.csv \
   --gold    gold.json \
-  --tags    split:ood,family:<F>      # e.g. split:ood,family:MOSFET for the LOFO-MOSFET ckpt
+  --tags    split:ood,family:MOSFET,eval-set:local   # LOFO held-out family
+
+# Baseline on same inputs (restrict train families for honest OOD):
+zo-track predict -p ngram --train-families IGBT,IC \
+  --version ngram-baseline-v1 --tags split:ood,family:MOSFET,eval-set:local \
+  --valid ... --gold ...
 ```
 
 This writes `nextstep.csv` / `completion.csv` / `anomaly.csv` (to `extras/results/<run>/`) and

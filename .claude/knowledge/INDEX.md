@@ -28,9 +28,10 @@ non-obvious. `/log-learning` does the append in one step.
   (track docs at root + `training_data/` subfolder with CSVs/grammar/`generate_sequences.py`),
   and `docs/submission/` (`REPORT_TEMPLATE.md`, `SUBMISSION.md`). Refresh from upstream:
   `git clone --depth 1 --filter=blob:none --sparse <repo> /tmp/up && cd /tmp/up && git sparse-checkout set tracks/industrial-infineon submission`
-  then copy the two folders. (`eval_metrics.py` + `judging/rubrics.md` are referenced but NOT upstream
-  — organizers ship them at kickoff.)
+  then copy the two folders. (`eval_metrics.py` is organizer-only — teams submit CSVs; self-eval =
+  `track_metrics.py`. `judging/rubrics.md` not published — criteria in brief + SUBMISSION + §5.)
 - **HPC onboarding kit:** https://ai-at.eu/hpc-onboarding/ (Ch. 5 first steps, Ch. 6 software).
+- **Team vs upstream:** search `XCombinator-TEAM-START` or [docs/XCOMBINATOR-TEAM-ADDITIONS.md](../../docs/XCOMBINATOR-TEAM-ADDITIONS.md).
 - **Local `docs/`:** `Track One Assignment.txt` (EN track brief) · `Z10_compressed.pdf` (event +
   Leonardo onboarding deck; cluster info pp. 80–96 — incl. the proxy password on p. 95, **do not
   commit it**).
@@ -42,7 +43,7 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 - Per-team GPU quota / time budget on Leonardo (deck says ~1 node/team) → [cluster.md](cluster.md)
 - Your Leonardo account name + emailed creds; the proxy password (deck p.95, keep out of git) → [cluster.md](cluster.md)
 - Env recipe that actually works on a compute node (pixi env vs prebuilt `.sif`) → [cluster.md](cluster.md)
-- Exact `eval_metrics.py` CLI flags per task once the eval inputs are distributed → [track-industrial-ai.md](track-industrial-ai.md)
+- (resolved) Organizers score our CSVs; we self-eval with `track_metrics.py` → [track-industrial-ai.md](track-industrial-ai.md)
 - Whether we train a small seq-model from scratch or fine-tune an open base → [track-industrial-ai.md](track-industrial-ai.md) + [training.md](training.md)
 
 ## Learnings log
@@ -50,6 +51,9 @@ Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
 - 2026-05-30 — **Leonardo finetune pipeline (adapted from the `leonardo-finetune-reference` branch):** prestage→offline-GPU→live-W&B(proxy)→HF-upload scripts + `train.sbatch.j2`/`submit.py`/`sft.py` (offline `local_files_only` + `_supported_kwargs` trl-drift guard) + a `wandb-smoke` CLI. **Pinned transformers<5 / trl<1**, dropped vLLM/bitsandbytes from the gpu extra (re-locked: transformers 4.57, trl 0.29). Configs `leonardo_smoke_{hf,fab}.yaml`. Verified locally (parse/dry-run/sbatch-render/lint/30 tests); real GPU run on Leonardo still pending. — (cluster, training)
 - 2026-05-30 — **All 4 streams built by parallel worktree subagents + integrated to `main` (30 tests green):** S1 SFT spine (Qwen-1.5B configs + LOFO + multi-file loader), S2 RLVR (`rewards.py` verifier reward + GRPO wiring + tests), S3 copilot (validate/explain/repair tools + `validates` judge + scripted loop + 8 scenarios), S4 anomaly detector + recharts `/compare` dashboard (reproduced anomaly AUC 0.9999 ID→0.50 OOD). Fixed a stray `lib/` gitignore rule that swallowed `apps/frontend/lib/`. Remaining = real GPU SFT/GRPO on Leonardo + the CoT-SFT/trl prereq. — (eval, training, agents)
+- 2026-05-30 — **Team vs upstream markers:** `XCombinator-TEAM-START` / `TEAM-END` in vendored briefs; index `docs/XCOMBINATOR-TEAM-ADDITIONS.md`; original `eval_metrics.py` wording preserved below markers. — (track-industrial-ai)
+- 2026-05-30 — **Eval docs clarified:** teams do not get `eval_metrics.py` (organizers score our 3 CSVs); `track_metrics.py` = self-eval on documented metrics; no `rubrics.md` (criteria in existing brief/SUBMISSION/§5). — (eval, track-industrial-ai)
+- 2026-05-30 — **Track eval/docs:** `docs/track-industrial-sources.md`; HF **`XCombinator`** + W&B **`XCombinator/XCombinator`**; `zo-track --version` + `metrics_report.md`. — (eval, track-industrial-ai)
 - 2026-05-30 — **Stream 0 (shared inference/predict core) shipped:** `zo_eval/predict.py` (Predictor + free-text→exact-vocab normalizer, strict/lenient for OOD), `baselines.py` (n-gram/oracle/freq), `track.py`+`track_cli.py` (`zo-track`; `just track`/`local-eval`) → submission CSVs + scored, tagged runs. GPU-free E2E proven; `zo-eval` now declares `zo-train`. — (eval)
 - 2026-05-30 — **OOD correction (important):** under the eval's 60/80% cuts next-step TRANSFERS (measured ID top-1 0.69 ≈ OOD 0.705 — shared back-half backbone); the OOD collapse is in the **learned anomaly detector (n-gram AUC 0.9999→0.50)**, not next-step. Headline anomaly/likelihood, not the all-positions next-step drop. — (track-industrial-ai)
 - 2026-05-30 — **Strategy locked:** pretrained-LLM substrate + RL-reasoning (idea #1) + agentic copilot (idea #2), parallelized (3–4 ppl, worktrees). Plan = **spine + spike + demo**; from-scratch token model dropped. Measured: n-gram next-step top-1 ~0.80 ID → **~0.35–0.50 LOFO-OOD** (the headline); `validate_sequence` is a free perfect verifier (Task-3 oracle + GRPO reward + negative/explanation factory); report edit-dist not exact-match. — (track-industrial-ai)
@@ -58,7 +62,7 @@ Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 - 2026-05-29 — **Resource budget (team lead):** 4 GPUs/node (A100 **64 GB VRAM** each), up to **512 GB RAM/node**, and the reservation `s_tra_ncc` covers **up to 4 nodes** → max **16 GPUs**. (Corrects an earlier misread of deck slide 92 — the reservation is NOT single-node.) — (cluster)
 - 2026-05-29 — Reviewed the official Leonardo onboarding deck (pp. 80–96); cluster.md matches. **Wired the cluster plumbing**: `submit.py`/`train.sbatch.j2` now emit `--reservation` (any node count), `--gpus-per-task=N`, fair-share `--mem=120×N`/`--cpus=8×N` (auto-derived), proxy export, and `uv sync --extra gpu --offline` (pre-stage on a login node first). Verified by dry-run. — (cluster)
 - 2026-05-29 — Created root `.env` (gitignored, real Leonardo creds) + refreshed `.env.example` (placeholders only). SSH login needs no setup (no 2FA); automating `zo-cluster submit` needs a one-time `ssh-copy-id` (submit.py uses passwordless ssh/scp). — (cluster, stack)
-- 2026-05-29 — Vendored the track + submission folders into the repo: `data/industrial-infineon/` (3×1,000 validated seqs ~21MB, grammar, `generate_sequences.py`) + `docs/submission/`. Verified data loads & validates. **`eval_metrics.py` + `judging/rubrics.md` are NOT upstream** — expect them at kickoff. — (track-industrial-ai, hackathon)
+- 2026-05-29 — Vendored track + submission folders; verified data. Upstream brief mentions `eval_metrics.py` for teams — **we do not receive it**; use `track_metrics.py`. — (track-industrial-ai, hackathon)
 - 2026-05-29 — Committed to **Industrial AI (Infineon)** track = small-vocab sequence modeling (next-step / completion / anomaly over fab steps), NOT chat-LLM eval. Full spec captured. — (track-industrial-ai)
 - 2026-05-29 — Leonardo: plain SSH no-2FA to `login0{1,2,5,7}-ext.leonardo.cineca.it`; SLURM partition `boost_usr_prod` + reservation `s_tra_ncc`; **Pixi + Singularity** (no Docker/uv on compute); `$SCRATCH` for big files; **no internet on compute nodes** (download on login, or low-bw proxy). — (cluster)
 - 2026-05-29 — Submission (Sun 10:00 via Tally): **public + MIT-licensed** repo, root `LICENSE` + `README.md` + `REPORT.md` + `requirements.txt`, **no secrets in git**; ≤10-slide PDF + ≤2-min demo video. Dashboard is a rewarded bonus on our track. — (hackathon, track-industrial-ai)

@@ -166,7 +166,9 @@ def stage_model(
 def judge_eval(
     model: str = typer.Option(None, "--model", "-m", help="HF repo or local checkpoint path."),
     predictor: str = typer.Option("hf", help="hf (batch transformers) | llm (needs vLLM)."),
+    version: str = typer.Option(None, help="Repro version tag (default: infer model slug)."),
     eval_dir: str = typer.Option(None, help="Dir with eval_input_*.csv + gold.json."),
+    eval_set: str = typer.Option("local", help="eval-set tag: local|kickoff"),
     tasks: str = typer.Option("nextstep,completion,anomaly", help="Task subset."),
     tags: str = typer.Option("judge,repro,split:id", help="Comma-separated run tags."),
     time: str = typer.Option(None, help="SLURM wall time (default ZO_SLURM_INFER_TIME or 00:30:00)."),
@@ -205,13 +207,21 @@ def judge_eval(
         raise typer.Exit(1) from e
 
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
-    if not any(t.startswith("predictor:") for t in tag_list):
-        tag_list.append(f"predictor:{predictor}")
+    ver = (version or Path(model_path).name).strip()
+    mref = hf_raw if is_hf_repo_id(hf_raw) else None
 
     run = new_run(
-        f"judge-eval@{Path(model_path).name}",
+        f"judge-eval@{ver}",
         "eval",
-        config={"model": model_path, "predictor": predictor, "eval_dir": str(eval_path), "tasks": tasks},
+        config={
+            "model": model_path,
+            "predictor": predictor,
+            "version": ver,
+            "model_ref": mref,
+            "eval_set": eval_set,
+            "eval_dir": str(eval_path),
+            "tasks": tasks,
+        },
         tags=tag_list,
         cluster=cluster_env("ZO_CLUSTER_HOST"),
     )
@@ -228,6 +238,9 @@ def judge_eval(
         gold_json=_cluster_path(gold),
         tasks=tasks,
         tags=",".join(tag_list),
+        version=ver,
+        model_ref=mref or "",
+        eval_set=eval_set,
         out_dir=_cluster_path(out_dir),
         run_id=run.id,
     )

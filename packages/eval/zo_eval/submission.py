@@ -1,8 +1,8 @@
 """Eval-input + submission CSV I/O for the Industrial AI track — EXACT organizer formats.
 
 Getting the columns right matters most: a perfect model with the wrong header scores zero.
-These match generation_rules.md §5.3 byte-for-byte. The authoritative scorer ``eval_metrics.py``
-arrives at kickoff; ``track_metrics.py`` is the local stand-in until then.
+These match generation_rules.md §5.3 byte-for-byte. Organizers score our CSVs with their script;
+``track_metrics.py`` implements the documented metrics for self-eval on data we label locally.
 
 Eval inputs (organizers distribute at kickoff; we also synthesize our own for local OOD eval):
   eval_input_valid.csv   : EXAMPLE_ID, FAMILY, COMPLETION_FRACTION, PARTIAL_SEQUENCE   (Tasks 1 & 2)
@@ -130,7 +130,7 @@ def make_local_eval_set(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    valid_rows, gold_next, gold_compl, fam_of = [], {}, {}, {}
+    valid_rows, gold_next, gold_compl, fam_of, cut_of = [], {}, {}, {}, {}
     i = 0
     for fam, steps in valid_seqs:
         for frac in fractions:
@@ -143,6 +143,7 @@ def make_local_eval_set(
             gold_next[ex] = steps[cut]
             gold_compl[ex] = steps[cut:]
             fam_of[ex] = fam
+            cut_of[ex] = frac
     with (out_dir / "eval_input_valid.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["EXAMPLE_ID", "FAMILY", "COMPLETION_FRACTION", "PARTIAL_SEQUENCE"])
@@ -161,7 +162,13 @@ def make_local_eval_set(
         w.writerow(["EXAMPLE_ID", "FAMILY", "SEQUENCE"])
         w.writerows(anom_rows)
 
-    gold = {"next": gold_next, "completion": gold_compl, "anomaly": gold_anom, "family_of": fam_of}
+    gold = {
+        "next": gold_next,
+        "completion": gold_compl,
+        "anomaly": gold_anom,
+        "family_of": fam_of,
+        "cut_fraction_of": cut_of,
+    }
     (out_dir / "gold.json").write_text(json.dumps(gold, indent=2))
     return gold
 

@@ -112,6 +112,18 @@ Supported families: `mosfet`, `igbt`, `ic`
 
 ## 🧪 Evaluation Tasks
 
+> **========== XCombinator-TEAM-START ==========**  
+> *(not in original Lumos `tracks/industrial-infineon/README.md`)*
+>
+> We do **not** receive `eval_metrics.py` (organizers score our output CSVs) or `judging/rubrics.md`
+> (criteria: this README + `generation_rules.md` §5 + `SUBMISSION.md`). Self-eval:
+> `packages/eval/zo_eval/track_metrics.py` via `zo-track predict`.
+> See **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)** and
+> **[docs/XCOMBINATOR-TEAM-ADDITIONS.md](../../docs/XCOMBINATOR-TEAM-ADDITIONS.md)**.
+>
+> **========== XCombinator-TEAM-END ==========**  
+> *(original README continues below)*
+
 The organizers distribute two eval input files at the start of the hackathon:
 
 | File                     | Purpose     | Content                                      |
@@ -131,6 +143,20 @@ The organizers distribute two eval input files at the start of the hackathon:
 *\*Task 4 is evaluated post-submission by organizers on a hidden 4th product family.*
 
 ### Self-Evaluation
+
+> **========== XCombinator-TEAM-START ==========**  
+> Our self-eval (organizers still score submitted CSVs with their own script):
+>
+> ```bash
+> uv run zo-track predict -p ngram -V baseline-v1 \
+>   --valid extras/eval_local/eval_input_valid.csv \
+>   --anomaly extras/eval_local/eval_input_anomaly.csv \
+>   --gold extras/eval_local/gold.json
+> ```
+>
+> **========== XCombinator-TEAM-END ==========**
+
+*Original upstream text (organizer brief — we do not receive this script as teams):*
 
 The scoring script `eval_metrics.py` (provided by organizers) requires no external dependencies:
 
