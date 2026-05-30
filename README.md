@@ -35,7 +35,7 @@ uv run python scripts/dev.py     # backend :8000 + frontend :3000
 Requirements: **Python 3.11+**, **uv**, and **Node.js/npm 20+**. No bash, WSL, `just`, `mise`, global
 `next`, or GPU libraries are required for the dashboard smoke path.
 
-Install `uv`: [official guide](https://docs.astral.sh/uv/getting-started/installation/)  
+Install `uv`: [official guide](https://docs.astral.sh/uv/getting-started/installation/)
 (`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` on Windows,
 `curl -LsSf https://astral.sh/uv/install.sh | sh` on macOS/Linux).
 
