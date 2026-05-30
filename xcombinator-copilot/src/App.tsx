@@ -21,6 +21,13 @@ export default function App() {
   const [selOverride, setSelOverride] = useState<number | null>(null) // null = follow head
   const [expOverride, setExpOverride] = useState<number | null>(null) // null = follow head phase
   const [importOpen, setImportOpen] = useState(false)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    try {
+      return (localStorage.getItem('xc-theme') as 'dark' | 'light') || 'dark'
+    } catch {
+      return 'dark'
+    }
+  })
   const token = useRef(0)
 
   const phases = useMemo(() => segmentRoute(steps), [steps])
@@ -52,6 +59,16 @@ export default function App() {
     runPredict(family, steps)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // apply + persist the theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    try {
+      localStorage.setItem('xc-theme', theme)
+    } catch {
+      /* ignore */
+    }
+  }, [theme])
 
   function applyRoute(fam: Family, seq: string[], label: string) {
     setFamily(fam)
@@ -105,7 +122,14 @@ export default function App() {
       <span className="reg-tick bl" />
       <span className="reg-tick br" />
 
-      <TopBar family={family} onFamily={onFamily} onImport={() => setImportOpen(true)} live={LIVE} />
+      <TopBar
+        family={family}
+        onFamily={onFamily}
+        onImport={() => setImportOpen(true)}
+        live={LIVE}
+        theme={theme}
+        onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+      />
 
       <div className="workspace">
         <div className="left-col">

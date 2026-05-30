@@ -11,10 +11,16 @@
       rel="stylesheet"
     />
     <style>
-      html, body { margin: 0; background: #07090c; }
+      html { background: #07090c; }
+      html[data-theme='light'] { background: #e9edf1; }
+      body { margin: 0; }
     </style>
-    <script type="module" crossorigin src="/copilot/assets/index-LqoGb7K4.js"></script>
-    <link rel="stylesheet" crossorigin href="/copilot/assets/index-BKaNIz8Z.css">
+    <script>
+      // set the theme before first paint to avoid a flash
+      try { document.documentElement.setAttribute('data-theme', localStorage.getItem('xc-theme') || 'dark'); } catch (e) {}
+    </script>
+    <script type="module" crossorigin src="/copilot/assets/index-DYWDnrN-.js"></script>
+    <link rel="stylesheet" crossorigin href="/copilot/assets/index-4xsa4Td1.css">
   </head>
   <body>
     <div id="root"></div>
