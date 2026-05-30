@@ -6,8 +6,6 @@ import time
 
 import typer
 
-from zo_common.paths import repo_root
-
 from zo_train.cluster._remote import (
     cluster_repo_dir,
     ensure_remote_path_vars,
@@ -38,7 +36,10 @@ def run_leonardo_smoke(
     wait_upload: bool = False,
 ) -> None:
     load_dotenv()
-    _require_env("ZO_CLUSTER_HOST", "ZO_CLUSTER_USER", "ZO_CLUSTER_REPO_DIR", "HF_TOKEN")
+    required = ["ZO_CLUSTER_HOST", "ZO_CLUSTER_USER", "ZO_CLUSTER_REPO_DIR"]
+    if not dry_run:
+        required.append("HF_TOKEN")
+    _require_env(*required)
     ensure_remote_path_vars()
     target = ssh_target()
     if not target:
@@ -80,6 +81,8 @@ def _submit(config: str, *, dry_run: bool) -> tuple[str | None, str | None]:
 
     result = submit_run(config, "sft", dry_run=dry_run)
     typer.echo(f"run {result.run_id} -> {result.sbatch_path}")
+    if result.job_id:
+        typer.secho(f"submitted SLURM job {result.job_id}", fg="green")
     return result.run_id, result.job_id
 
 
