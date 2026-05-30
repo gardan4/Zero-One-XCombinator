@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FabSeq-S — Process-Logic Model Results · Infineon Industrial AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+
+    <header class="appbar reveal" style="--d: 0">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28">
+            <rect x="2" y="2" width="28" height="28" rx="7" fill="currentColor" />
+            <g fill="#fff">
+              <rect x="9" y="9" width="14" height="14" rx="2.5" fill="none" stroke="#fff" stroke-width="2" />
+              <rect x="13.5" y="13.5" width="5" height="5" rx="1" />
+              <rect x="14.5" y="3.5" width="3" height="4" /><rect x="14.5" y="24.5" width="3" height="4" />
+              <rect x="3.5" y="14.5" width="4" height="3" /><rect x="24.5" y="14.5" width="4" height="3" />
+            </g>
+          </svg>
+        </span>
+        <span class="wordmark">Infineon</span>
+        <span class="divider" aria-hidden="true"></span>
+        <span class="product">Fab Route Copilot</span>
+      </div>
+      <div class="status" id="modelStatus">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="status-text">Results overview</span>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- ============ HERO ============ -->
+      <section class="hero reveal" style="--d: 1">
+        <span class="model-badge">
+          <span class="dot" aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:var(--brand-bright);display:inline-block"></span>
+          <span id="modelName">FabSeq-S</span>
+          <span class="ver">vs. retrieval+rule baseline</span>
+        </span>
+        <p class="eyebrow" id="heroEyebrow"></p>
+        <h1 id="heroTitle"></h1>
+        <p class="lede" id="heroLede"></p>
+        <p class="model-blurb" id="modelBlurb"></p>
+
+        <div class="deltas" id="deltas" aria-label="Headline results"></div>
+      </section>
+
+      <!-- ============ LIVE DEMO ============ -->
+      <section class="section reveal" style="--d: 2" id="demo">
+        <div class="section-head">
+          <p class="eyebrow">Live demo</p>
+          <h2>Try it on a real route</h2>
+          <p class="demo-note">
+            Build a route step by step — load a sample, <b>click any predicted candidate to add it</b>,
+            or search the full step catalog. Running the <b>retrieval baseline</b> live (the “before”);
+            the fine-tuned <span id="demoModelName">FabSeq-S</span> plugs into the same endpoints.
+          </p>
+        </div>
+
+        <div class="toolbar">
+          <label class="field">
+            <span>Product line</span>
+            <select id="family">
+              <option value="MOSFET">MOSFET</option>
+              <option value="IGBT">IGBT</option>
+              <option value="IC">IC</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Observed cut</span>
+            <select id="fraction">
+              <option value="0.6">60%</option>
+              <option value="0.8">80%</option>
+            </select>
+          </label>
+          <div class="toolbar-actions">
+            <button id="loadSample" class="btn ghost" type="button">Load valid sample</button>
+            <button id="loadInvalid" class="btn ghost danger-ghost" type="button">Load anomaly</button>
+          </div>
+        </div>
+
+        <div class="grid">
+          <section class="card route-card">
+            <div class="card-head">
+              <h2>Current route</h2>
+              <span class="meta" id="routeMeta">0 steps</span>
+            </div>
+            <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+            <ol class="route-list" id="routeList" aria-label="Route steps"></ol>
+
+            <div class="add-step">
+              <input
+                id="stepPicker"
+                list="vocabList"
+                placeholder="Search and add any process step…"
+                autocomplete="off"
+                aria-label="Add a process step"
+              />
+              <datalist id="vocabList"></datalist>
+              <button id="addStep" class="btn" type="button">Add step</button>
+            </div>
+
+            <details class="raw-edit">
+              <summary>Edit as text</summary>
+              <textarea id="sequence" spellcheck="false" placeholder="One fab step per line…"></textarea>
+            </details>
+
+            <div class="actions">
+              <button id="predict" class="btn primary" type="button">Predict next step</button>
+              <button id="addTop" class="btn" type="button" disabled>Add best step ↵</button>
+              <button id="complete" class="btn" type="button">Complete route</button>
+              <button id="anomaly" class="btn" type="button">Validate</button>
+            </div>
+          </section>
+
+          <div class="results">
+            <section class="card panel">
+              <div class="card-head">
+                <h2>Top 5 next steps</h2>
+                <span class="tag" id="sourceLabel">—</span>
+              </div>
+              <p class="panel-hint" id="predHint" hidden>Click a candidate to add it to the route ↓</p>
+              <ol id="predictions" class="predictions"></ol>
+              <p id="reason" class="reason"></p>
+            </section>
+
+            <section class="card panel">
+              <div class="card-head">
+                <h2>Rule validation</h2>
+                <span class="verdict" id="validity">—</span>
+              </div>
+              <div id="violations" class="violations"></div>
+            </section>
+
+            <section class="card panel">
+              <div class="card-head">
+                <h2>Route completion</h2>
+                <span class="tag" id="completionMeta">—</span>
+              </div>
+              <pre id="completion" class="completion"></pre>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ NEXT STEP ============ -->
+      <section class="section reveal" style="--d: 2" hidden>
+        <div class="section-head">
+          <p class="eyebrow">Task 1 · Next-step prediction</p>
+          <h2>Top-5 next step</h2>
+          <p id="blurbNextstep"></p>
+        </div>
+        <div class="panel-grid lead">
+          <section class="card card-pad">
+            <p class="card-sub">Baseline vs. fine-tuned on 600 held-out partial routes</p>
+            <div class="legend"><span><i class="base"></i>Retrieval+rule baseline</span><span><i class="tuned"></i>FabSeq-S</span></div>
+            <div class="compare" id="nextstepCompare"></div>
+          </section>
+          <section class="card card-pad">
+            <p class="card-sub">Top-1 / Top-5 accuracy by product line</p>
+            <table class="table" id="familyTable">
+              <thead>
+                <tr><th>Family</th><th>Base T1</th><th>Tuned T1</th><th>Tuned T5</th><th>Δ T1</th></tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </section>
+        </div>
+      </section>
+
+      <!-- ============ COMPLETION ============ -->
+      <section class="section reveal" style="--d: 2" hidden>
+        <div class="section-head">
+          <p class="eyebrow">Task 2 · Sequence completion</p>
+          <h2>Completing a partial route</h2>
+          <p id="blurbCompletion"></p>
+        </div>
+        <section class="card card-pad">
+          <div class="legend"><span><i class="base"></i>Baseline</span><span><i class="tuned"></i>FabSeq-S</span></div>
+          <div class="compare" id="completionCompare"></div>
+        </section>
+      </section>
+
+      <!-- ============ ANOMALY ============ -->
+      <section class="section reveal" style="--d: 2" hidden>
+        <div class="section-head">
+          <p class="eyebrow">Task 3 · Anomaly detection</p>
+          <h2>Catching process-rule violations</h2>
+          <p id="blurbAnomaly"></p>
+        </div>
+        <div class="panel-grid lead">
+          <section class="card card-pad">
+            <p class="card-sub">Baseline vs. fine-tuned on 987 routes (~387 anomalous)</p>
+            <div class="legend"><span><i class="base"></i>Baseline</span><span><i class="tuned"></i>FabSeq-S</span></div>
+            <div class="compare" id="anomalyCompare"></div>
+          </section>
+          <section class="card card-pad">
+            <p class="card-sub">FabSeq-S confusion matrix</p>
+            <div class="confusion" id="confusion"></div>
+          </section>
+        </div>
+        <section class="card card-pad" style="margin-top:18px">
+          <p class="card-sub">Rule-attribution accuracy — does it name the <em>right</em> broken rule?</p>
+          <table class="table" id="ruleTable">
+            <thead><tr><th>Rule</th><th>What it forbids</th><th>Attribution acc.</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+      </section>
+
+      <!-- ============ TRAINING ============ -->
+      <section class="section reveal" style="--d: 2" hidden>
+        <div class="section-head">
+          <p class="eyebrow">Training</p>
+          <h2>From scratch, no leakage</h2>
+          <p id="blurbTraining"></p>
+        </div>
+        <section class="card card-pad">
+          <div id="lossChart"></div>
+          <div class="train-meta" id="trainMeta"></div>
+        </section>
+      </section>
+
+      <!-- ============ OOD ============ -->
+      <section class="section reveal" style="--d: 2" hidden>
+        <div class="section-head">
+          <p class="eyebrow">Task 4 · Out-of-distribution</p>
+          <h2>Generalizing to an unseen family</h2>
+          <p id="blurbOod"></p>
+        </div>
+        <div class="ood-grid" id="oodGrid"></div>
+      </section>
+
+      <!-- ============ TAKEAWAYS ============ -->
+      <section class="section reveal" style="--d: 2" hidden>
+        <div class="section-head">
+          <p class="eyebrow">Bottom line</p>
+          <h2>What this buys the fab</h2>
+        </div>
+        <div class="takeaways" id="takeaways"></div>
+      </section>
+
+      <footer class="foot">
+        <span>Infineon Industrial-AI track · Fab Route Copilot</span>
+        <span class="mono" id="footNote">Figures illustrative — wired to results.js for the trained model</span>
+      </footer>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
