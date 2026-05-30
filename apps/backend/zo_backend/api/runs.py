@@ -2,19 +2,40 @@ from __future__ import annotations
 
 import os
 import subprocess
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from zo_common.paths import repo_root
 from zo_common.registry import get_run, list_runs, read_metrics, run_dir
 
 router = APIRouter(tags=["runs"])
 
+# Confusion-matrix scalars live flat on a run's metrics summary (track.py writes cm_tp/fp/tn/fn).
+_CM_KEYS = ("tp", "fp", "tn", "fn")
+
 
 @router.get("/runs")
 def runs() -> list[dict[str, Any]]:
     return [r.model_dump() for r in list_runs()]
+
+
+@router.get("/compare")
+def compare(tag: Annotated[list[str], Query()] = []) -> list[dict[str, Any]]:  # noqa: B006 — FastAPI reads the list from the query string, never mutates this default
+    """Runs whose tags contain ALL of the given ``tag`` filters (repeatable query param).
+
+    Powers the comparison dashboard (Stream 4): e.g. ``/api/compare?tag=eval:anomaly&tag=stream:4``
+    returns every anomaly run from stream 4, ID and OOD alike (split:id|ood is itself a tag the
+    frontend groups by). No filters → all runs. Read-only; a trimmed projection of ``RunMeta``.
+    """
+    wanted = [t for t in tag if t]
+    out: list[dict[str, Any]] = []
+    for r in list_runs():
+        if all(w in r.tags for w in wanted):
+            out.append(
+                {"id": r.id, "name": r.name, "kind": r.kind, "status": r.status, "tags": r.tags, "metrics": r.metrics}
+            )
+    return out
 
 
 @router.get("/runs/{run_id}")
@@ -23,6 +44,20 @@ def run_detail(run_id: str) -> dict[str, Any]:
     if meta is None:
         raise HTTPException(status_code=404, detail="no such run")
     return meta.model_dump()
+
+
+@router.get("/runs/{run_id}/confusion")
+def run_confusion(run_id: str) -> dict[str, int]:
+    """The anomaly confusion matrix ``{tp,fp,tn,fn}`` from the run's flat ``cm_*`` metrics.
+
+    Missing keys default to 0, so a run without anomaly metrics returns an all-zero matrix rather
+    than erroring (the dashboard renders an empty grid). 404 only if the run itself is unknown.
+    """
+    meta = get_run(run_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    m = meta.metrics or {}
+    return {k: int(m.get(f"cm_{k}", 0) or 0) for k in _CM_KEYS}
 
 
 @router.get("/runs/{run_id}/metrics")
