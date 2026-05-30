@@ -14,8 +14,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -205,6 +205,9 @@ data/generated/*
 
 # Local scratch eval sets (regenerable via `just local-eval`); real deliverables → extras/results/.
 extras/eval_local/
+
+# Agent worktrees the harness creates for parallel subagents.
+.claude/worktrees/
 
 # Model artifacts, checkpoints, datasets, caches
 *.safetensors

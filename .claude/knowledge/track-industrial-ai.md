@@ -210,3 +210,23 @@ One git worktree per stream (`just wt <stream>`). In each worktree's `.env` set 
 `ZO_EXPERIMENTS_DIR=<shared path>` (one dashboard sees every stream's runs) and
 `ZO_DATA_DIR=<shared path>` (every stream reads the identical frozen corpus; `paths.generated_data_dir()`).
 On Leonardo, point both at shared `$SCRATCH`.
+
+### Build status (2026-05-30) — Stream 0 + all 4 streams integrated to `main` (30 tests green)
+- **Eval/predict core** (`zo_eval/`): `predict.py` (Predictor + normalizer), `baselines.py` (n-gram/oracle/freq),
+  `predict_llm.py` (ServedLLM/HF), `track.py`+`track_cli.py` (`zo-track`; `just track`/`just local-eval`),
+  `anomaly_detect.py` (LikelihoodDetector/ClassifierDetector). `llm.py` has `logprobs`/`token_logprobs`.
+- **Stream 1 (SFT spine):** `configs/sft_fab.yaml` + 3 LOFO variants (Qwen-1.5B **full-FT**, servable as-is);
+  `data.py` multi-file dataset loader. `just train <cfg> --dry-run` works; real run needs Leonardo + a built corpus.
+- **Stream 2 (RLVR):** `zo_train/rewards.py` (`validate_sequence` reward + anti-hack guards, unit-tested),
+  `rl.py` wired (`cfg.extra["reward"]`); `configs/grpo_fab.yaml` (model = a Stream-1 checkpoint), `sft_cot.yaml`.
+- **Stream 3 (copilot):** `zo_agent` tools `validate_recipe`/`explain_violation`/`suggest_repair`,
+  `success_type: validates`, `run_episode_scripted` (the reliable demo path), `scenarios/repair.yaml` (8 cases).
+  `zo-agent run --scenario repair.yaml --scripted` (needs a served model, or inject a stub repair fn).
+- **Stream 4 (dashboard):** backend `/api/compare` + `/api/runs/{id}/confusion`; frontend `/compare`
+  (recharts 3.8.1 — clean on React 19): ID-vs-OOD anomaly bars, baseline-vs-trained, confusion matrix.
+  Run: `npm --prefix apps/frontend install` then `just dev`.
+- **Remaining (GPU/cluster):** real SFT + GRPO on Leonardo; CoT-SFT needs a `text` field on cot rows +
+  trl completion-only-loss verify; serve a checkpoint → `zo-track predict --predictor llm` for real
+  submissions. Honest framing holds: **submitted anomaly = the oracle**; the learned detector's OOD
+  collapse (AUC 0.9999→0.50) is the science.
+- Fixed a stray `lib/` gitignore rule (Python template) that was silently ignoring `apps/frontend/lib/`.
