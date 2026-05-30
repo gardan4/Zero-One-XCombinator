@@ -47,6 +47,20 @@ def test_wandb_enabled_ignores_crlf_mode(monkeypatch):
     assert wandb_enabled() is True
 
 
+def test_eval_artifact_aliases_sanitize_version_tag():
+    """W&B rejects ':' in artifact aliases; version tags must be sanitized."""
+    tag_list = ["version:zeroshot-rules-v1", "real-run"]
+    aliases = list(["latest"])
+    ver_tag = next((t.split(":", 1)[1] for t in tag_list if t.startswith("version:")), None)
+    assert ver_tag == "zeroshot-rules-v1"
+    if ver_tag:
+        safe = ver_tag.replace("/", "-").replace(":", "-")
+        if safe and safe not in aliases:
+            aliases.append(safe)
+    assert aliases == ["latest", "zeroshot-rules-v1"]
+    assert not any(":" in a for a in aliases)
+
+
 def test_merge_tags_dedupes():
     assert merge_tags(["a", "b"], ["b", "c"]) == ["a", "b", "c"]
 

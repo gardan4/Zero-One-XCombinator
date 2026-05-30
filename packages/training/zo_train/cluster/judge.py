@@ -199,6 +199,11 @@ def judge_eval(
     self_check: bool = typer.Option(False, "--self-check", help="Run official eval_metrics.py (needs gold)."),
     promote: str = typer.Option(None, "--promote", help="Copy results to extras/results/<slug>/ on compute node."),
     batch_size: int = typer.Option(16, "--batch-size", help="HF infer batch size (default: 16)."),
+    no_prep: bool = typer.Option(
+        False,
+        "--no-prep",
+        help="Skip push-env/sync-code/uv sync (or set ZO_CLUSTER_SKIP_PREP=1).",
+    ),
 ) -> None:
     """Submit a GPU batch job that runs track eval and writes scored results."""
     ensure_cluster_env()
@@ -299,8 +304,9 @@ def judge_eval(
         typer.secho("Dry-run — sbatch not submitted.", fg="yellow")
         raise typer.Exit()
 
-    from zo_train.cluster._remote import push_run_meta_to_cluster
+    from zo_train.cluster._remote import prepare_cluster_for_job, push_run_meta_to_cluster
 
+    prepare_cluster_for_job(skip=no_prep)
     push_run_meta_to_cluster(run.id)
     job_id = _submit_sbatch(sbatch_path, local=local)
     if not job_id:

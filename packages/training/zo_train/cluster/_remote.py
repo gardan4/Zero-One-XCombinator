@@ -320,5 +320,50 @@ def push_cluster_env(target: str, remote_repo: str) -> None:
         tmp_path = Path(tmp.name)
     try:
         scp_upload(tmp_path, target, f"{remote_repo}/.env")
+        # pscp from Windows can leave CRLF; bash `source` then reads values as `foo\r`.
+        ssh_run(target, f"sed -i 's/\\r$//' '{remote_repo}/.env'", check=True)
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+def cluster_prep_skipped(*, skip: bool = False) -> bool:
+    """True when prep should be skipped (--no-prep or ZO_CLUSTER_SKIP_PREP=1)."""
+    if skip:
+        return True
+    load_dotenv()
+    return env("ZO_CLUSTER_SKIP_PREP", "").lower() in ("1", "true", "yes")
+
+
+def prepare_cluster_for_job(*, skip: bool = False, sync_code: bool = True) -> None:
+    """Push secrets, sync code, and refresh the shared GPU venv before SLURM submit.
+
+    Safe to call before every train/eval submit from a laptop or Leonardo login node.
+    Skip with ``--no-prep`` or ``ZO_CLUSTER_SKIP_PREP=1`` when code/env/deps are unchanged.
+    """
+    if cluster_prep_skipped(skip=skip):
+        print("[zo-cluster] skipping prep (--no-prep or ZO_CLUSTER_SKIP_PREP)", flush=True)
+        return
+    from zo_train.cluster._platform import has_slurm
+
+    load_dotenv()
+    ensure_remote_path_vars()
+    repo = cluster_repo_dir()
+    on_login = env("ZO_CLUSTER_ON_LOGIN", "").lower() in ("1", "true", "yes")
+
+    if on_login and has_slurm():
+        print("[zo-cluster] uv sync --extra gpu (login node)", flush=True)
+        subprocess.run(["uv", "sync", "--extra", "gpu"], cwd=repo_root(), check=True)
+        return
+
+    target = ssh_target()
+    if not target or not (has_ssh_tools() or has_putty_tools()):
+        return
+
+    print(f"[zo-cluster] push .env -> {target}:{repo}", flush=True)
+    push_cluster_env(target, repo)
+    if sync_code:
+        print(f"[zo-cluster] sync code -> {target}:{repo}", flush=True)
+        sync_code_to_cluster(target, repo)
+    print("[zo-cluster] uv sync --extra gpu (remote login node)", flush=True)
+    uv_cmd = f"cd '{repo}' && set -a && [ -f .env ] && . ./.env; set +a && uv sync --extra gpu"
+    ssh_run(target, uv_cmd, check=True)

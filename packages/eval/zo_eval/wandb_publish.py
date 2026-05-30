@@ -69,10 +69,12 @@ def publish_eval_run(
         )
         if metrics:
             log_metrics(metrics, step=0, use_eval_map=True)
-        aliases = artifact_aliases or ["latest"]
+        aliases = list(artifact_aliases or ["latest"])
         ver_tag = next((t.split(":", 1)[1] for t in tag_list if t.startswith("version:")), None)
-        if ver_tag and f"version:{ver_tag}" not in aliases:
-            aliases.append(f"version:{ver_tag}")
+        if ver_tag:
+            safe = ver_tag.replace("/", "-").replace(":", "-")
+            if safe and safe not in aliases:
+                aliases.append(safe)
         log_artifact(
             results_dir,
             name=f"eval-{run_id}",
