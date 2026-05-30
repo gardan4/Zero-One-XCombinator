@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 import typer
 from zo_common import ExperimentConfig, new_run, update_run
-from zo_common.registry import run_dir
+from zo_common.registry import get_run, run_dir
 
 from zo_train.cluster._remote import (
     cluster_repo_dir,
@@ -13,6 +14,7 @@ from zo_train.cluster._remote import (
     env,
     expand_cluster_path,
     load_dotenv,
+    scp_download,
     scp_upload,
     ssh_run,
     ssh_target,
@@ -41,10 +43,18 @@ def _cluster_experiments_dir(repo_dir: str) -> str:
 
 
 def _resolve_config(config: str) -> ExperimentConfig:
+    load_dotenv()
     cfg = ExperimentConfig.from_yaml(config)
     if isinstance(cfg.model, str) and cfg.model:
         cfg.model = expand_cluster_path(cfg.model)
+    if isinstance(cfg.output_dir, str) and cfg.output_dir:
+        cfg.output_dir = expand_cluster_path(cfg.output_dir)
     return cfg
+
+
+def _effective_kind(cfg: ExperimentConfig, kind: str | None) -> str:
+    """YAML ``kind`` wins; CLI ``--kind`` is an optional override."""
+    return kind or cfg.kind
 
 
 def _render_train(subcommand: str, run_id: str, cluster_config_path: str) -> str:
@@ -61,9 +71,33 @@ def _render_train(subcommand: str, run_id: str, cluster_config_path: str) -> str
     return render_template("train.sbatch.j2", **ctx)
 
 
+def pull_run_from_cluster(run_id: str) -> None:
+    """SCP ``meta.json`` + ``metrics.jsonl`` from the cluster run dir to the local registry."""
+    ensure_cluster_env()
+    ensure_remote_path_vars()
+    meta = get_run(run_id)
+    if meta is None:
+        raise typer.BadParameter(f"run {run_id!r} not found locally")
+    target = ssh_target()
+    if not target:
+        raise typer.BadParameter("Set ZO_CLUSTER_HOST and ZO_CLUSTER_USER in .env.")
+    repo_dir = cluster_repo_dir()
+    remote_dir = f"{_cluster_experiments_dir(repo_dir)}/{run_id}"
+    local_dir = run_dir(run_id)
+    local_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("meta.json", "metrics.jsonl"):
+        remote = f"{remote_dir}/{name}"
+        try:
+            scp_download(local_dir / name, target, remote)
+        except subprocess.CalledProcessError:
+            if name == "meta.json":
+                raise
+    typer.secho(f"pulled cluster state for {run_id} → {local_dir}", fg="green")
+
+
 def submit_run(
     config: str,
-    kind: str = "sft",
+    kind: str | None = None,
     *,
     dry_run: bool = False,
 ) -> SubmitResult:
@@ -71,21 +105,27 @@ def submit_run(
     ensure_cluster_env()
     ensure_remote_path_vars()
     cfg = _resolve_config(config)
+    effective_kind = _effective_kind(cfg, kind)
+    from zo_train.preflight import validate_experiment
+
+    validate_experiment(cfg, cluster=True)
+
     host, user = env("ZO_CLUSTER_HOST"), env("ZO_CLUSTER_USER")
     repo_dir = cluster_repo_dir()
     experiments_dir = _cluster_experiments_dir(repo_dir)
 
-    run = new_run(cfg.name, kind, config=cfg.model_dump(), cluster=host, tags=["cluster"])
+    run = new_run(cfg.name, effective_kind, config=cfg.model_dump(), cluster=host, tags=["cluster"])
     local_dir = run_dir(run.id)
     cfg.to_yaml(local_dir / "config.yaml")
 
     remote_dir = f"{experiments_dir}/{run.id}"
-    sbatch = _render_train(kind, run.id, f"{remote_dir}/config.yaml")
+    sbatch = _render_train(effective_kind, run.id, f"{remote_dir}/config.yaml")
     sbatch_path = local_dir / "job.sbatch"
     write_sbatch(sbatch_path, sbatch)
 
+    cluster_note = f"cluster run dir: {remote_dir} (pull with `just cluster-pull-run {run.id}`)"
     if dry_run or not (host and user):
-        update_run(run.id, status="queued", notes="rendered, not submitted")
+        update_run(run.id, status="created", notes=f"rendered sbatch, not submitted. {cluster_note}")
         return SubmitResult(run_id=run.id, sbatch_path=sbatch_path, rendered_only=True)
 
     target = f"{user}@{host}"
@@ -93,6 +133,7 @@ def submit_run(
     scp_upload(local_dir / "meta.json", target, f"{remote_dir}/meta.json")
     scp_upload(local_dir / "config.yaml", target, f"{remote_dir}/config.yaml")
     scp_upload(sbatch_path, target, f"{remote_dir}/job.sbatch")
+    update_run(run.id, notes=cluster_note)
     result = ssh_run(
         target,
         f"cd {repo_dir} && sbatch {remote_dir}/job.sbatch",
@@ -112,7 +153,7 @@ def submit_run(
 @app.command()
 def submit(
     config: str = typer.Option(..., "--config", "-c"),
-    kind: str = typer.Option("sft", help="sft | grpo"),
+    kind: str | None = typer.Option(None, help="Override YAML kind (default: read from config)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Render the sbatch but don't ssh."),
 ) -> None:
     result = submit_run(config, kind, dry_run=dry_run)
@@ -125,6 +166,14 @@ def submit(
             )
         raise typer.Exit()
     typer.secho(f"submitted SLURM job {result.job_id}  (watch: `just cluster-watch`)", fg="green")
+
+
+@app.command("pull-run")
+def pull_run_cmd(
+    run_id: str = typer.Argument(..., help="Run id to pull meta/metrics for from the cluster."),
+) -> None:
+    """Sync ``meta.json`` + ``metrics.jsonl`` from cluster scratch to the local run store."""
+    pull_run_from_cluster(run_id)
 
 
 @app.command("leonardo-smoke")

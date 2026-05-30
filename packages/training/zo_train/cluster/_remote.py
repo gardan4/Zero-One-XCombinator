@@ -110,6 +110,28 @@ def ssh_capture(target: str, command: str) -> str:
     return (result.stdout or "").strip()
 
 
+def scp_download(local: Path, target: str, remote: str) -> None:
+    """Download ``target:remote`` → ``local`` (mirror of ``scp_upload``)."""
+    local.parent.mkdir(parents=True, exist_ok=True)
+    hostkey = env("ZO_CLUSTER_HOSTKEY")
+    if _use_putty():
+        args = ["pscp", "-batch"]
+        if hostkey:
+            args += ["-hostkey", hostkey]
+        args += ["-pw", env("ZO_CLUSTER_PASSWORD", ""), f"{target}:{remote}", str(local)]
+    else:
+        args = [
+            "scp",
+            "-o",
+            "ServerAliveInterval=30",
+            "-o",
+            "ServerAliveCountMax=4",
+            f"{target}:{remote}",
+            str(local),
+        ]
+    subprocess.run(args, check=True)
+
+
 def scp_upload(local: Path, target: str, remote: str) -> None:
     hostkey = env("ZO_CLUSTER_HOSTKEY")
     if _use_putty():

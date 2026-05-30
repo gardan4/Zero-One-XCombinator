@@ -389,7 +389,7 @@ def anomaly_example(family, steps, is_valid, rules=None, descriptions=None, expl
         comp = " VALID."
     else:
         comp = f" INVALID. Rule(s): {', '.join(rules or [])}."
-    return {"prompt": p, "completion": comp, "family": family, "is_valid": int(bool(is_valid))}
+    return {"prompt": p, "completion": comp, "text": p + comp, "family": family, "is_valid": int(bool(is_valid))}
 
 
 # --------------------------------------------------------------------------------------

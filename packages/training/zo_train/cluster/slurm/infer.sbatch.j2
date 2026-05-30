@@ -36,7 +36,8 @@ uv run zo-track predict \
   --gold "{{ gold_json }}" \
   --tasks "{{ tasks }}" \
   --out "{{ out_dir }}" \
-  --tags "{{ tags }}"
+  --tags "{{ tags }}" \
+  --run-id "{{ run_id }}"
 
 echo "=== judge eval complete ==="
 echo "Results: {{ out_dir }}"

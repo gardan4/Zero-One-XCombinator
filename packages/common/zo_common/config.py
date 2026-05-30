@@ -45,7 +45,13 @@ class ExperimentConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> ExperimentConfig:
+        from zo_common.env import expand_env_refs
+
         data = yaml.safe_load(Path(path).read_text()) or {}
+        for key in ("model", "dataset", "output_dir"):
+            val = data.get(key)
+            if isinstance(val, str):
+                data[key] = expand_env_refs(val)
         return cls(**data)
 
     def to_yaml(self, path: str | Path) -> None:

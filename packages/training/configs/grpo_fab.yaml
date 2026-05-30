@@ -10,10 +10,10 @@
 name: grpo-fab-validate
 kind: grpo
 
-# IMPORTANT: point this at the Stream-1 SFT *output directory* (the fine-tuned
-# checkpoint), e.g. experiments/<sft_run_id>/artifacts. The base instruct model below is
-# only a placeholder so the config parses / dry-runs before the SFT checkpoint exists.
-model: Qwen/Qwen2.5-1.5B-Instruct  # TODO(stream-1): replace with the SFT checkpoint dir
+# IMPORTANT: set ZO_SFT_CHECKPOINT_DIR in .env to the Stream-1 SFT output directory
+# (e.g. experiments/<sft_run_id>/artifacts). For dry-run before SFT exists you can temporarily
+# point it at the base instruct model id.
+model: ${ZO_SFT_CHECKPOINT_DIR}
 
 # Prompt dataset for GRPO needs a `prompt` column — the next-step eval JSONL has one.
 # Build the corpus first: `uv run python -m zo_train.datagen --build`.

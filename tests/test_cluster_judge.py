@@ -41,9 +41,11 @@ def test_render_infer_sbatch(tmp_path, monkeypatch):
             tasks="nextstep,completion,anomaly",
             tags="judge,repro",
             out_dir="/scratch/zo-experiments/run123/results",
+            run_id="20260530_120000_eval_judge_abc123",
         ),
     )
     assert "#SBATCH --reservation=s_tra_ncc" in sbatch
     assert "zo-track predict" in sbatch
+    assert '--run-id "20260530_120000_eval_judge_abc123"' in sbatch
     assert "/scratch/zo-models/XCombinator--sft-fab-all" in sbatch
     assert "--predictor hf" in sbatch

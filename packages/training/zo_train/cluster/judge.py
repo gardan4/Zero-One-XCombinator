@@ -229,6 +229,7 @@ def judge_eval(
         tasks=tasks,
         tags=",".join(tag_list),
         out_dir=_cluster_path(out_dir),
+        run_id=run.id,
     )
     sbatch = render_template("infer.sbatch.j2", **ctx)
     sbatch_path = run_dir(run.id) / "infer.sbatch"

@@ -60,6 +60,7 @@ def predict(
     base_url: str = typer.Option(None, help="OpenAI-compatible base url (llm)"),
     order: int = typer.Option(3, help="n-gram order"),
     train_families: str = typer.Option(None, help="restrict baseline to these families (for OOD)"),
+    run_id: str = typer.Option(None, "--run-id", help="Attach to an existing registry run (cluster jobs)."),
 ):
     from zo_eval.track import run_track
 
@@ -71,6 +72,7 @@ def predict(
         gold=gold,
         tasks=tuple(t.strip() for t in tasks.split(",") if t.strip()),
         out_dir=out,
+        run_id=run_id,
         tags=[t.strip() for t in tags.split(",") if t.strip()] + [f"predictor:{predictor}"],
     )
     typer.echo(f"run {res['run_id']} → {res['out_dir']}")

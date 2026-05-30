@@ -14,20 +14,28 @@ This is an abandonable spike; the SFT spine is the must-ship floor. See
 
 from __future__ import annotations
 
+import inspect
 import os
 
 from zo_common import ExperimentConfig, append_metric, run_dir, update_run
 
 
 def _report_to() -> list[str]:
-    return ["wandb"] if os.environ.get("WANDB_API_KEY") else []
+    if os.environ.get("WANDB_API_KEY") and os.environ.get("WANDB_MODE") != "disabled":
+        return ["wandb"]
+    return []
+
+
+def _supported_kwargs(fn, kwargs: dict[str, object]) -> dict[str, object]:  # noqa: ANN001
+    params = inspect.signature(fn).parameters
+    return {key: value for key, value in kwargs.items() if key in params}
 
 
 def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
     if dry_run:
         from zo_train.sim import simulate_training
 
-        simulate_training(run_id)
+        simulate_training(run_id, cfg=cfg)
         return
 
     try:
@@ -40,15 +48,13 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         ) from e
 
     from zo_train.data import load_prompt_dataset
+    from zo_train.preflight import checkpoint_kwargs
     from zo_train.rewards import select_rewards
 
     update_run(run_id, status="running")
     out_dir = cfg.output_dir or str(run_dir(run_id) / "artifacts")
     dataset = load_prompt_dataset(cfg)
 
-    # The reward IS the product (RLVR): a verifier-grounded score, not the old length stub.
-    # ``reward`` selects the function(s): "validate" (dense validate_sequence reward with
-    # anti-hack guards) or "validate+format" (also reward a clean <think>…</think> shape).
     reward_funcs = select_rewards(str(cfg.extra.get("reward", "validate")))
 
     class _RegistryCallback(TrainerCallback):
@@ -65,13 +71,12 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         else None
     )
 
-    args = GRPOConfig(
+    config_kwargs = dict(
         output_dir=out_dir,
         learning_rate=cfg.learning_rate,
         per_device_train_batch_size=cfg.batch_size,
         gradient_accumulation_steps=cfg.grad_accum,
         num_generations=int(cfg.extra.get("num_generations", 8)),
-        # Our completions are short (a few pipe-separated steps) — 64 default, not trl's 256.
         max_completion_length=int(cfg.extra.get("max_completion_length", 64)),
         num_train_epochs=cfg.epochs,
         logging_steps=1,
@@ -79,8 +84,15 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         max_steps=int(cfg.extra.get("max_steps", -1)),
         report_to=_report_to(),
         seed=cfg.seed,
-        save_strategy="no",
+        **checkpoint_kwargs(cfg),
     )
+    # trl versions differ on the prompt-length kwarg name.
+    for key in ("max_prompt_length", "max_seq_length", "max_length"):
+        if key in inspect.signature(GRPOConfig.__init__).parameters:
+            config_kwargs[key] = cfg.max_seq_len
+            break
+
+    args = GRPOConfig(**_supported_kwargs(GRPOConfig.__init__, config_kwargs))
 
     trainer = GRPOTrainer(
         model=cfg.model,

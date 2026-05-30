@@ -26,7 +26,7 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
     if dry_run:
         from zo_train.sim import simulate_training
 
-        simulate_training(run_id)
+        simulate_training(run_id, cfg=cfg)
         return
 
     try:
@@ -40,6 +40,7 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         ) from e
 
     from zo_train.data import load_sft_dataset
+    from zo_train.preflight import checkpoint_kwargs
 
     update_run(run_id, status="running")
     out_dir = cfg.output_dir or str(run_dir(run_id) / "artifacts")
@@ -88,7 +89,7 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
         max_steps=int(cfg.extra.get("max_steps", -1)),
         report_to=_report_to(),
         seed=cfg.seed,
-        save_strategy="no",
+        **checkpoint_kwargs(cfg),
     )
     config_kwargs.update(sft_kwargs)
     args = SFTConfig(**_supported_kwargs(SFTConfig.__init__, config_kwargs))

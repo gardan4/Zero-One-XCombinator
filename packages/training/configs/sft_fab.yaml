@@ -13,7 +13,9 @@
 # Real run (GPU):     uv run zo-train sft -c configs/sft_fab.yaml   (or `just submit` to Leonardo)
 name: sft-fab-all
 kind: sft
-model: Qwen/Qwen2.5-1.5B-Instruct
+# Set in .env: ZO_BASE_MODEL_DIR=Qwen/Qwen2.5-1.5B-Instruct (local/laptop) or
+# $SCRATCH/hf-local/Qwen2.5-1.5B-Instruct (Leonardo, after prestage).
+model: ${ZO_BASE_MODEL_DIR}
 dataset: data/generated/MOSFET_sft_lm.jsonl,data/generated/IGBT_sft_lm.jsonl,data/generated/IC_sft_lm.jsonl
 text_field: text
 lora: false                 # FULL fine-tune so `just serve <ckpt_dir>` works with no LoRA merge

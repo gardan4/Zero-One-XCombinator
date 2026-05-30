@@ -71,7 +71,7 @@ def test_submit_dry_run_renders_sbatch(tmp_path, monkeypatch):
     import typer
 
     try:
-        submit(config=str(cfg), kind="sft", dry_run=True)
+        submit(config=str(cfg), kind=None, dry_run=True)
     except typer.Exit:
         pass
 
@@ -82,3 +82,33 @@ def test_submit_dry_run_renders_sbatch(tmp_path, monkeypatch):
     assert "/leonardo/home/user/Zero-One-Philyr" in sbatch
     cfg_out = (run_dir / "config.yaml").read_text(encoding="utf-8")
     assert "/scratch/base" in cfg_out
+
+
+def test_submit_uses_kind_from_yaml(tmp_path, monkeypatch):
+    from zo_train.cluster.submit import submit
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "packages" / "training" / "configs").mkdir(parents=True)
+    cfg = repo / "packages" / "training" / "configs" / "grpo_fab.yaml"
+    cfg.write_text(
+        "name: grpo-test\nkind: grpo\nmodel: /scratch/ckpt\ndataset: null\n",
+        encoding="utf-8",
+    )
+    (repo / "experiments").mkdir()
+    monkeypatch.setattr("zo_common.paths.repo_root", lambda: repo)
+    monkeypatch.setattr("zo_common.env.repo_root", lambda: repo)
+    monkeypatch.setattr("zo_train.cluster._remote.repo_root", lambda: repo)
+    monkeypatch.setenv("ZO_CLUSTER_REPO_DIR", "/leonardo/home/user/Zero-One-Philyr")
+    monkeypatch.setenv("ZO_CLUSTER_EXPERIMENTS_DIR", "/leonardo_scratch/user/zo-experiments")
+
+    import typer
+
+    try:
+        submit(config=str(cfg), kind=None, dry_run=True)
+    except typer.Exit:
+        pass
+
+    sbatch = next((repo / "experiments").iterdir()) / "job.sbatch"
+    text = sbatch.read_text(encoding="utf-8")
+    assert "zo-train grpo" in text

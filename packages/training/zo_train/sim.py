@@ -4,7 +4,7 @@ import os
 import random
 import time
 
-from zo_common import append_metric, update_run
+from zo_common import ExperimentConfig, append_metric, run_dir, update_run
 
 
 def _maybe_wandb(run_id: str):
@@ -30,12 +30,24 @@ def _maybe_wandb(run_id: str):
     return wandb
 
 
-def simulate_training(run_id: str, total_steps: int = 20, sleep: float = 0.0) -> None:
+def simulate_training(
+    run_id: str,
+    cfg: ExperimentConfig | None = None,
+    total_steps: int = 20,
+    sleep: float = 0.0,
+) -> None:
     """Write a believable metric curve WITHOUT torch.
 
     Lets you test the whole pipeline (registry -> backend -> dashboard, and W&B if a key is set)
     on a laptop before burning cluster time. `just train <cfg>` calls this when --dry-run is set.
     """
+    if cfg is not None:
+        from zo_train.preflight import validate_experiment
+
+        validate_experiment(cfg, cluster=False)
+        max_steps = int(cfg.extra.get("max_steps", -1))
+        if max_steps > 0:
+            total_steps = min(total_steps, max_steps)
     update_run(run_id, status="running")
     wb = _maybe_wandb(run_id)
     loss = 2.5

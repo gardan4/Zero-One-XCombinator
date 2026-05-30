@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
-import re
 import shutil
 import sys
 from pathlib import Path
+
+from zo_common.env import expand_env_refs
 
 
 def is_windows() -> bool:
@@ -27,19 +28,6 @@ def has_putty_tools() -> bool:
 
 def posix_path(path: str | Path) -> str:
     return Path(path).as_posix()
-
-
-def expand_env_refs(text: str) -> str:
-    """Expand ``${VAR}`` and ``$VAR`` using ``os.environ`` (works on Windows, unlike expandvars)."""
-
-    def brace(m: re.Match[str]) -> str:
-        return os.environ.get(m.group(1), m.group(0))
-
-    def plain(m: re.Match[str]) -> str:
-        return os.environ.get(m.group(1), m.group(0))
-
-    text = re.sub(r"\$\{([^}]+)\}", brace, text)
-    return re.sub(r"\$([A-Z_][A-Z0-9_]*)", plain, text)
 
 
 def remote_expand(path: str) -> str:

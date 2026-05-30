@@ -46,6 +46,10 @@ submit config:
 cluster-watch:
     uv run zo-cluster watch
 
+# Pull meta.json + metrics.jsonl for a cluster run into the local experiments/ store.
+cluster-pull-run run_id:
+    uv run zo-cluster pull-run {{run_id}}
+
 # Leonardo smoke finetune (cross-platform — or: python scripts/leonardo_smoke.py).
 leonardo-smoke *args:
     uv run zo-cluster leonardo-smoke {{args}}
