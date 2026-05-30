@@ -12,7 +12,8 @@ Conventions:
 - **Anomaly = positive class is INVALID** (we are detecting violations). So precision/recall/F1
   are computed with "predicted invalid" vs "truly invalid".
 - **ROC-AUC** uses ``SCORE`` = P(valid) against the ``IS_VALID`` label (higher score ⇒ valid);
-  this equals the invalid-class AUC under ``1-SCORE``. ``None`` if only one class is present.
+  this equals the invalid-class AUC under ``1-SCORE``. Blank scores are imputed from ``IS_VALID``,
+  matching the organizer script. ``None`` if only one class is present.
 - **Rule-Attribution Acc** is measured *among detected violations* (truly-invalid AND predicted
   invalid), per the spec.
 """
@@ -201,9 +202,10 @@ def score_anomaly(
             if (p.get("rule") or None) == (g.get("rule") or None):
                 attr_ok += 1
         s = p.get("score")
-        if s is not None:
-            scores.append(float(s))
-            labels.append(int(g["is_valid"]))
+        if s is None:
+            s = float(p.get("is_valid", 1))
+        scores.append(float(s))
+        labels.append(int(g["is_valid"]))
     precision = _safe_div(tp, tp + fp)
     recall = _safe_div(tp, tp + fn)
     per_rule: dict[str, dict] = {}
@@ -227,7 +229,7 @@ def score_anomaly(
         "recall": recall,
         "f1": _safe_div(2 * precision * recall, precision + recall),
         "confusion": {"tp": tp, "fp": fp, "tn": tn, "fn": fn},
-        "roc_auc": roc_auc(scores, labels) if len(scores) == len(gold) and scores else None,
+        "roc_auc": roc_auc(scores, labels) if scores else None,
         "rule_attribution_acc": (_safe_div(attr_ok, attr_total) if attr_total else None),
         "per_rule_detection": per_rule_rate,
     }

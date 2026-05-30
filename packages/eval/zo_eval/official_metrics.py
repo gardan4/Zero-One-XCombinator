@@ -26,6 +26,22 @@ def run_official(
     valid_supplement: str | Path | None = None,
 ) -> int:
     """Invoke the vendored ``eval_metrics.py``; returns the subprocess exit code."""
+    return run_official_capture(
+        task,
+        ground_truth,
+        predictions,
+        valid_supplement=valid_supplement,
+    ).returncode
+
+
+def run_official_capture(
+    task: str,
+    ground_truth: str | Path,
+    predictions: str | Path,
+    *,
+    valid_supplement: str | Path | None = None,
+) -> subprocess.CompletedProcess[str]:
+    """Invoke ``eval_metrics.py`` and capture its transcript for audit artifacts."""
     if not OFFICIAL_SCRIPT.is_file():
         raise FileNotFoundError(f"missing organizer script: {OFFICIAL_SCRIPT}")
     cmd = [
@@ -40,4 +56,4 @@ def run_official(
     ]
     if valid_supplement:
         cmd.extend(["--valid-supplement", str(valid_supplement)])
-    return subprocess.run(cmd, check=False).returncode
+    return subprocess.run(cmd, check=False, text=True, capture_output=True)

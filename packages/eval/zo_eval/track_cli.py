@@ -16,7 +16,7 @@ load_dotenv()
 app = typer.Typer(no_args_is_help=True, help="Track eval: predict → submission CSVs → score → tagged run.")
 
 PREDICTOR_HELP = (
-    "ngram|freq|oracle|llm|hf|featherless|likelihood-ngram|classifier "
+    "ngram|freq|oracle|llm|hf|likelihood-ngram|classifier "
     "(baselines, finetuned, learned anomaly)"
 )
 
@@ -45,10 +45,6 @@ def _build_predictor(
         from zo_eval.predict_llm import HFGeneratePredictor, ServedLLMPredictor
 
         return ServedLLMPredictor(model=model, base_url=base_url) if kind == "llm" else HFGeneratePredictor(model=model)
-    if kind == "featherless":
-        from zo_eval.predict_llm import FeatherlessPredictor
-
-        return FeatherlessPredictor(model=model)
     if kind == "likelihood-ngram":
         from zo_eval.anomaly_detect import LikelihoodDetector
         from zo_eval.baselines import NGramPredictor
@@ -206,24 +202,19 @@ def score_official(
     save: str = typer.Option(None, "--save", help="Append transcript to this file"),
 ):
     """Run vendored ``eval_metrics.py`` (optionally save output)."""
-    import io
-    from contextlib import redirect_stderr, redirect_stdout
+    from zo_eval.official_metrics import run_official_capture
 
-    from zo_eval.official_metrics import run_official
-
-    buf_out, buf_err = io.StringIO(), io.StringIO()
-    with redirect_stdout(buf_out), redirect_stderr(buf_err):
-        code = run_official(task, ground_truth, predictions, valid_supplement=valid_supplement)
-    text = buf_out.getvalue()
-    if buf_err.getvalue().strip():
-        text += "\nSTDERR:\n" + buf_err.getvalue()
+    proc = run_official_capture(task, ground_truth, predictions, valid_supplement=valid_supplement)
+    text = proc.stdout
+    if proc.stderr.strip():
+        text += "\nSTDERR:\n" + proc.stderr
     typer.echo(text, nl=False)
     if save:
         Path(save).parent.mkdir(parents=True, exist_ok=True)
         with Path(save).open("a", encoding="utf-8") as fh:
             fh.write(f"\n=== {task} ===\n{text}\n")
         typer.echo(f"\n(saved to {save})")
-    raise typer.Exit(code)
+    raise typer.Exit(proc.returncode)
 
 
 @app.command("self-check")

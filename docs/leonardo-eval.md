@@ -134,7 +134,7 @@ just track "-p llm --model default --valid extras/eval_local/eval_input_valid.cs
 | `uv sync --extra gpu --offline` fails on compute node | Run `just judge-setup` on login node first |
 | Model not found | Run `just judge-stage`; set `ZO_INFER_MODEL_PATH` in `.env` |
 | Missing eval CSVs | Run `just judge-setup`, or pass `--valid` / `--anomaly` manually |
-| LoRA checkpoint | Merge adapter to full weights before serve/HF upload (Featherless also needs full weights) |
+| LoRA checkpoint | Merge adapter to full weights before serve/HF upload, or run inference from the local training artifacts |
 
 More cluster detail: [`.claude/knowledge/cluster.md`](../.claude/knowledge/cluster.md).
 

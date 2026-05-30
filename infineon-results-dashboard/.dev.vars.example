@@ -1,12 +1,7 @@
 # Local-only Worker secrets. Copy to `.dev.vars` if you want model reranking locally.
 # Leave unset to use the built-in retrieval baseline.
 
-# Featherless example:
-# MODEL_BASE_URL=https://api.featherless.ai/v1
-# MODEL_NAME=Qwen/Qwen3.6-27B
-# MODEL_API_KEY=...
-
-# DeepSeek example:
-# MODEL_BASE_URL=https://api.deepseek.com
-# MODEL_NAME=deepseek-chat
+# OpenAI-compatible model server example, e.g. vLLM on Leonardo or a tunneled local server:
+# MODEL_BASE_URL=http://localhost:8001/v1
+# MODEL_NAME=XCombinator/sft-fab-all
 # MODEL_API_KEY=...

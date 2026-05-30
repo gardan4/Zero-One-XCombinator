@@ -63,8 +63,9 @@ The shared, model-agnostic path every stream uses (there was NO inference code b
   `cm_tp/fp/tn/fn`; per-family adds `_MOSFET|_IGBT|_IC`; per-cut adds `_frac60` / `_frac80` (60%/80%).
   **ID vs OOD is a run TAG** (`split:id|ood`), not a metric name. Required repro tags:
   `version:<label>`, `model-ref:<hf-repo-or-path>`, `eval-set:local|kickoff`, plus
-  `predictor:ngram|oracle|freq|hf|llm|featherless|likelihood-ngram|classifier`.
+  `predictor:ngram|oracle|freq|hf|llm|likelihood-ngram|classifier`.
 - Each eval run writes `results/metrics_report.json` + `metrics_report.md` (paste into REPORT.md).
 - Predictors for reproducible matrix: `ngram`/`freq` (baselines), `oracle` (submitted anomaly),
-  `hf`/`llm`/`featherless` (finetuned), `likelihood-ngram` (learned anomaly science), `classifier` (LLM verdict).
+  `hf`/`llm` (finetuned via Leonardo batch inference or vLLM), `likelihood-ngram` (learned anomaly science),
+  `classifier` (LLM verdict).
 - `zo-eval` now depends on `zo-train` (declared) so it can import grammar/fab/datagen.

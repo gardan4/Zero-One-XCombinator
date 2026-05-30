@@ -10,23 +10,19 @@ Prompts mirror the training framing (``datagen.SEP`` = ``" | "``) so eval matche
 normalizer maps free text back onto the exact vocab and the ``"|"`` submission separator.
 
 Anomaly SCORE: derived from VALID/INVALID token logprobs when the server returns them, else a
-verdict-based fallback — **never None** (the ROC-AUC scorer drops the metric if any row lacks a score).
+verdict-based fallback.
 """
 
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
 
 from zo_common.llm import chat as _default_chat
-from zo_common.llm import content, message_text, token_logprobs
+from zo_common.llm import content, token_logprobs
 from zo_train.datagen import anomaly_example, completion_example, nextstep_example
 
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
 from zo_eval.submission import AnomalyInput, ValidInput
-
-if TYPE_CHECKING:
-    from zo_common.featherless import HFModelRef
 
 
 # Prompts MUST match the instruction-tuning framing byte-for-byte (datagen.*_example), or a
@@ -127,86 +123,6 @@ class HFGeneratePredictor:
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
         is_valid, rule = parse_anomaly(self._gen(_an_prompt(item), 64))
         return (is_valid, 0.9 if is_valid else 0.1, rule)
-
-
-class FeatherlessPredictor:
-    """Track predictor backed by Featherless serverless inference (OpenAI-compatible).
-
-    Pass ``model`` as an HF repo id (full checkpoint) or ``base:lora[:merged]`` segments:
-    ``Qwen/Qwen2.5-1.5B-Instruct`` (full/base), or
-    ``Qwen/Qwen2.5-1.5B-Instruct:XCombinator/sft-cot`` (LoRA — needs merged weights on HF).
-    """
-
-    name = "featherless"
-
-    def __init__(
-        self,
-        model: str = "Qwen/Qwen2.5-1.5B-Instruct",
-        *,
-        temperature: float = 0.0,
-        route: str | None = None,
-        api_key: str | None = None,
-    ):
-        from zo_common.featherless import (
-            FeatherlessClient,
-            featherless_chat_fn,
-            resolve_featherless_model,
-        )
-
-        ref = _parse_featherless_model(model)
-        self.model_id = resolve_featherless_model(ref)
-        self.client = FeatherlessClient(
-            self.model_id,
-            route=route,  # type: ignore[arg-type]
-            api_key=api_key,
-        )
-        self.temp = temperature
-        self._chat = featherless_chat_fn(self.client)
-        self.vocab = vocab()
-
-    def _ask(self, prompt: str, max_tokens: int, **kw) -> dict:
-        return self._chat(
-            [{"role": "user", "content": prompt}],
-            temperature=self.temp,
-            max_tokens=max_tokens,
-            **kw,
-        )
-
-    def _text(self, resp: dict) -> str:
-        return message_text(resp)
-
-    def next_step(self, item: ValidInput) -> list[str]:
-        ranked = parse_pipe_list(self._text(self._ask(_ns_prompt(item), 24)), self.vocab, strict=True)
-        out: list[str] = []
-        for s in ranked:
-            if s not in out:
-                out.append(s)
-        return out[:5]
-
-    def complete(self, item: ValidInput) -> list[str]:
-        txt = extract_answer(self._text(self._ask(_cp_prompt(item), 1024)))
-        return parse_pipe_list(txt, self.vocab, strict=True)
-
-    def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        resp = self._ask(_an_prompt(item), 64, logprobs=True, top_logprobs=5)
-        is_valid, rule = parse_anomaly(self._text(resp))
-        score = _valid_prob(resp)
-        if score is None:
-            score = 0.9 if is_valid else 0.1
-        return (is_valid, score, rule)
-
-
-def _parse_featherless_model(spec: str) -> HFModelRef:
-    from zo_common.featherless import HFModelRef
-
-    parts = [p.strip() for p in spec.split(":") if p.strip()]
-    if len(parts) == 1:
-        return HFModelRef(full=parts[0])
-    if len(parts) == 2:
-        base, second = parts
-        return HFModelRef(base=base, lora=second)
-    base, lora, merged = parts[0], parts[1], parts[2]
-    return HFModelRef(base=base, lora=lora, merged=merged)
 
 
 def _smoke() -> None:  # pragma: no cover - manual (no server/GPU needed)

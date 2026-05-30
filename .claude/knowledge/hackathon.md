@@ -77,7 +77,7 @@ Johannes Oster (Innovatic). HPE HPC talk by Iveta Lohovska (HPE CTO AI & HPC).
 
 ## Access & infra (see cluster.md for the details)
 GPU = **Leonardo (CINECA)** via plain SSH (no 2FA at the event), SLURM reservation `s_tra_ncc`,
-**Pixi + Singularity**, no internet on compute nodes. Wi-Fi `Featherless` (personal creds via QR).
+**Pixi + Singularity**, no internet on compute nodes.
 Sybilion provides an API for the forecasting track (not ours).
 
 ## Rules of conduct

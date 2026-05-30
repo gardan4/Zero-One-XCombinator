@@ -309,7 +309,7 @@ function countsToPredictions(counts, limit, source) {
 async function rerankWithModel(env, family, partialSteps, candidates) {
   if (!env.MODEL_API_KEY || !env.MODEL_NAME || !candidates.length) return null;
 
-  const baseUrl = (env.MODEL_BASE_URL || "https://api.featherless.ai/v1").replace(/\/$/, "");
+  const baseUrl = (env.MODEL_BASE_URL || "http://localhost:8001/v1").replace(/\/$/, "");
   const user = {
     product_line: family,
     partial_sequence: partialSteps.slice(-35),

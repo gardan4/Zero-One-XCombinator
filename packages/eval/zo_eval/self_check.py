@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import io
-from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 from zo_eval.gold_export import export_all_ground_truth
-from zo_eval.official_metrics import run_official
+from zo_eval.official_metrics import run_official_capture
 
 
 def run_self_check(
@@ -39,14 +37,12 @@ def run_self_check(
             lines.append(f"=== {task}: SKIPPED (missing {pred_path.name}) ===\n")
             continue
         lines.append(f"=== {task} ===")
-        buf_out, buf_err = io.StringIO(), io.StringIO()
-        with redirect_stdout(buf_out), redirect_stderr(buf_err):
-            code = run_official(task, gt_path, pred_path, valid_supplement=supplement)
-        exit_codes[task] = code
-        lines.append(buf_out.getvalue().rstrip())
-        if buf_err.getvalue().strip():
+        proc = run_official_capture(task, gt_path, pred_path, valid_supplement=supplement)
+        exit_codes[task] = proc.returncode
+        lines.append(proc.stdout.rstrip())
+        if proc.stderr.strip():
             lines.append("STDERR:")
-            lines.append(buf_err.getvalue().rstrip())
+            lines.append(proc.stderr.rstrip())
         lines.append("")
 
     transcript = "\n".join(lines).strip() + "\n"

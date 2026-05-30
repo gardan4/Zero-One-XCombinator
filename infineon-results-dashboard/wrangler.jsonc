@@ -10,7 +10,7 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "MODEL_BASE_URL": "https://api.featherless.ai/v1",
-    "MODEL_NAME": "Qwen/Qwen3.6-27B"
+    "MODEL_BASE_URL": "http://localhost:8001/v1",
+    "MODEL_NAME": "XCombinator/sft-fab-all"
   }
 }

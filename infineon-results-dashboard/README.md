@@ -55,13 +55,13 @@ the demo and keeps the UI usable while a hosted model is being selected.
 
 ## Optional model reranking
 
-Copy `.dev.vars.example` → `.dev.vars` and set an OpenAI-compatible provider. The model
+Copy `.dev.vars.example` to `.dev.vars` and set an OpenAI-compatible provider. The model
 **only reranks backend-generated candidates** — it cannot invent step names outside the
 allowed candidate list, so it can't hallucinate process steps.
 
 ```bash
-MODEL_BASE_URL=https://api.featherless.ai/v1
-MODEL_NAME=Qwen/Qwen3.6-27B
+MODEL_BASE_URL=http://localhost:8001/v1
+MODEL_NAME=XCombinator/sft-fab-all
 MODEL_API_KEY=...
 ```
 
@@ -74,7 +74,7 @@ npm run deploy
 
 # for deployed model reranking:
 printf '%s' "$MODEL_API_KEY" | wrangler secret put MODEL_API_KEY
-wrangler deploy --var MODEL_NAME:Qwen/Qwen3.6-27B --var MODEL_BASE_URL:https://api.featherless.ai/v1
+wrangler deploy --var MODEL_NAME:XCombinator/sft-fab-all --var MODEL_BASE_URL:https://your-openai-compatible-endpoint/v1
 ```
 
 ## Going live (placeholder → real)
