@@ -1,6 +1,8 @@
 # GRPO cross-product — PROCESS reward × COMPLETION task × all families.
-# The headline arm: a dense "how far the continuation stays legal" reward on the long-completion
-# task is where process-vs-outcome should diverge most. Starts FROM the instruction-tuned SFT
+# ✅ THE HEADLINE ARM: a dense "how far the continuation stays legal" reward on the long-completion
+# task is where process-vs-outcome should diverge most. PREFIX-AWARE — credits the legal run *into
+# the continuation* given the prompt's partial route ((longest_valid_prefix(prefix+comp) - |prefix|)
+# / n_comp), anti-hack floor on the completion length. Starts FROM the instruction-tuned SFT
 # checkpoint: set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch.
 name: grpo-proc-completion-all
 kind: grpo
@@ -16,7 +18,7 @@ bf16: true
 extra:
   num_generations: 6
   max_completion_length: 384
-  reward: process              # PROCESS: longest_valid_prefix / n_steps
+  reward: process              # PROCESS (prefix-aware): legal run into the continuation / n_comp
   local_files_only: true
   # max_steps: 50
-  tags: [leonardo, grpo, rlvr, "reward:process", "task:completion", all-families, "stream:2"]
+  tags: [real-run, reportable, "version:grpo-proc-completion-v1", leonardo, grpo, rlvr, "reward:process", "task:completion", all-families, "stream:2"]

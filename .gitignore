@@ -209,6 +209,8 @@ extras/eval_local_smoke/
 
 # Agent worktrees the harness creates for parallel subagents.
 .claude/worktrees/
+# Harness scheduled-task lock (transient runtime state).
+.claude/scheduled_tasks.lock
 
 # Model artifacts, checkpoints, datasets, caches
 *.safetensors
@@ -224,6 +226,11 @@ wandb/
 outputs/
 slurm_logs/
 *.out
+# HF hub caches anywhere — sha-named blobs have no extension, so *.bin/*.safetensors miss them.
+**/hf/hub/
+models--*/
+# Stray scratch dir from an unexpanded $SCRATCH env var (once swept a ~1GB model download into git).
+$SCRATCH/
 
 # Secrets / cluster
 .env.*

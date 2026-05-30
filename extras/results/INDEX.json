@@ -1,0 +1,64 @@
+{
+  "baseline-ngram": {
+    "path": "extras/results/baseline-ngram",
+    "run_id": "20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d",
+    "version": "ngram-baseline-v1",
+    "predictor": "ngram",
+    "model_ref": null,
+    "eval_set": "local",
+    "tags": [
+      "version:ngram-baseline-v1",
+      "predictor:ngram",
+      "eval-set:local",
+      "split:id",
+      "role:compare-suite",
+      "role:baseline",
+      "suite:local_compare",
+      "suite-run:ngram-baseline"
+    ],
+    "train_run_id": null,
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "official_scores.txt",
+      "manifest.json",
+      "examples.jsonl",
+      "ground_truth/"
+    ],
+    "promoted_at": "2026-05-30T16:07:26.476389+00:00"
+  },
+  "baseline-oracle-anomaly": {
+    "path": "extras/results/baseline-oracle-anomaly",
+    "run_id": "20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755",
+    "version": "oracle-ceiling-v1",
+    "predictor": "oracle",
+    "model_ref": null,
+    "eval_set": "local",
+    "tags": [
+      "version:oracle-ceiling-v1",
+      "predictor:oracle",
+      "eval-set:local",
+      "split:id",
+      "role:compare-suite",
+      "role:oracle",
+      "suite:local_compare",
+      "suite-run:oracle-anomaly-ceiling"
+    ],
+    "train_run_id": null,
+    "notes": null,
+    "artifacts": [
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "official_scores.txt",
+      "manifest.json",
+      "examples.jsonl",
+      "ground_truth/"
+    ],
+    "promoted_at": "2026-05-30T16:07:26.586638+00:00"
+  }
+}

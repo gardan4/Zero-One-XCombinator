@@ -1,0 +1,96 @@
+{
+  "version": "oracle-ceiling-v1",
+  "predictor": "oracle",
+  "model_ref": null,
+  "eval_set": "local",
+  "tags": [
+    "version:oracle-ceiling-v1",
+    "predictor:oracle",
+    "eval-set:local",
+    "split:id",
+    "role:compare-suite",
+    "role:oracle",
+    "suite:local_compare",
+    "suite-run:oracle-anomaly-ceiling"
+  ],
+  "tasks": {
+    "anomaly": {
+      "by_family": {
+        "overall": {
+          "n": 200,
+          "binary_acc": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "confusion": {
+            "tp": 100,
+            "fp": 0,
+            "tn": 100,
+            "fn": 0
+          },
+          "roc_auc": 1.0,
+          "rule_attribution_acc": 1.0,
+          "per_rule_detection": {
+            "RULE_BACKSIDE_BEFORE_PASSIVATION": 1.0,
+            "RULE_CMP_NO_DEP": 1.0,
+            "RULE_DEP_NO_CLEAN": 1.0,
+            "RULE_ETCH_NO_MASK": 1.0,
+            "RULE_IMPLANT_NO_MASK": 1.0,
+            "RULE_LITHO_LEVEL_SKIP": 1.0,
+            "RULE_PAD_OPEN_BEFORE_DEP": 1.0,
+            "RULE_SHIP_BEFORE_TEST": 1.0,
+            "RULE_TEST_BEFORE_PASSIVATION": 1.0
+          }
+        },
+        "MOSFET": {
+          "n": 200,
+          "binary_acc": 1.0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "confusion": {
+            "tp": 100,
+            "fp": 0,
+            "tn": 100,
+            "fn": 0
+          },
+          "roc_auc": 1.0,
+          "rule_attribution_acc": 1.0,
+          "per_rule_detection": {
+            "RULE_BACKSIDE_BEFORE_PASSIVATION": 1.0,
+            "RULE_CMP_NO_DEP": 1.0,
+            "RULE_DEP_NO_CLEAN": 1.0,
+            "RULE_ETCH_NO_MASK": 1.0,
+            "RULE_IMPLANT_NO_MASK": 1.0,
+            "RULE_LITHO_LEVEL_SKIP": 1.0,
+            "RULE_PAD_OPEN_BEFORE_DEP": 1.0,
+            "RULE_SHIP_BEFORE_TEST": 1.0,
+            "RULE_TEST_BEFORE_PASSIVATION": 1.0
+          }
+        }
+      }
+    }
+  },
+  "metric_keys": {
+    "nextstep": [
+      "top1",
+      "top3",
+      "top5",
+      "mrr"
+    ],
+    "completion": [
+      "exact_match",
+      "norm_edit_dist",
+      "token_acc",
+      "block_acc"
+    ],
+    "anomaly": [
+      "binary_acc",
+      "precision",
+      "recall",
+      "f1",
+      "roc_auc",
+      "rule_attribution_acc"
+    ]
+  }
+}

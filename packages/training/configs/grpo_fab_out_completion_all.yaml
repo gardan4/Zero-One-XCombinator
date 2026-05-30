@@ -1,8 +1,11 @@
 # GRPO cross-product — OUTCOME reward × COMPLETION task × all families.
-# The meatier task: generate the ~40-60 remaining steps of a partial route; reward grammar-validity
-# of the continuation. Token budget retargeted from the next-step defaults (measured: completion
-# targets reach ~328 tokens, prompts ~690). Starts FROM the instruction-tuned SFT checkpoint:
-#   set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch.
+# ✅ THE HIGH-SIGNAL ARM. The meatier task: generate the ~40-60 remaining steps of a partial route;
+# reward grammar-validity of the continuation. The reward is PREFIX-AWARE — it recovers the prompt's
+# partial route and validates `prefix + completion` together (the continuation is only legal relative
+# to what it follows), with the anti-hack floor on the completion length. This is where GRPO has real
+# reward variance (verified: a perfect / early-stop / broken continuation score 1.1 / 1.0 / 0.84).
+# Token budget retargeted from the next-step defaults (measured: completion targets ~328 tokens,
+# prompts ~690). Starts FROM the instruction-tuned SFT checkpoint (set ZO_SFT_CHECKPOINT_DIR in .env).
 name: grpo-out-completion-all
 kind: grpo
 model: ${ZO_SFT_CHECKPOINT_DIR}
@@ -17,7 +20,7 @@ bf16: true
 extra:
   num_generations: 6           # fewer samples per prompt (long completions cost memory)
   max_completion_length: 384   # fits the ~328-token continuation targets
-  reward: validate             # OUTCOME: 1 - n_violations/n_steps
+  reward: validate             # OUTCOME (prefix-aware): 1 - new_violations(prefix+comp)/n_comp
   local_files_only: true
   # max_steps: 50
-  tags: [leonardo, grpo, rlvr, "reward:output", "task:completion", all-families, "stream:2"]
+  tags: [real-run, reportable, "version:grpo-out-completion-v1", leonardo, grpo, rlvr, "reward:output", "task:completion", all-families, "stream:2"]

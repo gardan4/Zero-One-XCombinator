@@ -1,0 +1,884 @@
+{
+  "suite": "packages/eval/eval_suites/local_compare.yaml",
+  "eval_set": "local",
+  "runs": [
+    {
+      "name": "ngram-baseline",
+      "status": "ok",
+      "run_id": "20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d",
+      "out_dir": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results",
+      "version": "ngram-baseline-v1",
+      "top1": 0.69,
+      "top3": 0.995,
+      "top5": 1.0,
+      "mrr": 0.8429,
+      "top1_MOSFET": 0.69,
+      "top3_MOSFET": 0.995,
+      "top5_MOSFET": 1.0,
+      "mrr_MOSFET": 0.8429,
+      "em": 0.015,
+      "ned": 0.4971,
+      "token_acc": 0.3947,
+      "block_acc": 0.6369,
+      "em_MOSFET": 0.015,
+      "ned_MOSFET": 0.4971,
+      "token_acc_MOSFET": 0.3947,
+      "block_acc_MOSFET": 0.6369,
+      "anomaly_acc": 0.9,
+      "anomaly_p": 1.0,
+      "anomaly_r": 0.8,
+      "anomaly_f1": 0.8889,
+      "anomaly_auc": 0.9999,
+      "rule_attr_acc": 0.0,
+      "cm_tp": 80,
+      "cm_fp": 0,
+      "cm_tn": 100,
+      "cm_fn": 20,
+      "anomaly_acc_MOSFET": 0.9,
+      "anomaly_p_MOSFET": 1.0,
+      "anomaly_r_MOSFET": 0.8,
+      "anomaly_f1_MOSFET": 0.8889,
+      "anomaly_auc_MOSFET": 0.9999,
+      "rule_attr_acc_MOSFET": 0.0
+    },
+    {
+      "name": "freq-baseline",
+      "status": "ok",
+      "run_id": "20260530_160615_eval_track-freq-freq-baseline-v1_997443",
+      "out_dir": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results",
+      "version": "freq-baseline-v1",
+      "top1": 0.04,
+      "top3": 0.04,
+      "top5": 0.315,
+      "mrr": 0.102,
+      "top1_MOSFET": 0.04,
+      "top3_MOSFET": 0.04,
+      "top5_MOSFET": 0.315,
+      "mrr_MOSFET": 0.102,
+      "em": 0.0,
+      "ned": 1.0,
+      "token_acc": 0.0,
+      "block_acc": 0.0,
+      "em_MOSFET": 0.0,
+      "ned_MOSFET": 1.0,
+      "token_acc_MOSFET": 0.0,
+      "block_acc_MOSFET": 0.0,
+      "anomaly_acc": 0.5,
+      "anomaly_p": 0.0,
+      "anomaly_r": 0.0,
+      "anomaly_f1": 0.0,
+      "anomaly_auc": 0.5,
+      "cm_tp": 0,
+      "cm_fp": 0,
+      "cm_tn": 100,
+      "cm_fn": 100,
+      "anomaly_acc_MOSFET": 0.5,
+      "anomaly_p_MOSFET": 0.0,
+      "anomaly_r_MOSFET": 0.0,
+      "anomaly_f1_MOSFET": 0.0,
+      "anomaly_auc_MOSFET": 0.5
+    },
+    {
+      "name": "oracle-anomaly-ceiling",
+      "status": "ok",
+      "run_id": "20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755",
+      "out_dir": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results",
+      "version": "oracle-ceiling-v1",
+      "anomaly_acc": 1.0,
+      "anomaly_p": 1.0,
+      "anomaly_r": 1.0,
+      "anomaly_f1": 1.0,
+      "anomaly_auc": 1.0,
+      "rule_attr_acc": 1.0,
+      "cm_tp": 100,
+      "cm_fp": 0,
+      "cm_tn": 100,
+      "cm_fn": 0,
+      "anomaly_acc_MOSFET": 1.0,
+      "anomaly_p_MOSFET": 1.0,
+      "anomaly_r_MOSFET": 1.0,
+      "anomaly_f1_MOSFET": 1.0,
+      "anomaly_auc_MOSFET": 1.0,
+      "rule_attr_acc_MOSFET": 1.0
+    }
+  ],
+  "rows": [
+    {
+      "run_id": "20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d",
+      "run_name": "track:ngram:ngram-baseline-v1",
+      "kind": "eval",
+      "status": "completed",
+      "created_at": "2026-05-30T16:06:14+00:00",
+      "notes": "",
+      "tags": [
+        "version:ngram-baseline-v1",
+        "predictor:ngram",
+        "eval-set:local",
+        "split:id",
+        "role:compare-suite",
+        "role:baseline",
+        "suite:local_compare",
+        "suite-run:ngram-baseline"
+      ],
+      "parsed_tags": {
+        "version": "ngram-baseline-v1",
+        "predictor": "ngram",
+        "model_ref": null,
+        "eval_set": "local",
+        "train_run": null,
+        "split": "id",
+        "family": null,
+        "role": "compare-suite",
+        "suite": "local_compare",
+        "suite_run": "ngram-baseline",
+        "raw_tags": "version:ngram-baseline-v1,predictor:ngram,eval-set:local,split:id,role:compare-suite,role:baseline,suite:local_compare,suite-run:ngram-baseline"
+      },
+      "model": {
+        "display": "ngram (ngram-baseline-v1)",
+        "model_ref": null,
+        "predictor": "ngram",
+        "version": "ngram-baseline-v1",
+        "train_run_id": null,
+        "role": "compare-suite",
+        "served_model": null
+      },
+      "dataset": {
+        "eval_set": "local",
+        "split": "id",
+        "family": null,
+        "suite": "local_compare",
+        "suite_run": "ngram-baseline"
+      },
+      "metrics_flat": {
+        "top1": 0.69,
+        "top3": 0.995,
+        "top5": 1.0,
+        "mrr": 0.8429,
+        "top1_MOSFET": 0.69,
+        "top3_MOSFET": 0.995,
+        "top5_MOSFET": 1.0,
+        "mrr_MOSFET": 0.8429,
+        "em": 0.015,
+        "ned": 0.4971,
+        "token_acc": 0.3947,
+        "block_acc": 0.6369,
+        "em_MOSFET": 0.015,
+        "ned_MOSFET": 0.4971,
+        "token_acc_MOSFET": 0.3947,
+        "block_acc_MOSFET": 0.6369,
+        "anomaly_acc": 0.9,
+        "anomaly_p": 1.0,
+        "anomaly_r": 0.8,
+        "anomaly_f1": 0.8889,
+        "anomaly_auc": 0.9999,
+        "rule_attr_acc": 0.0,
+        "cm_tp": 80,
+        "cm_fp": 0,
+        "cm_tn": 100,
+        "cm_fn": 20,
+        "anomaly_acc_MOSFET": 0.9,
+        "anomaly_p_MOSFET": 1.0,
+        "anomaly_r_MOSFET": 0.8,
+        "anomaly_f1_MOSFET": 0.8889,
+        "anomaly_auc_MOSFET": 0.9999,
+        "rule_attr_acc_MOSFET": 0.0
+      },
+      "metrics_structured": {
+        "version": "ngram-baseline-v1",
+        "predictor": "ngram",
+        "model_ref": null,
+        "eval_set": "local",
+        "tags": [
+          "version:ngram-baseline-v1",
+          "predictor:ngram",
+          "eval-set:local",
+          "split:id",
+          "role:compare-suite",
+          "role:baseline",
+          "suite:local_compare",
+          "suite-run:ngram-baseline"
+        ],
+        "tasks": {
+          "nextstep": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "top1": 0.69,
+                "top3": 0.995,
+                "top5": 1.0,
+                "mrr": 0.8429166666666668
+              },
+              "MOSFET": {
+                "n": 200,
+                "top1": 0.69,
+                "top3": 0.995,
+                "top5": 1.0,
+                "mrr": 0.8429166666666668
+              }
+            }
+          },
+          "completion": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "exact_match": 0.015,
+                "norm_edit_dist": 0.49712830373850636,
+                "token_acc": 0.39466024683216305,
+                "block_acc": 0.6369030173333577
+              },
+              "MOSFET": {
+                "n": 200,
+                "exact_match": 0.015,
+                "norm_edit_dist": 0.49712830373850636,
+                "token_acc": 0.39466024683216305,
+                "block_acc": 0.6369030173333577
+              }
+            }
+          },
+          "anomaly": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "binary_acc": 0.9,
+                "precision": 1.0,
+                "recall": 0.8,
+                "f1": 0.888888888888889,
+                "confusion": {
+                  "tp": 80,
+                  "fp": 0,
+                  "tn": 100,
+                  "fn": 20
+                },
+                "roc_auc": 0.9999,
+                "rule_attribution_acc": 0.0,
+                "per_rule_detection": {
+                  "RULE_BACKSIDE_BEFORE_PASSIVATION": 1.0,
+                  "RULE_CMP_NO_DEP": 0.375,
+                  "RULE_DEP_NO_CLEAN": 0.6,
+                  "RULE_ETCH_NO_MASK": 0.5263157894736842,
+                  "RULE_IMPLANT_NO_MASK": 1.0,
+                  "RULE_LITHO_LEVEL_SKIP": 1.0,
+                  "RULE_PAD_OPEN_BEFORE_DEP": 1.0,
+                  "RULE_SHIP_BEFORE_TEST": 1.0,
+                  "RULE_TEST_BEFORE_PASSIVATION": 1.0
+                }
+              },
+              "MOSFET": {
+                "n": 200,
+                "binary_acc": 0.9,
+                "precision": 1.0,
+                "recall": 0.8,
+                "f1": 0.888888888888889,
+                "confusion": {
+                  "tp": 80,
+                  "fp": 0,
+                  "tn": 100,
+                  "fn": 20
+                },
+                "roc_auc": 0.9999,
+                "rule_attribution_acc": 0.0,
+                "per_rule_detection": {
+                  "RULE_BACKSIDE_BEFORE_PASSIVATION": 1.0,
+                  "RULE_CMP_NO_DEP": 0.375,
+                  "RULE_DEP_NO_CLEAN": 0.6,
+                  "RULE_ETCH_NO_MASK": 0.5263157894736842,
+                  "RULE_IMPLANT_NO_MASK": 1.0,
+                  "RULE_LITHO_LEVEL_SKIP": 1.0,
+                  "RULE_PAD_OPEN_BEFORE_DEP": 1.0,
+                  "RULE_SHIP_BEFORE_TEST": 1.0,
+                  "RULE_TEST_BEFORE_PASSIVATION": 1.0
+                }
+              }
+            }
+          }
+        },
+        "metric_keys": {
+          "nextstep": [
+            "top1",
+            "top3",
+            "top5",
+            "mrr"
+          ],
+          "completion": [
+            "exact_match",
+            "norm_edit_dist",
+            "token_acc",
+            "block_acc"
+          ],
+          "anomaly": [
+            "binary_acc",
+            "precision",
+            "recall",
+            "f1",
+            "roc_auc",
+            "rule_attribution_acc"
+          ]
+        }
+      },
+      "artifacts": {
+        "results_dir": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results",
+        "metrics_report_json": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/metrics_report.json",
+        "metrics_report_md": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/metrics_report.md",
+        "manifest_json": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/manifest.json",
+        "examples_jsonl": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/examples.jsonl",
+        "proxy_report_json": null,
+        "official_scores_txt": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/official_scores.txt",
+        "nextstep_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/nextstep.csv",
+        "completion_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/completion.csv",
+        "anomaly_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d/results/anomaly.csv"
+      },
+      "git_branch": "feature/grpo-fsdp-campaign",
+      "git_sha": "3f4927e"
+    },
+    {
+      "run_id": "20260530_160615_eval_track-freq-freq-baseline-v1_997443",
+      "run_name": "track:freq:freq-baseline-v1",
+      "kind": "eval",
+      "status": "completed",
+      "created_at": "2026-05-30T16:06:15+00:00",
+      "notes": "",
+      "tags": [
+        "version:freq-baseline-v1",
+        "predictor:freq",
+        "eval-set:local",
+        "split:id",
+        "role:compare-suite",
+        "role:baseline",
+        "suite:local_compare",
+        "suite-run:freq-baseline"
+      ],
+      "parsed_tags": {
+        "version": "freq-baseline-v1",
+        "predictor": "freq",
+        "model_ref": null,
+        "eval_set": "local",
+        "train_run": null,
+        "split": "id",
+        "family": null,
+        "role": "compare-suite",
+        "suite": "local_compare",
+        "suite_run": "freq-baseline",
+        "raw_tags": "version:freq-baseline-v1,predictor:freq,eval-set:local,split:id,role:compare-suite,role:baseline,suite:local_compare,suite-run:freq-baseline"
+      },
+      "model": {
+        "display": "freq (freq-baseline-v1)",
+        "model_ref": null,
+        "predictor": "freq",
+        "version": "freq-baseline-v1",
+        "train_run_id": null,
+        "role": "compare-suite",
+        "served_model": null
+      },
+      "dataset": {
+        "eval_set": "local",
+        "split": "id",
+        "family": null,
+        "suite": "local_compare",
+        "suite_run": "freq-baseline"
+      },
+      "metrics_flat": {
+        "top1": 0.04,
+        "top3": 0.04,
+        "top5": 0.315,
+        "mrr": 0.102,
+        "top1_MOSFET": 0.04,
+        "top3_MOSFET": 0.04,
+        "top5_MOSFET": 0.315,
+        "mrr_MOSFET": 0.102,
+        "em": 0.0,
+        "ned": 1.0,
+        "token_acc": 0.0,
+        "block_acc": 0.0,
+        "em_MOSFET": 0.0,
+        "ned_MOSFET": 1.0,
+        "token_acc_MOSFET": 0.0,
+        "block_acc_MOSFET": 0.0,
+        "anomaly_acc": 0.5,
+        "anomaly_p": 0.0,
+        "anomaly_r": 0.0,
+        "anomaly_f1": 0.0,
+        "anomaly_auc": 0.5,
+        "cm_tp": 0,
+        "cm_fp": 0,
+        "cm_tn": 100,
+        "cm_fn": 100,
+        "anomaly_acc_MOSFET": 0.5,
+        "anomaly_p_MOSFET": 0.0,
+        "anomaly_r_MOSFET": 0.0,
+        "anomaly_f1_MOSFET": 0.0,
+        "anomaly_auc_MOSFET": 0.5
+      },
+      "metrics_structured": {
+        "version": "freq-baseline-v1",
+        "predictor": "freq",
+        "model_ref": null,
+        "eval_set": "local",
+        "tags": [
+          "version:freq-baseline-v1",
+          "predictor:freq",
+          "eval-set:local",
+          "split:id",
+          "role:compare-suite",
+          "role:baseline",
+          "suite:local_compare",
+          "suite-run:freq-baseline"
+        ],
+        "tasks": {
+          "nextstep": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "top1": 0.04,
+                "top3": 0.04,
+                "top5": 0.315,
+                "mrr": 0.10199999999999998
+              },
+              "MOSFET": {
+                "n": 200,
+                "top1": 0.04,
+                "top3": 0.04,
+                "top5": 0.315,
+                "mrr": 0.10199999999999998
+              }
+            }
+          },
+          "completion": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "exact_match": 0.0,
+                "norm_edit_dist": 1.0,
+                "token_acc": 0.0,
+                "block_acc": 0.0
+              },
+              "MOSFET": {
+                "n": 200,
+                "exact_match": 0.0,
+                "norm_edit_dist": 1.0,
+                "token_acc": 0.0,
+                "block_acc": 0.0
+              }
+            }
+          },
+          "anomaly": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "binary_acc": 0.5,
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0,
+                "confusion": {
+                  "tp": 0,
+                  "fp": 0,
+                  "tn": 100,
+                  "fn": 100
+                },
+                "roc_auc": 0.5,
+                "rule_attribution_acc": null,
+                "per_rule_detection": {
+                  "RULE_BACKSIDE_BEFORE_PASSIVATION": 0.0,
+                  "RULE_CMP_NO_DEP": 0.0,
+                  "RULE_DEP_NO_CLEAN": 0.0,
+                  "RULE_ETCH_NO_MASK": 0.0,
+                  "RULE_IMPLANT_NO_MASK": 0.0,
+                  "RULE_LITHO_LEVEL_SKIP": 0.0,
+                  "RULE_PAD_OPEN_BEFORE_DEP": 0.0,
+                  "RULE_SHIP_BEFORE_TEST": 0.0,
+                  "RULE_TEST_BEFORE_PASSIVATION": 0.0
+                }
+              },
+              "MOSFET": {
+                "n": 200,
+                "binary_acc": 0.5,
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0,
+                "confusion": {
+                  "tp": 0,
+                  "fp": 0,
+                  "tn": 100,
+                  "fn": 100
+                },
+                "roc_auc": 0.5,
+                "rule_attribution_acc": null,
+                "per_rule_detection": {
+                  "RULE_BACKSIDE_BEFORE_PASSIVATION": 0.0,
+                  "RULE_CMP_NO_DEP": 0.0,
+                  "RULE_DEP_NO_CLEAN": 0.0,
+                  "RULE_ETCH_NO_MASK": 0.0,
+                  "RULE_IMPLANT_NO_MASK": 0.0,
+                  "RULE_LITHO_LEVEL_SKIP": 0.0,
+                  "RULE_PAD_OPEN_BEFORE_DEP": 0.0,
+                  "RULE_SHIP_BEFORE_TEST": 0.0,
+                  "RULE_TEST_BEFORE_PASSIVATION": 0.0
+                }
+              }
+            }
+          }
+        },
+        "metric_keys": {
+          "nextstep": [
+            "top1",
+            "top3",
+            "top5",
+            "mrr"
+          ],
+          "completion": [
+            "exact_match",
+            "norm_edit_dist",
+            "token_acc",
+            "block_acc"
+          ],
+          "anomaly": [
+            "binary_acc",
+            "precision",
+            "recall",
+            "f1",
+            "roc_auc",
+            "rule_attribution_acc"
+          ]
+        }
+      },
+      "artifacts": {
+        "results_dir": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results",
+        "metrics_report_json": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/metrics_report.json",
+        "metrics_report_md": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/metrics_report.md",
+        "manifest_json": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/manifest.json",
+        "examples_jsonl": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/examples.jsonl",
+        "proxy_report_json": null,
+        "official_scores_txt": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/official_scores.txt",
+        "nextstep_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/nextstep.csv",
+        "completion_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/completion.csv",
+        "anomaly_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-freq-freq-baseline-v1_997443/results/anomaly.csv"
+      },
+      "git_branch": "feature/grpo-fsdp-campaign",
+      "git_sha": "3f4927e"
+    },
+    {
+      "run_id": "20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755",
+      "run_name": "track:oracle:oracle-ceiling-v1",
+      "kind": "eval",
+      "status": "completed",
+      "created_at": "2026-05-30T16:06:15+00:00",
+      "notes": "",
+      "tags": [
+        "version:oracle-ceiling-v1",
+        "predictor:oracle",
+        "eval-set:local",
+        "split:id",
+        "role:compare-suite",
+        "role:oracle",
+        "suite:local_compare",
+        "suite-run:oracle-anomaly-ceiling"
+      ],
+      "parsed_tags": {
+        "version": "oracle-ceiling-v1",
+        "predictor": "oracle",
+        "model_ref": null,
+        "eval_set": "local",
+        "train_run": null,
+        "split": "id",
+        "family": null,
+        "role": "compare-suite",
+        "suite": "local_compare",
+        "suite_run": "oracle-anomaly-ceiling",
+        "raw_tags": "version:oracle-ceiling-v1,predictor:oracle,eval-set:local,split:id,role:compare-suite,role:oracle,suite:local_compare,suite-run:oracle-anomaly-ceiling"
+      },
+      "model": {
+        "display": "oracle (oracle-ceiling-v1)",
+        "model_ref": null,
+        "predictor": "oracle",
+        "version": "oracle-ceiling-v1",
+        "train_run_id": null,
+        "role": "compare-suite",
+        "served_model": null
+      },
+      "dataset": {
+        "eval_set": "local",
+        "split": "id",
+        "family": null,
+        "suite": "local_compare",
+        "suite_run": "oracle-anomaly-ceiling"
+      },
+      "metrics_flat": {
+        "anomaly_acc": 1.0,
+        "anomaly_p": 1.0,
+        "anomaly_r": 1.0,
+        "anomaly_f1": 1.0,
+        "anomaly_auc": 1.0,
+        "rule_attr_acc": 1.0,
+        "cm_tp": 100,
+        "cm_fp": 0,
+        "cm_tn": 100,
+        "cm_fn": 0,
+        "anomaly_acc_MOSFET": 1.0,
+        "anomaly_p_MOSFET": 1.0,
+        "anomaly_r_MOSFET": 1.0,
+        "anomaly_f1_MOSFET": 1.0,
+        "anomaly_auc_MOSFET": 1.0,
+        "rule_attr_acc_MOSFET": 1.0
+      },
+      "metrics_structured": {
+        "version": "oracle-ceiling-v1",
+        "predictor": "oracle",
+        "model_ref": null,
+        "eval_set": "local",
+        "tags": [
+          "version:oracle-ceiling-v1",
+          "predictor:oracle",
+          "eval-set:local",
+          "split:id",
+          "role:compare-suite",
+          "role:oracle",
+          "suite:local_compare",
+          "suite-run:oracle-anomaly-ceiling"
+        ],
+        "tasks": {
+          "anomaly": {
+            "by_family": {
+              "overall": {
+                "n": 200,
+                "binary_acc": 1.0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0,
+                "confusion": {
+                  "tp": 100,
+                  "fp": 0,
+                  "tn": 100,
+                  "fn": 0
+                },
+                "roc_auc": 1.0,
+                "rule_attribution_acc": 1.0,
+                "per_rule_detection": {
+                  "RULE_BACKSIDE_BEFORE_PASSIVATION": 1.0,
+                  "RULE_CMP_NO_DEP": 1.0,
+                  "RULE_DEP_NO_CLEAN": 1.0,
+                  "RULE_ETCH_NO_MASK": 1.0,
+                  "RULE_IMPLANT_NO_MASK": 1.0,
+                  "RULE_LITHO_LEVEL_SKIP": 1.0,
+                  "RULE_PAD_OPEN_BEFORE_DEP": 1.0,
+                  "RULE_SHIP_BEFORE_TEST": 1.0,
+                  "RULE_TEST_BEFORE_PASSIVATION": 1.0
+                }
+              },
+              "MOSFET": {
+                "n": 200,
+                "binary_acc": 1.0,
+                "precision": 1.0,
+                "recall": 1.0,
+                "f1": 1.0,
+                "confusion": {
+                  "tp": 100,
+                  "fp": 0,
+                  "tn": 100,
+                  "fn": 0
+                },
+                "roc_auc": 1.0,
+                "rule_attribution_acc": 1.0,
+                "per_rule_detection": {
+                  "RULE_BACKSIDE_BEFORE_PASSIVATION": 1.0,
+                  "RULE_CMP_NO_DEP": 1.0,
+                  "RULE_DEP_NO_CLEAN": 1.0,
+                  "RULE_ETCH_NO_MASK": 1.0,
+                  "RULE_IMPLANT_NO_MASK": 1.0,
+                  "RULE_LITHO_LEVEL_SKIP": 1.0,
+                  "RULE_PAD_OPEN_BEFORE_DEP": 1.0,
+                  "RULE_SHIP_BEFORE_TEST": 1.0,
+                  "RULE_TEST_BEFORE_PASSIVATION": 1.0
+                }
+              }
+            }
+          }
+        },
+        "metric_keys": {
+          "nextstep": [
+            "top1",
+            "top3",
+            "top5",
+            "mrr"
+          ],
+          "completion": [
+            "exact_match",
+            "norm_edit_dist",
+            "token_acc",
+            "block_acc"
+          ],
+          "anomaly": [
+            "binary_acc",
+            "precision",
+            "recall",
+            "f1",
+            "roc_auc",
+            "rule_attribution_acc"
+          ]
+        }
+      },
+      "artifacts": {
+        "results_dir": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results",
+        "metrics_report_json": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results/metrics_report.json",
+        "metrics_report_md": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results/metrics_report.md",
+        "manifest_json": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results/manifest.json",
+        "examples_jsonl": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results/examples.jsonl",
+        "proxy_report_json": null,
+        "official_scores_txt": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results/official_scores.txt",
+        "nextstep_csv": null,
+        "completion_csv": null,
+        "anomaly_csv": "/Users/marcm/code/Zero One Philyr/experiments/20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755/results/anomaly.csv"
+      },
+      "git_branch": "feature/grpo-fsdp-campaign",
+      "git_sha": "3f4927e"
+    }
+  ],
+  "metric_specs": [
+    {
+      "key": "top1",
+      "label": "Top-1",
+      "task": "nextstep",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "top3",
+      "label": "Top-3",
+      "task": "nextstep",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "top5",
+      "label": "Top-5",
+      "task": "nextstep",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "mrr",
+      "label": "MRR",
+      "task": "nextstep",
+      "direction": "higher",
+      "format": "dec"
+    },
+    {
+      "key": "em",
+      "label": "Exact match",
+      "task": "completion",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "ned",
+      "label": "NED",
+      "task": "completion",
+      "direction": "lower",
+      "format": "dec"
+    },
+    {
+      "key": "token_acc",
+      "label": "Token acc",
+      "task": "completion",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "block_acc",
+      "label": "Block acc",
+      "task": "completion",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "anomaly_acc",
+      "label": "Binary acc",
+      "task": "anomaly",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "anomaly_p",
+      "label": "Precision",
+      "task": "anomaly",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "anomaly_r",
+      "label": "Recall",
+      "task": "anomaly",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "anomaly_f1",
+      "label": "F1",
+      "task": "anomaly",
+      "direction": "higher",
+      "format": "pct"
+    },
+    {
+      "key": "anomaly_auc",
+      "label": "ROC-AUC",
+      "task": "anomaly",
+      "direction": "higher",
+      "format": "dec"
+    },
+    {
+      "key": "rule_attr_acc",
+      "label": "Rule attr",
+      "task": "anomaly",
+      "direction": "higher",
+      "format": "pct"
+    }
+  ],
+  "deltas_vs_baseline": {
+    "20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d": {
+      "top1": 0.325,
+      "top3": 0.4775,
+      "top5": 0.3425,
+      "mrr": 0.3705,
+      "em": 0.0075,
+      "ned": -0.2515,
+      "token_acc": 0.1973,
+      "block_acc": 0.3185,
+      "anomaly_acc": 0.1,
+      "anomaly_p": 0.3333,
+      "anomaly_r": 0.2,
+      "anomaly_f1": 0.2593,
+      "anomaly_auc": 0.1666,
+      "rule_attr_acc": -0.5
+    },
+    "20260530_160615_eval_track-freq-freq-baseline-v1_997443": {
+      "top1": -0.325,
+      "top3": -0.4775,
+      "top5": -0.3425,
+      "mrr": -0.3705,
+      "em": -0.0075,
+      "ned": 0.2514,
+      "token_acc": -0.1973,
+      "block_acc": -0.3185,
+      "anomaly_acc": -0.3,
+      "anomaly_p": -0.6667,
+      "anomaly_r": -0.6,
+      "anomaly_f1": -0.6296,
+      "anomaly_auc": -0.3333,
+      "rule_attr_acc": null
+    },
+    "20260530_160615_eval_track-oracle-oracle-ceiling-v1_ac0755": {
+      "top1": null,
+      "top3": null,
+      "top5": null,
+      "mrr": null,
+      "em": null,
+      "ned": null,
+      "token_acc": null,
+      "block_acc": null,
+      "anomaly_acc": 0.2,
+      "anomaly_p": 0.3333,
+      "anomaly_r": 0.4,
+      "anomaly_f1": 0.3704,
+      "anomaly_auc": 0.1667,
+      "rule_attr_acc": 0.5
+    }
+  }
+}

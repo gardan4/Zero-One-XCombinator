@@ -15,6 +15,8 @@ const PREDICTORS = [
   "ngram",
   "freq",
   "oracle",
+  "base",
+  "base-hf",
   "hf",
   "llm",
   "likelihood-ngram",
@@ -220,8 +222,12 @@ export default function InferencePage() {
           </label>
         </div>
         <p className="text-xs text-neutral-500">
-          Baselines (ngram, freq, oracle) run by default. HF / LLM / classifier need{" "}
-          <code className="text-neutral-400">ZO_ALLOW_DASHBOARD_INFERENCE=1</code> on the backend.
+          Baselines (ngram, freq, oracle) run by default. <code className="text-neutral-400">base</code> (served)
+          / <code className="text-neutral-400">base-hf</code> (local) are an un-fine-tuned LLM given full
+          context; these and HF / LLM / classifier need{" "}
+          <code className="text-neutral-400">ZO_ALLOW_DASHBOARD_INFERENCE=1</code> on the backend. Leave Model
+          as <code className="text-neutral-400">default</code> to use{" "}
+          <code className="text-neutral-400">ZO_BASE_LLM_MODEL</code> (Qwen2.5-7B-Instruct).
         </p>
       </section>
 

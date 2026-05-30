@@ -16,10 +16,19 @@ verdict-based fallback.
 from __future__ import annotations
 
 import math
+import os
+from functools import lru_cache
 
 from zo_common.llm import chat as _default_chat
 from zo_common.llm import content, token_logprobs
-from zo_train.datagen import anomaly_example, completion_example, nextstep_example
+from zo_train.datagen import (
+    anomaly_context_example,
+    anomaly_example,
+    completion_context_example,
+    completion_example,
+    nextstep_context_example,
+    nextstep_example,
+)
 
 from zo_eval.examples_trace import trace_from_llm_response
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
@@ -40,6 +49,52 @@ def _an_prompt(item: AnomalyInput) -> str:
     return anomaly_example(item.family, list(item.sequence), True)["prompt"]
 
 
+# --- BASE-model prompts: the SFT framing above is too terse for an un-fine-tuned model, which has
+# never seen this vocabulary. ``style="base"`` instead spells out all the relevant context
+# (datagen.*_context_example): the family, the legal step vocabulary, recent-step descriptions, and
+# (optionally) a reference recipe. The per-family context is loaded once from the data and cached.
+@lru_cache(maxsize=8)
+def _family_context(family: str) -> tuple[tuple[str, ...], tuple[str, ...], dict]:
+    """``(candidate_steps, reference_recipe, descriptions)`` for base prompting.
+
+    Empty for an unseen OOD family (Task 4) — the prompt then simply omits those blocks, and the
+    normalizer's lenient mode lets novel steps through. Set ``ZO_BASE_PROMPT_REFERENCE=0`` to drop
+    the reference recipe (recommended when measuring learned ordering rather than recipe lookup).
+    """
+    from zo_train.datagen import load_descriptions
+    from zo_train.fab import all_steps, canonical_steps
+
+    fam = (family or "").upper()
+    try:
+        candidates: tuple[str, ...] = tuple(sorted(all_steps(fam)))
+        reference: tuple[str, ...] = tuple(canonical_steps(fam))
+        descriptions = load_descriptions(fam)
+    except Exception:  # unseen family / missing CSVs → run without family-specific context
+        candidates, reference, descriptions = (), (), {}
+    if os.environ.get("ZO_BASE_PROMPT_REFERENCE", "1") == "0":
+        reference = ()
+    return candidates, reference, descriptions
+
+
+def _ns_prompt_base(item: ValidInput) -> str:
+    cand, ref, desc = _family_context(item.family)
+    return nextstep_context_example(
+        item.family, list(item.partial_sequence), "", candidates=cand, reference=ref, descriptions=desc
+    )["prompt"]
+
+
+def _cp_prompt_base(item: ValidInput) -> str:
+    cand, ref, desc = _family_context(item.family)
+    return completion_context_example(
+        item.family, list(item.partial_sequence), [], candidates=cand, reference=ref, descriptions=desc
+    )["prompt"]
+
+
+def _an_prompt_base(item: AnomalyInput) -> str:
+    _, _, desc = _family_context(item.family)
+    return anomaly_context_example(item.family, list(item.sequence), True, descriptions=desc)["prompt"]
+
+
 def _valid_prob(resp: dict) -> float | None:
     """P(valid) from the first VALID/INVALID token's logprobs; None if unavailable."""
     for t in token_logprobs(resp)[:8]:
@@ -58,12 +113,23 @@ class ServedLLMPredictor:
 
     name = "llm"
 
-    def __init__(self, model: str = "default", base_url: str | None = None, temperature: float = 0.0, chat_fn=None):
+    def __init__(
+        self,
+        model: str = "default",
+        base_url: str | None = None,
+        temperature: float = 0.0,
+        chat_fn=None,
+        style: str = "sft",
+    ):
         self.model = model
         self.base_url = base_url
         self.temp = temperature
         self._chat = chat_fn or _default_chat
         self.vocab = vocab()
+        # "sft" → terse training framing (default); "base" → rich-context prompt for an
+        # un-fine-tuned model. The name drives the predictor: tag so /compare keeps them distinct.
+        self.style = style
+        self.name = "base" if style == "base" else "llm"
 
     def _ask(self, prompt: str, max_tokens: int, **kw) -> dict:
         return self._chat(
@@ -80,7 +146,8 @@ class ServedLLMPredictor:
         return ranks
 
     def next_step_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
-        resp = self._ask(_ns_prompt(item), 24)
+        prompt = _ns_prompt_base(item) if self.style == "base" else _ns_prompt(item)
+        resp = self._ask(prompt, 64 if self.style == "base" else 24)
         raw = content(resp)
         ranked = parse_pipe_list(raw, self.vocab, strict=True)
         out: list[str] = []
@@ -95,7 +162,7 @@ class ServedLLMPredictor:
         return steps
 
     def complete_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
-        resp = self._ask(_cp_prompt(item), 1024)
+        resp = self._ask(_cp_prompt_base(item) if self.style == "base" else _cp_prompt(item), 1024)
         raw = content(resp)
         txt = extract_answer(raw)
         steps = parse_pipe_list(txt, self.vocab, strict=True)
@@ -106,7 +173,8 @@ class ServedLLMPredictor:
         return result
 
     def anomaly_with_trace(self, item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
-        resp = self._ask(_an_prompt(item), 64, logprobs=True, top_logprobs=5)
+        prompt = _an_prompt_base(item) if self.style == "base" else _an_prompt(item)
+        resp = self._ask(prompt, 64, logprobs=True, top_logprobs=5)
         raw = content(resp)
         is_valid, rule = parse_anomaly(raw)
         lp_score = _valid_prob(resp)
@@ -124,28 +192,33 @@ class HFGeneratePredictor:
 
     name = "hf"
 
-    def __init__(self, model: str, device: str | None = None, max_new_tokens: int = 256):
+    def __init__(self, model: str, device: str | None = None, max_new_tokens: int = 256, style: str = "sft"):
         from zo_common.hub_inference import HubInferenceClient
 
         self._client = HubInferenceClient(model, device=device, max_new_tokens=max_new_tokens)
         self.vocab = vocab()
+        self.style = style
+        self.name = "base-hf" if style == "base" else "hf"
 
     def _gen(self, prompt: str, max_new_tokens: int | None = None) -> str:
         return self._client.generate(prompt, max_new_tokens=max_new_tokens or self._client.max_new_tokens)
 
     def next_step(self, item: ValidInput) -> list[str]:
-        # Training framing emits ONE next step → that's rank-1 (top-1 is the headline metric).
+        # SFT framing emits ONE next step (rank-1, the headline metric); base framing asks for up to 5.
+        prompt = _ns_prompt_base(item) if self.style == "base" else _ns_prompt(item)
         seen: list[str] = []
-        for s in parse_pipe_list(self._gen(_ns_prompt(item), 24), self.vocab, strict=True):
+        for s in parse_pipe_list(self._gen(prompt, 64 if self.style == "base" else 24), self.vocab, strict=True):
             if s not in seen:
                 seen.append(s)
         return seen[:5]
 
     def complete(self, item: ValidInput) -> list[str]:
-        return parse_pipe_list(extract_answer(self._gen(_cp_prompt(item), 1024)), self.vocab, strict=True)
+        prompt = _cp_prompt_base(item) if self.style == "base" else _cp_prompt(item)
+        return parse_pipe_list(extract_answer(self._gen(prompt, 1024)), self.vocab, strict=True)
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        is_valid, rule = parse_anomaly(self._gen(_an_prompt(item), 64))
+        prompt = _an_prompt_base(item) if self.style == "base" else _an_prompt(item)
+        is_valid, rule = parse_anomaly(self._gen(prompt, 64))
         return (is_valid, 0.9 if is_valid else 0.1, rule)
 
 

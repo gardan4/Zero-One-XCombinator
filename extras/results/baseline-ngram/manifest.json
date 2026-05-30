@@ -1,0 +1,34 @@
+{
+  "run_id": "20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d",
+  "version": "ngram-baseline-v1",
+  "predictor": "ngram",
+  "model_ref": null,
+  "eval_set": "local",
+  "tags": [
+    "version:ngram-baseline-v1",
+    "predictor:ngram",
+    "eval-set:local",
+    "split:id",
+    "role:compare-suite",
+    "role:baseline",
+    "suite:local_compare",
+    "suite-run:ngram-baseline"
+  ],
+  "train_run_id": null,
+  "train_run": null,
+  "notes": null,
+  "valid_csv": "extras/eval_local/eval_input_valid.csv",
+  "anomaly_csv": "extras/eval_local/eval_input_anomaly.csv",
+  "gold": "extras/eval_local/gold.json",
+  "artifacts": [
+    "anomaly.csv",
+    "completion.csv",
+    "examples.jsonl",
+    "metrics_report.json",
+    "metrics_report.md",
+    "nextstep.csv",
+    "official_scores.txt",
+    "ground_truth/"
+  ],
+  "created_at": "2026-05-30T16:06:15.115366+00:00"
+}

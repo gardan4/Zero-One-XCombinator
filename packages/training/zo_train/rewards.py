@@ -14,6 +14,15 @@ ablation: ``reward_validate`` (outcome — penalize *every* rule break, ``1 - n_
 ``longest_valid_prefix / n``). They diverge when violations cluster: one early break tanks the
 process reward but barely dents the outcome reward.
 
+Both rewards are **prefix-aware**: the continue-the-route tasks (completion / next-step) ask the
+model to extend a partial route, so a generation is only legal *relative to the steps it follows*.
+trl hands the reward the ``prompts`` it sampled from; ``_prefix_from_prompt`` recovers that prefix
+and we validate ``prefix + completion`` together (the anti-hack length floor still fires on the
+*completion* length). With no prompt the reward scores the completion in isolation — the original
+behaviour, kept for the unit tests. Scoring in isolation was the bug behind the first GRPO run: a
+1-step next-step answer hit the short-stub floor, every sample in the group got the same ``-0.99``,
+so the group std (and the GRPO advantage) was zero and nothing learned.
+
 **Reward hacking is the main risk** (the model finds a degenerate output that scores high
 without learning anything). A length-1 sequence like ``RECEIVE WAFER LOT`` is *trivially
 valid* — zero violations — so a naive ``1 - n_viol/n`` reward would pay the model to emit
@@ -54,6 +63,14 @@ PROGRESS_BONUS = 0.05  # smaller still: advancing into the ship/test tail withou
 SHIP_LOT = "SHIP LOT"
 # Backbone tail markers — being here means the sequence is "advancing toward" ship.
 _TAIL_MARKERS = ("WAFER SORT TEST", "FINAL VISUAL INSPECTION", "CURE PASSIVATION")
+# Marker *stems* that precede the pipe-joined prefix route in a GRPO prompt (see datagen's
+# {completion,nextstep}_example and their *_context_example siblings). We match the stem (no colon)
+# and then skip the header punctuation, so both layouts parse:
+#   "Process so far: A | B | C"                (inline, original prompts)
+#   "Process so far (74 steps):\nA | B | C"    (header + next line, the base-model context prompts)
+# A guard test pins this to the datagen formats so a wording change can't silently revert the reward
+# to (degenerate) isolation scoring. Most-specific stem first.
+_PREFIX_MARKERS = ("Partial process sequence", "Process so far")
 
 
 def _text(completion: object) -> str:
@@ -76,8 +93,59 @@ def _steps(completion: object) -> list[str]:
     return parse_pipe_list(answer, strict=True)
 
 
-def _score_one(steps: list[str]) -> float:
-    """Dense validity reward for one parsed completion, with anti-hack guards."""
+def _prefix_from_prompt(prompt: object) -> list[str]:
+    """Recover the pipe-joined prefix route embedded in a GRPO prompt (``[]`` if none found).
+
+    The continue-the-route prompts place the prefix right after a marker stem (``_PREFIX_MARKERS``),
+    either inline (``"Process so far: A | B | C"``) or under a header on the next line
+    (``"Process so far (74 steps):\\nA | B | C"``). We find the marker, skip past its header
+    punctuation (the first ``:``), then return the first following line that parses to >= 1 step — the
+    prefix is always a single SEP-joined line. Validating ``prefix + completion`` lets the reward judge
+    a continuation *in the context it must be legal in*. Returns ``[]`` when no marker is present, so
+    the reward gracefully falls back to isolation scoring. ``parse_pipe_list`` snaps to the exact step
+    vocabulary, so a header line like ``"(74 steps)"`` simply parses to nothing and is skipped.
+    """
+    if not prompt:
+        return []
+    from zo_eval.predict import parse_pipe_list
+
+    text = _text(prompt)
+    for marker in _PREFIX_MARKERS:
+        idx = text.find(marker)
+        if idx == -1:
+            continue
+        after = text[idx + len(marker) :]
+        colon = after.find(":")  # skip the header (covers "<marker>:" and "<marker> (N steps):")
+        if colon != -1:
+            after = after[colon + 1 :]
+        # The prefix is a single SEP-joined line; take the first non-empty parse within this block.
+        for line in after.split("\n\n", 1)[0].splitlines():
+            steps = parse_pipe_list(line, strict=True)
+            if steps:
+                return steps
+    return []
+
+
+def _tail_bonus(steps: list[str]) -> float:
+    """Small tie-breaker bonus for a route that reaches (``SHIP LOT``) / approaches the terminus."""
+    if SHIP_LOT in steps:
+        return SHIP_BONUS  # reached the terminus
+    if any(m in steps for m in _TAIL_MARKERS):
+        return PROGRESS_BONUS  # advancing into the end-of-line tail
+    return 0.0
+
+
+def _score_one(steps: list[str], prefix: list[str] | None = None) -> float:
+    """Dense validity reward for one completion, validated after ``prefix``, with anti-hack guards.
+
+    ``steps`` is the model's completion; ``prefix`` is the route it continues (recovered from the
+    prompt). The validity term scores ``prefix + steps`` together, but the anti-hack length floor
+    fires on the *completion* length — a short continuation is the degenerate exploit no matter how
+    long the given prefix is. ``validate_sequence`` only looks backward, so a legal prefix introduces
+    no violations of its own; we count only the violations at/after the prefix boundary and divide by
+    the completion length, which keeps the full dynamic range (an all-broken continuation → ~0, not
+    ~prefix_len/full_len). With ``prefix=[]`` this is exactly the original ``1 - n_violations/n``.
+    """
     n = len(steps)
     if n == 0:
         return EMPTY_PENALTY
@@ -87,15 +155,14 @@ def _score_one(steps: list[str]) -> float:
         # but it stays well below any non-degenerate sequence's score).
         return SHORT_PENALTY + 0.01 * n
 
-    violations = validate_sequence(steps)
-    base = 1.0 - len(violations) / n  # dense: every fixed rule helps, not all-or-nothing
-
-    bonus = 0.0
-    if SHIP_LOT in steps:
-        bonus = SHIP_BONUS  # reached the terminus
-    elif any(m in steps for m in _TAIL_MARKERS):
-        bonus = PROGRESS_BONUS  # advancing into the end-of-line tail
-    return base + bonus
+    prefix = prefix or []
+    full = prefix + steps
+    p = len(prefix)
+    # Only violations the continuation introduces (step_index >= p); a clean prefix contributes none,
+    # and this stays robust if the recovered prefix is itself imperfect.
+    new_violations = sum(1 for v in validate_sequence(full) if v.step_index >= p)
+    base = 1.0 - new_violations / n  # dense: every fixed rule helps, not all-or-nothing
+    return base + _tail_bonus(full)
 
 
 def _longest_valid_prefix(steps: list[str]) -> int:
@@ -113,52 +180,71 @@ def _longest_valid_prefix(steps: list[str]) -> int:
     return min(v.step_index for v in violations)
 
 
-def _score_one_process(steps: list[str]) -> float:
-    """Process reward for one completion: how far the route stays legal before the first break.
+def _score_one_process(steps: list[str], prefix: list[str] | None = None) -> float:
+    """Process reward for one completion: how far the *continuation* extends the legal run.
 
-    Same anti-hack guards as ``_score_one`` — a prefix reward is, if anything, *more* temptable by a
-    short all-valid stub, so the empty / too-short floors are essential. Differs from ``_score_one``
-    only in the base term: ``longest_valid_prefix / n`` (a long clean run from the start) instead of
-    ``1 - n_viol/n`` (few total breaks).
-
-    NOTE: validates the parsed completion *in isolation* — correct for the next-step task. For the
-    completion task (continue a partial route) the prompt's prefix must be prepended first; that
-    prompt-aware path lands with the completion-GRPO configs (via the trl ``prompts`` kwarg).
+    ``_longest_valid_prefix(prefix + steps)`` is the absolute index of the first rule break; we credit
+    the part of that legal run contributed by the completion — ``(lvp - len(prefix)) / n`` — so a
+    continuation that stays legal to the end scores ~1.0 and one that breaks at the boundary scores ~0.
+    Same anti-hack length floor on the completion as ``_score_one`` (a prefix reward is, if anything,
+    *more* temptable by a short all-valid stub). With ``prefix=[]`` this reduces to the original
+    ``longest_valid_prefix / n``.
     """
     n = len(steps)
     if n == 0:
         return EMPTY_PENALTY
     if n < MIN_STEPS:
         return SHORT_PENALTY + 0.01 * n
-    base = _longest_valid_prefix(steps) / n
-    bonus = 0.0
-    if SHIP_LOT in steps:
-        bonus = SHIP_BONUS  # reached the terminus
-    elif any(m in steps for m in _TAIL_MARKERS):
-        bonus = PROGRESS_BONUS  # advancing into the end-of-line tail
-    return base + bonus
+    prefix = prefix or []
+    full = prefix + steps
+    legal_into_completion = max(0, _longest_valid_prefix(full) - len(prefix))
+    base = legal_into_completion / n
+    return base + _tail_bonus(full)
 
 
-def reward_validate(completions, **kwargs) -> list[float]:
+def _prefixes_for(completions, prompts) -> list[list[str]]:
+    """One prefix route per completion (parsed from the paired prompt; ``[]`` when no prompts).
+
+    trl repeats each prompt ``num_generations`` times, so ``len(prompts) == len(completions)``; we
+    still pad/truncate to ``len(completions)`` so the downstream ``zip`` is provably aligned (a
+    misalignment would pair completions with the wrong prefix — worse than a crash).
+    """
+    if prompts is None:
+        return [[] for _ in completions]
+    prefixes = [_prefix_from_prompt(p) for p in prompts]
+    if len(prefixes) != len(completions):
+        prefixes = (prefixes + [[]] * len(completions))[: len(completions)]
+    return prefixes
+
+
+def reward_validate(completions, prompts=None, **kwargs) -> list[float]:
     """Dense, verifier-grounded reward over a batch of completions (trl contract).
 
-    Per completion: parse → ``1 - n_violations/n_steps`` for non-degenerate outputs; a hard
-    penalty for empty / ``< MIN_STEPS`` completions; a small bonus for reaching/approaching
-    ``SHIP LOT``. Range is roughly ``[-1, 1.1]``.
+    Prefix-aware: when trl passes the ``prompts`` it sampled from, each completion is validated as
+    ``prefix + completion`` (prefix recovered from the prompt), so a continuation is judged in the
+    context it must be legal in — not in isolation. Per completion: ``1 - new_violations/n`` for
+    non-degenerate outputs; a hard penalty for empty / ``< MIN_STEPS`` completions; a small bonus for
+    reaching/approaching ``SHIP LOT``. With no prompts this is the original isolation reward. Range
+    is roughly ``[-1, 1.1]``.
     """
-    return [_score_one(_steps(c)) for c in completions]
+    prefixes = _prefixes_for(completions, prompts)
+    return [_score_one(_steps(c), pre) for c, pre in zip(completions, prefixes, strict=True)]
 
 
-def reward_process(completions, **kwargs) -> list[float]:
+def reward_process(completions, prompts=None, **kwargs) -> list[float]:
     """Dense, verifier-grounded PROCESS reward over a batch of completions (trl contract).
 
-    Per completion: ``longest_valid_prefix / n_steps`` for non-degenerate outputs (the fraction of
-    the route that stays rule-legal from the first step until the first violation), the same hard
-    floor for empty / ``< MIN_STEPS`` completions, and the same small ``SHIP LOT`` tail bonus.
-    Pairs with ``reward_validate`` as the {process, outcome} axis of the GRPO reward ablation.
-    Range ≈ ``[-1, 1.1]``.
+    Prefix-aware like ``reward_validate``: scores ``(longest_valid_prefix(prefix+completion) -
+    len(prefix)) / n`` — the fraction of the *continuation* that extends the legal run from step 0.
+    Same empty / ``< MIN_STEPS`` floor and ``SHIP LOT`` tail bonus. Pairs with ``reward_validate`` as
+    the {process, outcome} axis of the GRPO reward ablation. With no prompts this reduces to the
+    original ``longest_valid_prefix / n``. Range ≈ ``[-1, 1.1]``.
     """
-    return [_score_one_process(_steps(c)) for c in completions]
+    prefixes = _prefixes_for(completions, prompts)
+    return [
+        _score_one_process(_steps(c), pre)
+        for c, pre in zip(completions, prefixes, strict=True)
+    ]
 
 
 def _has_clean_think(text: str) -> bool:

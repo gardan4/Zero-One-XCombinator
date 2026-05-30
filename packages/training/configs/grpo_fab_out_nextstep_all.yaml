@@ -1,10 +1,13 @@
 # GRPO cross-product — OUTCOME reward × NEXT-STEP task × all families.
-# Ablation axis: {output, process} × {nextstep, completion}. This is the lowest-risk arm (closest
-# to the original grpo_fab.yaml) — run it first as the Wave-A proof.
-# Starts FROM the instruction-tuned SFT checkpoint:
-#   set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch
-#   (e.g. $SCRATCH/zo-experiments/<instruct_run_id>/artifacts).
-# Smoke first:  uncomment extra.max_steps; reward should rise, completion length stay >= MIN_STEPS.
+#
+# ⚠️ KNOWN-DEGENERATE ARM — do NOT run as-is (kept as the documented negative result). A next-step
+# answer is ~1 step, which trips the reward's anti-hack `< MIN_STEPS` floor: every sample in a group
+# scores the same -0.99, so the GRPO advantage (group std) is zero and nothing learns. This is the
+# no-op run we already observed (reward ~ -0.99, frac_reward_zero_std ~ 1.0). Even prefix-aware the
+# length guard fires on the *completion* length, so the floor stands. Next-step needs a *boundary*
+# reward ("is the appended step legal after the prefix?") — a separate optional arm. Prefer the
+# completion configs (grpo_fab_{out,proc}_completion_all.yaml), where the reward has real signal.
+# Starts FROM the instruction-tuned SFT checkpoint (set ZO_SFT_CHECKPOINT_DIR in .env).
 name: grpo-out-nextstep-all
 kind: grpo
 model: ${ZO_SFT_CHECKPOINT_DIR}
@@ -22,4 +25,4 @@ extra:
   reward: validate             # OUTCOME: 1 - n_violations/n_steps
   local_files_only: true
   # max_steps: 50              # GPU smoke gate before the full run
-  tags: [leonardo, grpo, rlvr, "reward:output", "task:nextstep", all-families, "stream:2"]
+  tags: [debug, leonardo, grpo, rlvr, "reward:output", "task:nextstep", all-families, "stream:2"]

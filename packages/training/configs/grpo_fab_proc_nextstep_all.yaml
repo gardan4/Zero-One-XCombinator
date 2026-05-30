@@ -1,7 +1,11 @@
 # GRPO cross-product — PROCESS reward × NEXT-STEP task × all families.
-# Validates the new process reward (longest-valid-prefix / n) on the cheap next-step task before
-# spending the longer completion runs. Starts FROM the instruction-tuned SFT checkpoint:
-#   set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch.
+#
+# ⚠️ KNOWN-DEGENERATE ARM — do NOT run as-is (see grpo_fab_out_nextstep_all.yaml for the full why).
+# A ~1-step next-step answer trips the reward's `< MIN_STEPS` floor → identical -0.99 across the group
+# → zero GRPO advantage → no learning. The length guard is on the *completion* length, so prefix-
+# awareness doesn't lift it. Next-step needs a *boundary* reward, a separate optional arm. Prefer the
+# completion configs. Kept as the documented negative result.
+# Starts FROM the instruction-tuned SFT checkpoint (set ZO_SFT_CHECKPOINT_DIR in .env).
 name: grpo-proc-nextstep-all
 kind: grpo
 model: ${ZO_SFT_CHECKPOINT_DIR}
@@ -19,4 +23,4 @@ extra:
   reward: process              # PROCESS: longest_valid_prefix / n_steps
   local_files_only: true
   # max_steps: 50
-  tags: [leonardo, grpo, rlvr, "reward:process", "task:nextstep", all-families, "stream:2"]
+  tags: [debug, leonardo, grpo, rlvr, "reward:process", "task:nextstep", all-families, "stream:2"]

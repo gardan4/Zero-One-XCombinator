@@ -13,12 +13,13 @@ from __future__ import annotations
 
 import random
 
-from zo_train.datagen import SEP, make_negative
+from zo_train.datagen import SEP, completion_example, make_negative, nextstep_example
 from zo_train.fab import read_sequences
 from zo_train.grammar import validate_sequence
 from zo_train.rewards import (
     MIN_STEPS,
     SHIP_BONUS,
+    _prefix_from_prompt,
     reward_format,
     reward_process,
     reward_validate,
@@ -223,3 +224,124 @@ def test_process_and_outcome_rewards_are_distinct():
         if abs(p - v) > 1e-6:
             diffs += 1
     assert diffs > 0, "process and outcome rewards should differ when violations are not uniform"
+
+
+# ----------------------------------------------------- prefix-aware (completion-task) rewards
+#
+# The first GRPO run was a no-op: the reward scored each completion *in isolation*, so a 1-step
+# next-step answer hit the `< MIN_STEPS` floor and every sample in the group got the same -0.99 —
+# zero std ⇒ zero GRPO advantage ⇒ no learning. The fix validates `prefix + completion` together,
+# with the prefix recovered from the trl `prompts` kwarg. These tests pin that behaviour.
+
+
+def _split_route(frac: float = 0.5) -> tuple[str, list[str], list[str]]:
+    """A real, valid MOSFET route split into (family, prefix, rest) at `frac` (both >= MIN_STEPS)."""
+    seqs = read_sequences("MOSFET")
+    steps = seqs[0]
+    assert validate_sequence(steps) == [], "fixture route must be valid"
+    cut = max(MIN_STEPS, min(int(len(steps) * frac), len(steps) - MIN_STEPS))
+    return "MOSFET", steps[:cut], steps[cut:]
+
+
+def test_prefix_recovered_from_both_prompt_formats():
+    """`_prefix_from_prompt` round-trips the prefix out of BOTH task prompt formats.
+
+    This is the guard that keeps the reward coupled-but-safe to the datagen prompt wording: if either
+    template changes so the marker/parse breaks, this fails loudly instead of the reward silently
+    reverting to (degenerate) isolation scoring.
+    """
+    fam, prefix, rest = _split_route()
+    comp_prompt = completion_example(fam, prefix, rest)["prompt"]
+    ns_prompt = nextstep_example(fam, prefix, rest[0])["prompt"]
+    assert _prefix_from_prompt(comp_prompt) == prefix
+    assert _prefix_from_prompt(ns_prompt) == prefix
+    assert _prefix_from_prompt("no marker in here") == []
+    assert _prefix_from_prompt(None) == []
+
+
+def test_prefix_recovered_from_context_prompt_layout():
+    """The base-model *context* prompts put the prefix on the line AFTER a "(N steps):" header.
+
+    `_prefix_from_prompt` must handle that layout too — a silently-empty prefix means the reward
+    reverts to isolation scoring (the degenerate case). Written as a literal string so this doesn't
+    couple to datagen's in-flight `*_context_example` helpers.
+    """
+    _fam, prefix, _rest = _split_route()
+    ctx_prompt = (
+        "You are given a sequence of process steps.\n"
+        f"\nProcess so far ({len(prefix)} steps):\n{SEP.join(prefix)}\n"
+        "\nPredict the most likely NEXT step.\n"
+    )
+    assert _prefix_from_prompt(ctx_prompt) == prefix
+
+
+def test_completion_reward_validates_in_context():
+    """A continuation legal *after its prefix* out-scores a verified-illegal one (the core signal)."""
+    fam, prefix, rest = _split_route()
+    prompt = completion_example(fam, prefix, rest)["prompt"]
+    good = SEP.join(rest)  # the real continuation → completes the route
+    bad_steps = list(reversed(rest))  # reversed route → breaks ordering rules early
+    assert validate_sequence(prefix + bad_steps) != [], "reversed continuation must violate a rule"
+
+    (good_score,) = reward_validate([good], prompts=[prompt])
+    (bad_score,) = reward_validate([SEP.join(bad_steps)], prompts=[prompt])
+    assert good_score > bad_score, (good_score, bad_score)
+    # The genuine continuation reaches SHIP LOT → near-perfect base + the tail bonus.
+    assert good_score > 1.0
+
+
+def test_completion_group_has_reward_variance():
+    """Regression for the degenerate run: a group of differing continuations must NOT all score equal.
+
+    With isolation scoring these all collapsed to the floor (zero variance). Prefix-aware, they spread
+    out — which is exactly what gives GRPO a non-zero advantage to learn from.
+    """
+    fam, prefix, rest = _split_route()
+    prompt = completion_example(fam, prefix, rest)["prompt"]
+    early_stop = rest[: max(MIN_STEPS, len(rest) // 3)]  # valid, but stops before SHIP LOT
+    variants = [
+        SEP.join(rest),  # perfect → ~1.1 (base 1.0 + ship bonus)
+        SEP.join(early_stop),  # valid prefix of the route, no terminus → ~1.0
+        SEP.join(list(reversed(rest))),  # many early violations → well below 1.0
+    ]
+    scores = reward_validate(variants, prompts=[prompt] * len(variants))
+    assert len({round(s, 6) for s in scores}) >= 2, scores  # genuine spread, not a constant
+    assert scores[0] > 1.0  # the perfect continuation clears 1.0 (base 1.0 + ship bonus)
+    assert scores[1] > 0.9  # the valid early-stop is high — nowhere near the -0.99 short-stub floor
+
+
+def test_process_reward_prefix_aware_credits_continuation():
+    """Process reward credits the legal run *into the continuation*; an early break tanks it."""
+    fam, prefix, rest = _split_route()
+    prompt = completion_example(fam, prefix, rest)["prompt"]
+    (full_legal,) = reward_process([SEP.join(rest)], prompts=[prompt])
+    # Reverse the continuation → it breaks at/near the boundary → almost no legal run into the tail.
+    (early_break,) = reward_process([SEP.join(list(reversed(rest)))], prompts=[prompt])
+    assert full_legal > early_break, (full_legal, early_break)
+    assert full_legal > 1.0  # full legal run (base 1.0) + ship tail bonus
+
+
+def test_prefix_aware_backward_compatible():
+    """No prompts ⇒ identical to isolation scoring (every pre-existing reward test relies on this)."""
+    _, valid_text = _valid_completion()
+    assert reward_validate([valid_text]) == reward_validate([valid_text], prompts=None)
+    assert reward_process([valid_text]) == reward_process([valid_text], prompts=None)
+
+
+def test_nextstep_single_step_still_floored_documents_scope():
+    """Scope guard: the completion arm does NOT rescue next-step — a 1-step answer is still floored.
+
+    The anti-hack length guard fires on the *completion* length, so a ~1-step next-step answer hits
+    the floor whether or not a prefix is supplied. That's deliberate: next-step needs a different
+    reward shape (a boundary "is the appended step legal in context?" signal), a separate optional
+    arm. This pins the boundary of the prefix-aware *completion* fix so it isn't mistaken for a
+    next-step fix.
+    """
+    fam, prefix, _rest = _split_route()
+    next_step = prefix[-1]  # the model emits a single step as its "next" answer
+    short_prefix = prefix[:-1]
+    ns_prompt = nextstep_example(fam, short_prefix, next_step)["prompt"]
+
+    (isolated,) = reward_validate([next_step])  # no prompt → 1 step < MIN_STEPS → floored
+    (in_context,) = reward_validate([next_step], prompts=[ns_prompt])  # still 1-step completion
+    assert isolated <= -0.9 and in_context <= -0.9  # floored either way (guard is on completion len)
