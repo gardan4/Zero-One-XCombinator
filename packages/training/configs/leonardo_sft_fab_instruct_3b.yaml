@@ -1,0 +1,24 @@
+# Model-size sweep — 3B. Same canonical JSON instruct corpus as the 1.5B best. Conservative
+# memory: batch 1 x grad_accum 16 (eff. 16) + gradient checkpointing to fit full-FT on one A100-64GB.
+# If it still OOMs, set lora: true (the run-time logs will show the OOM) — re-submit --no-prep.
+name: leonardo-sft-fab-instruct-3b
+kind: sft
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-3B-Instruct
+dataset: data/generated/instruct_all.jsonl
+text_field: messages
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+warmup_ratio: 0.05
+epochs: 3
+batch_size: 1
+grad_accum: 16
+seed: 42
+extra:
+  local_files_only: true
+  gradient_checkpointing: true
+  completion_only_loss: true
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-3B-Instruct
+  tags: [leonardo, sft, fab, instruct, full-ft, all-families, "model-size:3b", "stream:1"]

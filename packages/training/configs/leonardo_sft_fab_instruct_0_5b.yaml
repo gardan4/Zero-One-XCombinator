@@ -1,0 +1,23 @@
+# Model-size sweep — 0.5B. Same canonical JSON instruct corpus as the 1.5B best, only the base
+# model differs, so eval differences are attributable to model size. Base staged in hf-local.
+name: leonardo-sft-fab-instruct-0_5b
+kind: sft
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-0.5B-Instruct
+dataset: data/generated/instruct_all.jsonl
+text_field: messages
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+warmup_ratio: 0.05
+epochs: 3
+batch_size: 8
+grad_accum: 2
+seed: 42
+extra:
+  local_files_only: true
+  gradient_checkpointing: true
+  completion_only_loss: true
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-0.5B-Instruct
+  tags: [leonardo, sft, fab, instruct, full-ft, all-families, "model-size:0.5b", "stream:1"]
