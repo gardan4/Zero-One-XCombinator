@@ -6,7 +6,7 @@
 name: leonardo-sft-fab-all
 kind: sft
 # Pre-staged 1.5B dir on scratch (set to your absolute ZO_SMOKE_BASE_MODEL_DIR; configs don't expand $SCRATCH):
-model: $SCRATCH/hf-local/Qwen2.5-1.5B-Instruct
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct
 dataset: data/generated/MOSFET_sft_lm.jsonl,data/generated/IGBT_sft_lm.jsonl,data/generated/IC_sft_lm.jsonl
 text_field: text
 lora: false              # full fine-tune (serves with `just serve <dir>`, no LoRA merge)

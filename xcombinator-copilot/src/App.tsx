@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Family, Prediction } from './types'
+import type { Family, Prediction, Violation } from './types'
 import { defaultSample, describe, expectedLength } from './lib/data'
 import { segmentRoute, buildRoadmap, categoryOf } from './lib/grammar'
 import { validateRoute, ruleForStep } from './lib/rules'
-import { predictNextStep, LIVE } from './lib/model'
-import TopBar from './components/TopBar'
+import { predictNextStep, listModels, LIVE } from './lib/model'
+import TopBar, { type View } from './components/TopBar'
 import ProcessRoute from './components/ProcessRoute'
 import FullRouteRail from './components/FullRouteRail'
 import StepDetail from './components/StepDetail'
 import ControlBar from './components/ControlBar'
 import ImportDialog, { type ImportPayload } from './components/ImportDialog'
+import Benchmarks from './components/Benchmarks'
 
 export default function App() {
   const init = defaultSample('MOSFET')
+  const [view, setView] = useState<View>('copilot')
   const [family, setFamily] = useState<Family>('MOSFET')
   const [steps, setSteps] = useState<string[]>(init.steps)
   const [routeLabel, setRouteLabel] = useState<string>(init.label)
@@ -21,6 +23,8 @@ export default function App() {
   const [selOverride, setSelOverride] = useState<number | null>(null) // null = follow head
   const [expOverride, setExpOverride] = useState<number | null>(null) // null = follow head phase
   const [importOpen, setImportOpen] = useState(false)
+  const [models, setModels] = useState<string[]>([])
+  const [selectedModel, setSelectedModel] = useState<string>('')
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       return (localStorage.getItem('xc-theme') as 'dark' | 'light') || 'dark'
@@ -29,6 +33,8 @@ export default function App() {
     }
   })
   const token = useRef(0)
+  const modelRef = useRef('') // latest selected model, so runPredict never reads a stale value
+  modelRef.current = selectedModel
 
   const phases = useMemo(() => segmentRoute(steps), [steps])
   const violations = useMemo(() => validateRoute(steps), [steps])
@@ -46,7 +52,7 @@ export default function App() {
     const t = ++token.current
     setPredicting(true)
     setPrediction(null)
-    predictNextStep(fam, seq).then((p) => {
+    predictNextStep(fam, seq, modelRef.current || undefined).then((p) => {
       if (t === token.current) {
         setPrediction(p)
         setPredicting(false)
@@ -54,11 +60,19 @@ export default function App() {
     })
   }
 
-  // first prediction on mount
+  // load the served model list; default the selection to the first id
+  useEffect(() => {
+    listModels().then((ids) => {
+      setModels(ids)
+      if (ids.length) setSelectedModel((cur) => cur || ids[0])
+    })
+  }, [])
+
+  // first prediction on mount, and again whenever the chosen model changes
   useEffect(() => {
     runPredict(family, steps)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [selectedModel])
 
   // apply + persist the theme
   useEffect(() => {
@@ -106,6 +120,17 @@ export default function App() {
     if (p) setSelOverride(p.steps[p.steps.length - 1].idx)
   }
 
+  // Would appending the predicted step keep the route grammar-valid? Compare the
+  // violations of the route *with* the prediction against the current ones; the
+  // first violation that isn't already present is what the suggestion would break.
+  const predCheck = useMemo(() => {
+    if (!prediction) return { valid: true, violation: null as Violation | null }
+    const before = new Set(violations.map((x) => `${x.rule}@${x.stepIndex}`))
+    const after = validateRoute([...steps, prediction.step])
+    const fresh = after.find((x) => !before.has(`${x.rule}@${x.stepIndex}`)) ?? null
+    return { valid: !fresh, violation: fresh }
+  }, [prediction, steps, violations])
+
   const selStep = steps[selectedIdx]
   const selPhase = phases.find((p) => p.steps.some((s) => s.idx === selectedIdx))
   const stepRule = useMemo(() => ruleForStep(steps, selectedIdx, violations), [steps, selectedIdx, violations])
@@ -123,14 +148,22 @@ export default function App() {
       <span className="reg-tick br" />
 
       <TopBar
+        view={view}
+        onNav={setView}
         family={family}
         onFamily={onFamily}
         onImport={() => setImportOpen(true)}
         live={LIVE}
+        models={models}
+        selectedModel={selectedModel}
+        onSelectModel={setSelectedModel}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />
 
+      {view === 'benchmarks' ? (
+        <Benchmarks />
+      ) : (
       <div className="workspace">
         <div className="left-col">
           <div className="flow-canvas glass">
@@ -149,6 +182,8 @@ export default function App() {
               selectedIdx={selectedIdx}
               prediction={prediction}
               predicting={predicting}
+              predValid={predCheck.valid}
+              predViolation={predCheck.violation}
               roadmap={roadmap}
               violations={violations}
               onSelectStep={(i) => setSelOverride(i)}
@@ -181,8 +216,11 @@ export default function App() {
           complete={complete}
         />
       </div>
+      )}
 
-      {importOpen && <ImportDialog family={family} onClose={() => setImportOpen(false)} onImport={onImport} />}
+      {view === 'copilot' && importOpen && (
+        <ImportDialog family={family} onClose={() => setImportOpen(false)} onImport={onImport} />
+      )}
     </div>
   )
 }

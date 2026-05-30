@@ -1,0 +1,33 @@
+{
+  "run_id": "20260530_195011_eval_track-hf-sft-lofo-ic-v1_7e778e",
+  "version": "sft-lofo-ic-v1",
+  "predictor": "hf",
+  "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_192559_sft_leonardo-sft-fab-lofo-ic_ce7ff7/artifacts",
+  "eval_set": "local",
+  "tags": [
+    "version:sft-lofo-ic-v1",
+    "predictor:hf",
+    "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_192559_sft_leonardo-sft-fab-lofo-ic_ce7ff7--artifacts",
+    "eval-set:local",
+    "real-run",
+    "reportable",
+    "role:finetuned",
+    "split:ood",
+    "family:IC"
+  ],
+  "train_run_id": null,
+  "train_run": null,
+  "notes": null,
+  "valid_csv": "/leonardo/home/usertrain/a08trd0f/Zero-One-Philyr/extras/eval_local/IC/eval_input_valid.csv",
+  "anomaly_csv": "/leonardo/home/usertrain/a08trd0f/Zero-One-Philyr/extras/eval_local/IC/eval_input_anomaly.csv",
+  "gold": "/leonardo/home/usertrain/a08trd0f/Zero-One-Philyr/extras/eval_local/IC/gold.json",
+  "artifacts": [
+    "anomaly.csv",
+    "completion.csv",
+    "examples.jsonl",
+    "metrics_report.json",
+    "metrics_report.md",
+    "nextstep.csv"
+  ],
+  "created_at": "2026-05-30T20:18:22.541233+00:00"
+}

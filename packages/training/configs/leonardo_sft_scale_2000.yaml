@@ -1,0 +1,22 @@
+# Data-scaling study: SFT-all on 2000 FRESHLY-GENERATED sequences/family (> the vendored 1,000).
+# Identical to leonardo_sft_fab.yaml except the dataset size — the upper end of the scaling curve.
+name: leonardo-sft-scale-2000
+kind: sft
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct
+dataset: data/generated_scale/2000/MOSFET_sft_lm.jsonl,data/generated_scale/2000/IGBT_sft_lm.jsonl,data/generated_scale/2000/IC_sft_lm.jsonl
+text_field: text
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 1.0e-5
+warmup_ratio: 0.05
+epochs: 2
+batch_size: 4
+grad_accum: 4
+seed: 42
+extra:
+  local_files_only: true
+  gradient_checkpointing: true
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-1.5B-Instruct
+  tags: [leonardo, sft, fab, scale, "data-size:2000", all-families]

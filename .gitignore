@@ -257,3 +257,4 @@ id_rsa*
 .vscode/*
 !.vscode/tasks.json
 !.vscode/extensions.json
+data/generated_scale/

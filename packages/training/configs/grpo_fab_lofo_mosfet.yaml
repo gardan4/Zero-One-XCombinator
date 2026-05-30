@@ -1,0 +1,23 @@
+# GRPO on a LOFO checkpoint — the OOD-headroom arm (replaces the saturated all-family GRPO).
+# Start from lofo-mosfet (trained on IGBT+IC, NEVER saw MOSFET) and GRPO on MOSFET completions.
+# Because the model is weak on the held-out family, its completions are often INVALID -> the
+# prefix-aware validate reward has real headroom -> RL should climb (vs the flat ~0.97 all-family run).
+# This is the "RL teaches the OOD process logic the model didn't generalize" story.
+# Submit with: ZO_SFT_CHECKPOINT_DIR=<lofo-mosfet artifacts dir> uv run zo-cluster submit -c <this>
+name: grpo-lofo-mosfet-completion
+kind: grpo
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_sft_completion.jsonl   # the HELD-OUT family (OOD for lofo-mosfet)
+learning_rate: 1.0e-6
+batch_size: 4
+grad_accum: 2
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+extra:
+  num_generations: 4           # divides generation_batch_size (batch4*gaccum2=8)
+  max_completion_length: 384
+  reward: validate             # prefix-aware: 1 - new_violations(prefix+comp)/n_comp
+  local_files_only: true
+  tags: [real-run, reportable, "version:grpo-lofo-mosfet-v1", leonardo, grpo, rlvr, "reward:output", "task:completion", "lofo:mosfet", ood, "stream:2"]

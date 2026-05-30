@@ -18,7 +18,7 @@ max_seq_len: 1024              # caps the prompt (max ~690 tokens); completion c
 lora: true
 bf16: true
 extra:
-  num_generations: 6           # fewer samples per prompt (long completions cost memory)
+  num_generations: 4           # must divide generation_batch_size (batch4*gaccum2=8); 6 errors in trl
   max_completion_length: 384   # fits the ~328-token continuation targets
   reward: validate             # OUTCOME (prefix-aware): 1 - new_violations(prefix+comp)/n_comp
   local_files_only: true

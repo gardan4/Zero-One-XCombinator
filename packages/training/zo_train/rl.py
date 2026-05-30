@@ -18,8 +18,8 @@ import inspect
 import os
 
 from zo_common import ExperimentConfig, append_metric, run_dir, update_run
-from zo_common.wandb_runs import finish_run, init_run, log_metrics, wandb_enabled
-from zo_common.wandb_schema import merge_tags, pytest_auto_tags
+from zo_common.wandb_runs import finish_run, init_run, log_metrics, pytest_auto_tags, wandb_enabled
+from zo_common.wandb_schema import merge_tags
 
 
 def _report_to() -> list[str]:

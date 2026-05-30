@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Prediction, Violation } from '../types'
 import type { Phase, RoadmapPhase } from '../lib/grammar'
+import { RULE_SHORT } from '../lib/rules'
 
 const HEAD_CAP = 9 // when the head phase is long, show only the last N steps (compressed)
 
@@ -12,6 +13,10 @@ interface Props {
   selectedIdx: number
   prediction: Prediction | null
   predicting: boolean
+  /** does appending prediction.step keep the route grammar-valid? */
+  predValid: boolean
+  /** the new violation appending the step would introduce, if any */
+  predViolation: Violation | null
   roadmap: RoadmapPhase[]
   violations: Violation[]
   onSelectStep: (idx: number) => void
@@ -19,7 +24,7 @@ interface Props {
 }
 
 export default function ProcessRoute(props: Props) {
-  const { phases, headIdx, headPhaseIndex, expandedIndex, selectedIdx, prediction, predicting, roadmap, violations, onSelectStep, onExpandPhase } = props
+  const { phases, headIdx, headPhaseIndex, expandedIndex, selectedIdx, prediction, predicting, predValid, predViolation, roadmap, violations, onSelectStep, onExpandPhase } = props
   const wrapRef = useRef<HTMLDivElement>(null)
   const expandedRef = useRef<HTMLDivElement>(null)
   const headRef = useRef<HTMLButtonElement>(null)
@@ -87,11 +92,34 @@ export default function ProcessRoute(props: Props) {
             })}
 
             {isHeadPhase && (predicting || prediction) && (
-              <div className={`r-predict${predicting ? ' forming' : ''}`} key="ghost">
+              <div
+                className={`r-predict${predicting ? ' forming' : ''}${!predicting && prediction && !predValid ? ' breaks' : ''}`}
+                key="ghost"
+              >
                 <span className="r-ptag">{predicting ? 'Predicting' : 'Predicted next'}</span>
                 <span className="r-ghost" />
                 {!predicting && prediction && <span className="r-plabel mono">{prediction.step}</span>}
-                {!predicting && prediction && <span className="r-pconf mono">{Math.round(prediction.confidence * 100)}%</span>}
+                {!predicting && prediction && (
+                  <span
+                    className={`r-pchip${predValid ? ' ok' : ' warn'}`}
+                    title={
+                      predValid
+                        ? 'Appending this step keeps the route grammar-valid.'
+                        : predViolation
+                          ? RULE_SHORT[predViolation.rule] ?? predViolation.description
+                          : 'Appending this step would break a process-logic rule.'
+                    }
+                  >
+                    {predValid ? '✓ valid next step' : `⚠ would break ${predViolation ? prettyRule(predViolation.rule) : 'a rule'}`}
+                  </span>
+                )}
+                {!predicting && prediction && (
+                  <span className="r-pconf mono">
+                    <span className="pc-k">model confidence</span>
+                    <span className="pc-bar"><span className="pc-fill" style={{ width: `${Math.round(prediction.confidence * 100)}%` }} /></span>
+                    <span className="pc-v">{Math.round(prediction.confidence * 100)}%</span>
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -135,4 +163,9 @@ export default function ProcessRoute(props: Props) {
       <div className="track">{items}</div>
     </div>
   )
+}
+
+/** Compact, human-readable name for a rule id, e.g. RULE_DEP_NO_CLEAN → "dep no clean". */
+function prettyRule(rule: string): string {
+  return rule.replace(/^RULE_/, '').replace(/_/g, ' ').toLowerCase()
 }

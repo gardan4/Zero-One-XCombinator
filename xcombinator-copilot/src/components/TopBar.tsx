@@ -1,16 +1,51 @@
 import type { Family } from '../types'
 import { FAMILIES } from '../lib/data'
 
+export type View = 'copilot' | 'benchmarks'
+
 interface Props {
+  view: View
+  onNav: (v: View) => void
   family: Family
   onFamily: (f: Family) => void
   onImport: () => void
   live: boolean
+  models: string[]
+  selectedModel: string
+  onSelectModel: (m: string) => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
 }
 
-export default function TopBar({ family, onFamily, onImport, live, theme, onToggleTheme }: Props) {
+const VIEWS: { id: View; label: string }[] = [
+  { id: 'copilot', label: 'Copilot' },
+  { id: 'benchmarks', label: 'Benchmarks' },
+]
+
+/** Map a served model id to a friendly label, falling back to the raw id. */
+export function modelLabel(id: string): string {
+  const lc = id.toLowerCase()
+  if (id === 'base-qwen') return 'Base · Qwen2.5-1.5B'
+  if (id === 'sft-fab-all') return 'Fine-tuned · SFT'
+  if (id === 'grpo-lofo-mosfet' || lc.includes('grpo')) return 'RL · GRPO'
+  if (lc.includes('lofo')) return 'OOD · LOFO'
+  return id
+}
+
+export default function TopBar({
+  view,
+  onNav,
+  family,
+  onFamily,
+  onImport,
+  live,
+  models,
+  selectedModel,
+  onSelectModel,
+  theme,
+  onToggleTheme,
+}: Props) {
+  const isCopilot = view === 'copilot'
   return (
     <header className="topbar glass">
       <div className="wordmark">
@@ -19,30 +54,72 @@ export default function TopBar({ family, onFamily, onImport, live, theme, onTogg
         <span className="tag">Fab Process Copilot</span>
       </div>
 
-      <div className="spacer" />
-
-      <span className="seg-label">Family</span>
-      <div className="segmented" role="tablist" aria-label="Product family">
-        {FAMILIES.map((f) => (
+      <div className="segmented nav-seg" role="tablist" aria-label="View">
+        {VIEWS.map((v) => (
           <button
-            key={f}
+            key={v.id}
             role="tab"
-            aria-selected={f === family}
-            className={`seg${f === family ? ' active' : ''}`}
-            onClick={() => onFamily(f)}
+            aria-selected={v.id === view}
+            className={`seg${v.id === view ? ' active' : ''}`}
+            onClick={() => onNav(v.id)}
           >
-            {f}
+            {v.label}
           </button>
         ))}
       </div>
 
-      <button className="btn-ghost" onClick={onImport}>
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <path d="M7 9.2V1.8M7 1.8L4.2 4.6M7 1.8l2.8 2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M2 9v2.2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-        </svg>
-        Import sequence
-      </button>
+      <div className="spacer" />
+
+      {isCopilot && (
+        <>
+          <span className="seg-label">Family</span>
+          <div className="segmented" role="tablist" aria-label="Product family">
+            {FAMILIES.map((f) => (
+              <button
+                key={f}
+                role="tab"
+                aria-selected={f === family}
+                className={`seg${f === family ? ' active' : ''}`}
+                onClick={() => onFamily(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          <span className="seg-label">Model</span>
+          {models.length > 0 ? (
+            <div className="model-select">
+              <select
+                aria-label="Inference model"
+                value={selectedModel}
+                onChange={(e) => onSelectModel(e.target.value)}
+              >
+                {models.map((m) => (
+                  <option key={m} value={m}>
+                    {modelLabel(m)}
+                  </option>
+                ))}
+              </select>
+              <svg className="ms-caret" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+                <path d="M2.4 3.8L5 6.4l2.6-2.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          ) : (
+            <span className="model-chip" title="No inference server reachable">
+              Simulated (no server)
+            </span>
+          )}
+
+          <button className="btn-ghost" onClick={onImport}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 9.2V1.8M7 1.8L4.2 4.6M7 1.8l2.8 2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 9v2.2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            Import sequence
+          </button>
+        </>
+      )}
 
       <button
         className="icon-btn"
@@ -62,10 +139,10 @@ export default function TopBar({ family, onFamily, onImport, live, theme, onTogg
         )}
       </button>
 
-      <div className={`status-pill${live ? ' is-live' : ''}`}>
+      <div className={`status-pill${live && selectedModel ? ' is-live' : ''}`}>
         <span className="dot" />
-        {live ? 'Live · model' : 'Simulated'}
-        {!live && <span className="future">Live · model</span>}
+        {live && selectedModel ? `Live · ${modelLabel(selectedModel)}` : 'Simulated'}
+        {!(live && selectedModel) && <span className="future">Live · model</span>}
       </div>
     </header>
   )
