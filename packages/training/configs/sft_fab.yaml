@@ -1,0 +1,30 @@
+# Stream 1 — SFT spine. All-family baseline: full fine-tune Qwen2.5-1.5B on the fab
+# step-sequence corpus (one full sequence per row, `text` field) for all 3 families.
+#
+# NOTE: this is the *leaky-ID* baseline — it trains on every family, including whatever
+# family the organizers later eval. It is the upper bound / "ID" half of the headline
+# ID-vs-OOD table. The honest OOD comparison is the three sft_fab_lofo_*.yaml configs,
+# which each hold one family out. See configs/README.md.
+#
+# Dataset = the three families' SFT-LM JSONL files (comma-separated -> concatenated).
+# Requires `uv run python -m zo_train.datagen` to have written data/generated/*_sft_lm.jsonl.
+#
+# Validate locally:  just train configs/sft_fab.yaml --dry-run
+# Real run (GPU):     uv run zo-train sft -c configs/sft_fab.yaml   (or `just submit` to Leonardo)
+name: sft-fab-all
+kind: sft
+model: Qwen/Qwen2.5-1.5B-Instruct
+dataset: data/generated/MOSFET_sft_lm.jsonl,data/generated/IGBT_sft_lm.jsonl,data/generated/IC_sft_lm.jsonl
+text_field: text
+lora: false                 # FULL fine-tune so `just serve <ckpt_dir>` works with no LoRA merge
+epochs: 3
+batch_size: 8
+grad_accum: 2
+learning_rate: 2.0e-5
+max_seq_len: 1024           # sequences are ~115-151 steps (~300-600 tokens) -> 1024 is ample
+warmup_ratio: 0.03
+bf16: true
+seed: 42
+extra:
+  tags: [stream:1]
+  max_steps: 50             # remove / set -1 for a full run; 50 = 1-GPU smoke
