@@ -2,9 +2,17 @@ from __future__ import annotations
 
 import typer
 from zo_common import ExperimentConfig, new_run, update_run
+from zo_common.env import load_dotenv
 from zo_common.registry import get_run, run_dir
 
 app = typer.Typer(help="Train models (SFT / GRPO) for Zero One.", no_args_is_help=True)
+
+
+@app.callback()
+def _main() -> None:
+    """Load <repo>/.env (WANDB_API_KEY, HF_TOKEN, ...) before any command, so W&B logging and
+    HF auth work from .env without exporting by hand. Real env vars still win."""
+    load_dotenv()
 
 
 def _prepare(config: str, kind: str, run_id: str | None):
