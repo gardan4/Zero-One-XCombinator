@@ -1,8 +1,12 @@
 // =============================================================================
-// FabSeq-S results — ILLUSTRATIVE PLACEHOLDER DATA.
-// Every number below is a stand-in for the trained model. To go live, replace
-// these values with the output of eval_metrics.py (per-task, per-family) and
-// your training log. The dashboard renders entirely from this object.
+// FabSeq-S results.
+// MEASURED (real): nextstep.{overall,perFamily}.baseline* and
+//   completion.overall.baseline — produced by `node scripts/eval-baseline.mjs
+//   --benchmark` (retrieval/n-gram baseline, leak-free 10% val split of the
+//   1000 seqs/family; see extras/results/metrics.json).
+// ILLUSTRATIVE (placeholder, pending the trained model): every *.finetuned
+//   block, the anomaly baseline, training curve, and OOD. Replace with
+//   eval_metrics.py output to go fully live.
 // Fractions are in [0,1]; normEditDistance is lower-is-better.
 // =============================================================================
 
@@ -101,10 +105,10 @@ export const RESULTS = {
   "nextstep": {
     "overall": {
       "baseline": {
-        "top1": 0.634,
-        "top3": 0.841,
-        "top5": 0.902,
-        "mrr": 0.724
+        "top1": 0.667,
+        "top3": 0.910,
+        "top5": 0.912,
+        "mrr": 0.788
       },
       "finetuned": {
         "top1": 0.871,
@@ -116,22 +120,22 @@ export const RESULTS = {
     "perFamily": [
       {
         "family": "IC",
-        "baselineTop1": 0.661,
+        "baselineTop1": 0.615,
         "baselineTop5": 0.915,
         "finetunedTop1": 0.886,
         "finetunedTop5": 0.989
       },
       {
         "family": "IGBT",
-        "baselineTop1": 0.598,
-        "baselineTop5": 0.884,
+        "baselineTop1": 0.685,
+        "baselineTop5": 0.940,
         "finetunedTop1": 0.842,
         "finetunedTop5": 0.981
       },
       {
         "family": "MOSFET",
-        "baselineTop1": 0.643,
-        "baselineTop5": 0.907,
+        "baselineTop1": 0.700,
+        "baselineTop5": 0.880,
         "finetunedTop1": 0.879,
         "finetunedTop5": 0.988
       }
@@ -140,10 +144,10 @@ export const RESULTS = {
   "completion": {
     "overall": {
       "baseline": {
-        "exactMatch": 0.112,
-        "normEditDistance": 0.341,
-        "tokenAcc": 0.804,
-        "blockAcc": 0.552
+        "exactMatch": 0.002,
+        "normEditDistance": 0.239,
+        "tokenAcc": 0.394,
+        "blockAcc": 0.176
       },
       "finetuned": {
         "exactMatch": 0.463,
