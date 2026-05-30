@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build:data": "node scripts/build-data.mjs",
+    "build:results": "node scripts/build-results.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },

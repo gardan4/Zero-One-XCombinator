@@ -69,3 +69,12 @@ The shared, model-agnostic path every stream uses (there was NO inference code b
   `hf`/`llm` (finetuned via Leonardo batch inference or vLLM), `likelihood-ngram` (learned anomaly science),
   `classifier` (LLM verdict).
 - `zo-eval` now depends on `zo-train` (declared) so it can import grammar/fab/datagen.
+
+### Reporting + model comparison (2026-05-30) — `reporting.py`, `examples_trace.py`, API `/compare/report`
+- **`reporting.py`** — normalized compare rows: `model` (display/ref/predictor/version/role), `dataset`
+  (eval_set/split/family/suite), `METRIC_SPECS` (all headline metrics), artifact paths, baseline deltas.
+- **`examples.jsonl`** — per-example traces (gold, prediction, correct, optional `reasoning`/`raw_response`
+  from LLM `*_with_trace` methods); written by default in `run_track(write_examples=True)`.
+- Backend: `GET /api/compare/report`, `/api/compare/examples`, `/api/runs/{id}/examples`.
+- Frontend: `/compare` uses report API + disagreement panel; `lib/api.ts` restored.
+- Static dashboard: `node infineon-results-dashboard/scripts/build-results.mjs` from `extras/results/INDEX.json`.

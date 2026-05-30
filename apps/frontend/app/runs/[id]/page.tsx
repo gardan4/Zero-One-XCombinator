@@ -15,6 +15,12 @@ import {
 
 import { type Metric, type RunMeta, getMetrics, getRun } from "@/lib/api";
 
+type ArtifactLinks = {
+  metrics_report_md?: string | null;
+  examples_jsonl?: string | null;
+  manifest_json?: string | null;
+};
+
 const STATUS_COLORS: Record<string, string> = {
   completed: "text-emerald-400",
   running: "text-sky-400",
@@ -122,6 +128,29 @@ export default function RunDetailPage() {
           <Curve title="Loss" rows={lossRows} dataKey="loss" color="#38bdf8" />
           {accRows.length > 1 && (
             <Curve title="Mean token accuracy" rows={accRows} dataKey="acc" color="#34d399" domain={[0, 1]} />
+          )}
+        </section>
+      )}
+
+      {meta?.compare_row?.artifacts && (
+        <section className="mt-6">
+          <h2 className="mb-2 text-sm font-medium text-neutral-300">Eval artifacts</h2>
+          <ul className="space-y-1 font-mono text-xs text-neutral-400">
+            {Object.entries(meta.compare_row.artifacts as ArtifactLinks)
+              .filter(([, v]) => v && typeof v === "string" && !v.endsWith("_dir"))
+              .map(([k, v]) => (
+                <li key={k}>
+                  <span className="text-neutral-600">{k}:</span> {String(v)}
+                </li>
+              ))}
+          </ul>
+          {meta.compare_row.model && (
+            <p className="mt-2 text-xs text-neutral-500">
+              Model: <span className="text-neutral-300">{meta.compare_row.model.display}</span>
+              {meta.compare_row.model.model_ref && (
+                <> · ref <code>{meta.compare_row.model.model_ref}</code></>
+              )}
+            </p>
           )}
         </section>
       )}

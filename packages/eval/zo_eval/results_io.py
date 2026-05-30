@@ -21,6 +21,7 @@ ARTIFACT_NAMES = (
     "proxy_report.json",
     "official_scores.txt",
     "manifest.json",
+    "examples.jsonl",
     "ground_truth",
 )
 

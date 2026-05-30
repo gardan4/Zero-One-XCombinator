@@ -105,6 +105,14 @@ def parse_pipe_list(text: str, vocab_set: set[str] | None = None, strict: bool =
     return out
 
 
+def extract_reasoning(text: str) -> str | None:
+    """Return thinking/rationale block if present (for reporting traces)."""
+    m = re.search(r"(?is)<think>(.*?)</think>", text or "")
+    if m:
+        return m.group(1).strip() or None
+    return None
+
+
 def extract_answer(text: str) -> str:
     """Strip a ``<think>…</think>`` rationale; return the post-'Answer:' text or the last line."""
     t = re.sub(r"(?is)<think>.*?</think>", "", text or "")

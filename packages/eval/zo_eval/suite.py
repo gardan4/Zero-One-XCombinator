@@ -8,6 +8,7 @@ from typing import Any
 
 import yaml
 
+from zo_eval.reporting import METRIC_SPECS, build_compare_row, format_suite_report_markdown, metric_deltas
 from zo_eval.track import run_track
 
 
@@ -90,14 +91,29 @@ def run_suite(
             if stop_on_error:
                 break
 
+    from zo_common.registry import get_run
+
+    rows: list[dict] = []
+    for r in results:
+        if r.get("status") != "ok" or not r.get("run_id"):
+            continue
+        meta = get_run(r["run_id"])
+        if meta:
+            rows.append(build_compare_row(meta))
+
     summary = {
         "suite": str(suite_path),
         "eval_set": eval_set,
         "runs": results,
+        "rows": rows,
+        "metric_specs": METRIC_SPECS,
+        "deltas_vs_baseline": metric_deltas(rows) if rows else {},
     }
     out_root = Path(defaults.get("summary_dir") or "extras/results") / f"suite_{Path(suite_path).stem}"
     out_root.mkdir(parents=True, exist_ok=True)
     summary_path = out_root / "suite_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2))
+    (out_root / "suite_report.md").write_text(format_suite_report_markdown(summary), encoding="utf-8")
     summary["summary_path"] = str(summary_path)
+    summary["report_path"] = str(out_root / "suite_report.md")
     return summary

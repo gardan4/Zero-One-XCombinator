@@ -8,11 +8,18 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from zo_common.paths import repo_root
 from zo_common.registry import get_run, list_runs, read_metrics, run_dir
+from zo_eval.examples_trace import compare_example_traces, load_examples
+from zo_eval.reporting import METRIC_SPECS, build_compare_row, metric_deltas
 
 router = APIRouter(tags=["runs"])
 
-# Confusion-matrix scalars live flat on a run's metrics summary (track.py writes cm_tp/fp/tn/fn).
 _CM_KEYS = ("tp", "fp", "tn", "fn")
+
+
+def _runs_matching_tags(wanted: list[str]):
+    for r in list_runs():
+        if all(w in r.tags for w in wanted):
+            yield r
 
 
 @router.get("/runs")
@@ -21,21 +28,85 @@ def runs() -> list[dict[str, Any]]:
 
 
 @router.get("/compare")
-def compare(tag: Annotated[list[str], Query()] = []) -> list[dict[str, Any]]:  # noqa: B006 — FastAPI reads the list from the query string, never mutates this default
-    """Runs whose tags contain ALL of the given ``tag`` filters (repeatable query param).
-
-    Powers the comparison dashboard (Stream 4): e.g. ``/api/compare?tag=eval:anomaly&tag=stream:4``
-    returns every anomaly run from stream 4, ID and OOD alike (split:id|ood is itself a tag the
-    frontend groups by). No filters → all runs. Read-only; a trimmed projection of ``RunMeta``.
-    """
+def compare(tag: Annotated[list[str], Query()] = []) -> list[dict[str, Any]]:  # noqa: B006
+    """Runs whose tags contain ALL of the given ``tag`` filters (legacy projection)."""
     wanted = [t for t in tag if t]
     out: list[dict[str, Any]] = []
-    for r in list_runs():
-        if all(w in r.tags for w in wanted):
-            out.append(
-                {"id": r.id, "name": r.name, "kind": r.kind, "status": r.status, "tags": r.tags, "metrics": r.metrics}
-            )
+    for r in _runs_matching_tags(wanted):
+        out.append(
+            {"id": r.id, "name": r.name, "kind": r.kind, "status": r.status, "tags": r.tags, "metrics": r.metrics}
+        )
     return out
+
+
+@router.get("/compare/report")
+def compare_report(
+    tag: Annotated[list[str], Query()] = [],  # noqa: B006
+    kind: str | None = None,
+    role: str | None = None,
+    split: str | None = None,
+    family: str | None = None,
+    suite: str | None = None,
+    eval_set: str | None = None,
+    model_ref: str | None = None,
+) -> dict[str, Any]:
+    """Normalized comparison rows with model identity, structured metrics, artifact links."""
+    wanted = [t for t in tag if t]
+    rows: list[dict[str, Any]] = []
+    for r in _runs_matching_tags(wanted):
+        if kind and r.kind != kind:
+            continue
+        row = build_compare_row(r)
+        pt = row.get("parsed_tags") or {}
+        m = row.get("model") or {}
+        d = row.get("dataset") or {}
+        if role and pt.get("role") != role:
+            continue
+        if split and pt.get("split") != split:
+            continue
+        if family and pt.get("family") != family:
+            continue
+        if suite and pt.get("suite") != suite:
+            continue
+        if eval_set and d.get("eval_set") != eval_set:
+            continue
+        if model_ref and m.get("model_ref") != model_ref:
+            continue
+        rows.append(row)
+    return {
+        "metric_specs": METRIC_SPECS,
+        "rows": rows,
+        "deltas_vs_baseline": metric_deltas(rows) if rows else {},
+        "count": len(rows),
+    }
+
+
+@router.get("/compare/examples")
+def compare_examples(
+    run_a: str = Query(...),
+    run_b: str = Query(...),
+    task: str = Query("nextstep"),
+    mode: str = Query("different"),
+    limit: int = Query(50, ge=1, le=200),
+) -> dict[str, Any]:
+    """Side-by-side per-example comparison from ``examples.jsonl`` artifacts."""
+    pa = run_dir(run_a) / "results" / "examples.jsonl"
+    pb = run_dir(run_b) / "results" / "examples.jsonl"
+    if not pa.exists():
+        raise HTTPException(status_code=404, detail=f"no examples.jsonl for run {run_a}")
+    if not pb.exists():
+        raise HTTPException(status_code=404, detail=f"no examples.jsonl for run {run_b}")
+    meta_a = get_run(run_a)
+    meta_b = get_run(run_b)
+    examples = compare_example_traces(pa, pb, task=task, mode=mode, limit=limit)
+    return {
+        "run_a": build_compare_row(meta_a) if meta_a else {"run_id": run_a},
+        "run_b": build_compare_row(meta_b) if meta_b else {"run_id": run_b},
+        "task": task,
+        "mode": mode,
+        "examples": examples,
+        "count": len(examples),
+    }
 
 
 @router.get("/runs/{run_id}")
@@ -43,16 +114,13 @@ def run_detail(run_id: str) -> dict[str, Any]:
     meta = get_run(run_id)
     if meta is None:
         raise HTTPException(status_code=404, detail="no such run")
-    return meta.model_dump()
+    data = meta.model_dump()
+    data["compare_row"] = build_compare_row(meta)
+    return data
 
 
 @router.get("/runs/{run_id}/confusion")
 def run_confusion(run_id: str) -> dict[str, int]:
-    """The anomaly confusion matrix ``{tp,fp,tn,fn}`` from the run's flat ``cm_*`` metrics.
-
-    Missing keys default to 0, so a run without anomaly metrics returns an all-zero matrix rather
-    than erroring (the dashboard renders an empty grid). 404 only if the run itself is unknown.
-    """
     meta = get_run(run_id)
     if meta is None:
         raise HTTPException(status_code=404, detail="no such run")
@@ -65,6 +133,42 @@ def run_metrics(run_id: str) -> list[dict[str, Any]]:
     if get_run(run_id) is None:
         raise HTTPException(status_code=404, detail="no such run")
     return read_metrics(run_id)
+
+
+@router.get("/runs/{run_id}/examples")
+def run_examples(
+    run_id: str,
+    task: str = Query("nextstep"),
+    outcome: str | None = Query(None, description="correct|wrong"),
+    limit: int = Query(50, ge=1, le=500),
+) -> dict[str, Any]:
+    path = run_dir(run_id) / "results" / "examples.jsonl"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="examples.jsonl not found for this run")
+    by_task = load_examples(path)
+    rows = list((by_task.get(task) or {}).values())
+    if outcome == "correct":
+        rows = [r for r in rows if r.get("correct") is True]
+    elif outcome == "wrong":
+        rows = [r for r in rows if r.get("correct") is False]
+    meta = get_run(run_id)
+    return {
+        "run_id": run_id,
+        "task": task,
+        "outcome": outcome,
+        "examples": rows[:limit],
+        "count": min(len(rows), limit),
+        "model": (build_compare_row(meta)["model"] if meta else None),
+    }
+
+
+@router.get("/runs/{run_id}/artifacts")
+def run_artifacts(run_id: str) -> dict[str, Any]:
+    meta = get_run(run_id)
+    if meta is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    row = build_compare_row(meta)
+    return row.get("artifacts") or {}
 
 
 @router.get("/runs/{run_id}/logs")
@@ -81,7 +185,7 @@ def run_logs(run_id: str, tail: int = 200) -> dict[str, list[str]]:
 
 
 class LaunchRequest(BaseModel):
-    kind: str  # sft | grpo | eval | agent
+    kind: str
     config: str | None = None
     task: str | None = None
     scenario: str | None = None
@@ -91,12 +195,6 @@ class LaunchRequest(BaseModel):
 
 @router.post("/launch")
 def launch(req: LaunchRequest) -> dict[str, Any]:
-    """Best-effort: spawn a run in the background. Poll /api/runs to see it appear.
-
-    Disabled by default: this runs arbitrary `uv run` subprocesses, so exposing it on a
-    non-localhost interface (ZO_API_HOST=0.0.0.0) would be remote code execution. Opt in with
-    ZO_ALLOW_LAUNCH=1 only on a trusted machine you control.
-    """
     if not os.environ.get("ZO_ALLOW_LAUNCH"):
         raise HTTPException(
             status_code=403,

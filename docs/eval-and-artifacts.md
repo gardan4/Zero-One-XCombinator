@@ -108,6 +108,23 @@ uv run zo-runs show <run_id>     # full meta + training config
 
 Dashboard `/compare` groups eval runs by tags like `split:`, `family:`, `predictor:`.
 
+### Reporting API (normalized comparisons)
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/compare/report` | Normalized rows: model identity, all headline metrics, artifact paths, deltas vs baseline |
+| `GET /api/compare/examples?run_a=&run_b=&task=&mode=` | Per-example side-by-side (requires `examples.jsonl`) |
+| `GET /api/runs/{id}/examples?task=&outcome=` | Single-run example traces (correct/wrong filter) |
+| `GET /api/runs/{id}/artifacts` | Artifact file paths for a run |
+
+Each eval run can write `experiments/<run_id>/results/examples.jsonl` (enabled by default in `zo-track predict`) with predictions, gold, correctness, and optional LLM `reasoning` / `raw_response` traces.
+
+Regenerate the static Infineon dashboard from promoted results:
+
+```bash
+node infineon-results-dashboard/scripts/build-results.mjs --finetuned kickoff-final --baseline ngram-baseline
+```
+
 ---
 
 ## 3. Hugging Face artifacts (training params on the model repo)

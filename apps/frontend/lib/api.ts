@@ -15,11 +15,11 @@ export type RunMeta = {
   notes: string;
   config: Record<string, unknown>;
   metrics: Record<string, unknown>;
+  compare_row?: CompareReportRow;
 };
 
 export type Metric = Record<string, number | string>;
 
-// Trimmed projection returned by GET /api/compare (id/name/kind/status/tags/metrics only).
 export type CompareRun = {
   id: string;
   name: string;
@@ -27,6 +27,80 @@ export type CompareRun = {
   status: string;
   tags: string[];
   metrics: Record<string, unknown>;
+};
+
+export type ModelIdentity = {
+  display: string;
+  model_ref: string | null;
+  predictor: string | null;
+  version: string | null;
+  train_run_id: string | null;
+  role: string | null;
+  served_model?: string | null;
+};
+
+export type DatasetContext = {
+  eval_set: string | null;
+  split: string | null;
+  family: string | null;
+  suite: string | null;
+  suite_run: string | null;
+};
+
+export type ArtifactLinks = {
+  results_dir: string;
+  metrics_report_json?: string | null;
+  metrics_report_md?: string | null;
+  manifest_json?: string | null;
+  examples_jsonl?: string | null;
+  proxy_report_json?: string | null;
+  official_scores_txt?: string | null;
+  nextstep_csv?: string | null;
+  completion_csv?: string | null;
+  anomaly_csv?: string | null;
+};
+
+export type MetricSpec = {
+  key: string;
+  label: string;
+  task: string;
+  direction: string;
+  format: string;
+};
+
+export type CompareReportRow = {
+  run_id: string;
+  run_name: string;
+  kind: string;
+  status: string;
+  created_at: string;
+  notes: string;
+  tags: string[];
+  parsed_tags: Record<string, string | null>;
+  model: ModelIdentity;
+  dataset: DatasetContext;
+  metrics_flat: Record<string, number>;
+  metrics_structured: Record<string, unknown> | null;
+  artifacts: ArtifactLinks;
+  git_branch?: string | null;
+  git_sha?: string | null;
+};
+
+export type CompareReport = {
+  metric_specs: MetricSpec[];
+  rows: CompareReportRow[];
+  deltas_vs_baseline: Record<string, Record<string, number | null>>;
+  count: number;
+};
+
+export type ExampleComparison = {
+  example_id: string;
+  family?: string;
+  input?: Record<string, unknown>;
+  gold?: unknown;
+  a: { prediction: unknown; correct?: boolean | null; trace?: Record<string, unknown> };
+  b: { prediction: unknown; correct?: boolean | null; trace?: Record<string, unknown> };
+  score_gap?: number;
 };
 
 export type Confusion = { tp: number; fp: number; tn: number; fn: number };
@@ -58,7 +132,6 @@ export async function getMetrics(id: string): Promise<Metric[]> {
   }
 }
 
-// Runs matching ALL given tags (repeatable ?tag= query param). [] → all runs.
 export async function getCompare(tags: string[]): Promise<CompareRun[]> {
   try {
     const qs = tags.filter(Boolean).map((t) => `tag=${encodeURIComponent(t)}`).join("&");
@@ -69,7 +142,65 @@ export async function getCompare(tags: string[]): Promise<CompareRun[]> {
   }
 }
 
-// The anomaly confusion matrix {tp,fp,tn,fn} for a run (zeros if it has no anomaly metrics).
+export async function getCompareReport(params: {
+  tags?: string[];
+  kind?: string;
+  role?: string;
+  split?: string;
+  family?: string;
+  suite?: string;
+  eval_set?: string;
+  model_ref?: string;
+}): Promise<CompareReport | null> {
+  try {
+    const q = new URLSearchParams();
+    (params.tags || []).forEach((t) => q.append("tag", t));
+    if (params.kind) q.set("kind", params.kind);
+    if (params.role) q.set("role", params.role);
+    if (params.split) q.set("split", params.split);
+    if (params.family) q.set("family", params.family);
+    if (params.suite) q.set("suite", params.suite);
+    if (params.eval_set) q.set("eval_set", params.eval_set);
+    if (params.model_ref) q.set("model_ref", params.model_ref);
+    const r = await fetch(`${BASE}/api/compare/report?${q}`, { cache: "no-store" });
+    return r.ok ? r.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getCompareExamples(
+  runA: string,
+  runB: string,
+  task: string,
+  mode: string,
+  limit = 30,
+): Promise<{ examples: ExampleComparison[]; run_a: CompareReportRow; run_b: CompareReportRow } | null> {
+  try {
+    const q = new URLSearchParams({ run_a: runA, run_b: runB, task, mode, limit: String(limit) });
+    const r = await fetch(`${BASE}/api/compare/examples?${q}`, { cache: "no-store" });
+    return r.ok ? r.json() : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getRunExamples(
+  runId: string,
+  task: string,
+  outcome?: string,
+  limit = 30,
+): Promise<{ examples: Record<string, unknown>[] } | null> {
+  try {
+    const q = new URLSearchParams({ task, limit: String(limit) });
+    if (outcome) q.set("outcome", outcome);
+    const r = await fetch(`${BASE}/api/runs/${runId}/examples?${q}`, { cache: "no-store" });
+    return r.ok ? r.json() : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function getConfusion(id: string): Promise<Confusion> {
   try {
     const r = await fetch(`${BASE}/api/runs/${id}/confusion`, { cache: "no-store" });
@@ -79,7 +210,6 @@ export async function getConfusion(id: string): Promise<Confusion> {
   }
 }
 
-// --- Process-Logic Copilot (symbolic verifier, GPU-free) ------------------------------------
 export type Violation = {
   rule: string;
   description: string;

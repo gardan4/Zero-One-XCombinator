@@ -21,6 +21,7 @@ from zo_common.llm import chat as _default_chat
 from zo_common.llm import content, token_logprobs
 from zo_train.datagen import anomaly_example, completion_example, nextstep_example
 
+from zo_eval.examples_trace import trace_from_llm_response
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
 from zo_eval.submission import AnomalyInput, ValidInput
 
@@ -75,24 +76,47 @@ class ServedLLMPredictor:
         )
 
     def next_step(self, item: ValidInput) -> list[str]:
-        ranked = parse_pipe_list(content(self._ask(_ns_prompt(item), 24)), self.vocab, strict=True)
+        ranks, _ = self.next_step_with_trace(item)
+        return ranks
+
+    def next_step_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
+        resp = self._ask(_ns_prompt(item), 24)
+        raw = content(resp)
+        ranked = parse_pipe_list(raw, self.vocab, strict=True)
         out: list[str] = []
-        for s in ranked:  # dedupe, preserve rank, cap 5
+        for s in ranked:
             if s not in out:
                 out.append(s)
-        return out[:5]
+        trace = {**trace_from_llm_response(raw), "model": self.model}
+        return out[:5], trace
 
     def complete(self, item: ValidInput) -> list[str]:
-        txt = extract_answer(content(self._ask(_cp_prompt(item), 1024)))
-        return parse_pipe_list(txt, self.vocab, strict=True)
+        steps, _ = self.complete_with_trace(item)
+        return steps
+
+    def complete_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
+        resp = self._ask(_cp_prompt(item), 1024)
+        raw = content(resp)
+        txt = extract_answer(raw)
+        steps = parse_pipe_list(txt, self.vocab, strict=True)
+        return steps, {**trace_from_llm_response(raw), "model": self.model}
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
+        result, _ = self.anomaly_with_trace(item)
+        return result
+
+    def anomaly_with_trace(self, item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
         resp = self._ask(_an_prompt(item), 64, logprobs=True, top_logprobs=5)
-        is_valid, rule = parse_anomaly(content(resp))
-        score = _valid_prob(resp)
-        if score is None:
-            score = 0.9 if is_valid else 0.1  # fallback — never None
-        return (is_valid, score, rule)
+        raw = content(resp)
+        is_valid, rule = parse_anomaly(raw)
+        lp_score = _valid_prob(resp)
+        score = lp_score if lp_score is not None else (0.9 if is_valid else 0.1)
+        trace = {
+            **trace_from_llm_response(raw),
+            "model": self.model,
+            "valid_prob_from_logprobs": lp_score,
+        }
+        return (is_valid, score, rule), trace
 
 
 class HFGeneratePredictor:

@@ -20,6 +20,12 @@ from zo_common.registry import get_run, run_dir
 
 from zo_eval import submission as sub
 from zo_eval import track_metrics as M
+from zo_eval.examples_trace import (
+    TraceCollector,
+    anomaly_input_payload,
+    valid_input_payload,
+)
+from zo_eval.predict_trace import wrap_with_tracing
 from zo_eval.proxy_metrics import build_proxy_report
 from zo_eval.results_io import load_predictions_from_dir, promote_results, write_manifest
 from zo_eval.self_check import run_self_check
@@ -178,6 +184,7 @@ def run_track(
     run_proxy: bool = True,
     self_check: bool = False,
     promote: str | None = None,
+    write_examples: bool = True,
 ) -> dict:
     """Run a predictor over the requested tasks; write CSVs + score + log a run."""
     if gold_path and gold is None:
@@ -188,6 +195,7 @@ def run_track(
     fam_of = (gold or {}).get("family_of", {})
     cut_of = (gold or {}).get("cut_fraction_of", {})
 
+    traced = wrap_with_tracing(predictor)
     pred_name = getattr(predictor, "name", "model")
     tag_list = build_run_tags(
         version=version,
@@ -243,6 +251,7 @@ def run_track(
     anomaly_preds: dict[str, dict] = {}
     valid_inputs: list[sub.ValidInput] = []
     anomaly_inputs: list[sub.AnomalyInput] = []
+    trace_col = TraceCollector() if write_examples else None
 
     def _fallback(fn, item, default):
         try:
@@ -253,7 +262,20 @@ def run_track(
     if {"nextstep", "completion"} & set(tasks) and valid_csv:
         valid_inputs = sub.read_valid_inputs(valid_csv)
         if "nextstep" in tasks:
-            nextstep_preds = {it.example_id: _fallback(predictor.next_step, it, []) for it in valid_inputs}
+            nextstep_preds = {}
+            for it in valid_inputs:
+                ranks = _fallback(traced.next_step, it, [])
+                nextstep_preds[it.example_id] = ranks
+                if trace_col is not None:
+                    trace_col.add(
+                        example_id=it.example_id,
+                        task="nextstep",
+                        family=it.family,
+                        input_payload=valid_input_payload(it),
+                        prediction=ranks,
+                        gold=gold.get("next", {}).get(it.example_id) if gold else None,
+                        trace=traced.pop_trace(it.example_id, "nextstep"),
+                    )
             sub.write_nextstep(list(nextstep_preds.items()), out / "nextstep.csv")
             if gold and gold.get("next"):
                 fam_br = M.per_family(M.score_nextstep, nextstep_preds, gold["next"], fam_of)
@@ -265,7 +287,20 @@ def run_track(
                     entry["by_cut"] = cut_br
                 report_tasks["nextstep"] = entry
         if "completion" in tasks:
-            completion_preds = {it.example_id: _fallback(predictor.complete, it, []) for it in valid_inputs}
+            completion_preds = {}
+            for it in valid_inputs:
+                steps = _fallback(traced.complete, it, [])
+                completion_preds[it.example_id] = steps
+                if trace_col is not None:
+                    trace_col.add(
+                        example_id=it.example_id,
+                        task="completion",
+                        family=it.family,
+                        input_payload=valid_input_payload(it),
+                        prediction=steps,
+                        gold=gold.get("completion", {}).get(it.example_id) if gold else None,
+                        trace=traced.pop_trace(it.example_id, "completion"),
+                    )
             sub.write_completion(list(completion_preds.items()), out / "completion.csv")
             if gold and gold.get("completion"):
                 fam_br = M.per_family(M.score_completion, completion_preds, gold["completion"], fam_of)
@@ -283,9 +318,20 @@ def run_track(
         anomaly_inputs = sub.read_anomaly_inputs(anomaly_csv)
         rows = []
         for it in anomaly_inputs:
-            iv, sc, rule = _fallback(predictor.anomaly, it, (1, 0.5, None))
+            iv, sc, rule = _fallback(traced.anomaly, it, (1, 0.5, None))
             rows.append((it.example_id, iv, sc, rule))
-            anomaly_preds[it.example_id] = {"is_valid": iv, "score": sc, "rule": rule}
+            pred_dict = {"is_valid": iv, "score": sc, "rule": rule}
+            anomaly_preds[it.example_id] = pred_dict
+            if trace_col is not None:
+                trace_col.add(
+                    example_id=it.example_id,
+                    task="anomaly",
+                    family=it.family,
+                    input_payload=anomaly_input_payload(it),
+                    prediction=pred_dict,
+                    gold=gold.get("anomaly", {}).get(it.example_id) if gold else None,
+                    trace=traced.pop_trace(it.example_id, "anomaly"),
+                )
         sub.write_anomaly(rows, out / "anomaly.csv")
         if gold and gold.get("anomaly"):
             anom_for_score = {
@@ -329,6 +375,9 @@ def run_track(
 
     if self_check and gold and valid_csv and anomaly_csv:
         run_self_check(out, gold=gold, valid_csv=valid_csv, anomaly_csv=anomaly_csv)
+
+    if trace_col is not None and trace_col.rows:
+        trace_col.write(out / "examples.jsonl")
 
     artifacts = sorted(p.name for p in out.iterdir() if p.is_file())
     if (out / "ground_truth").is_dir():
