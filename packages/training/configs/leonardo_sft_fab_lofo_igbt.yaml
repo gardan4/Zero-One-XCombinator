@@ -2,7 +2,7 @@
 # Same best-config as leonardo_sft_fab.yaml; only the training data differs. Evaluate on IGBT (OOD).
 name: leonardo-sft-fab-lofo-igbt
 kind: sft
-model: /leonardo_scratch/large/REPLACE_WITH_YOUR_USER/hf-local/Qwen2.5-1.5B-Instruct
+model: $SCRATCH/hf-local/Qwen2.5-1.5B-Instruct
 dataset: data/generated/MOSFET_sft_lm.jsonl,data/generated/IC_sft_lm.jsonl
 text_field: text
 lora: false
