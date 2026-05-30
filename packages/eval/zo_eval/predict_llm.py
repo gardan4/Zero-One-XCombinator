@@ -16,13 +16,31 @@ verdict-based fallback — **never None** (the ROC-AUC scorer drops the metric i
 from __future__ import annotations
 
 import math
+from typing import TYPE_CHECKING
 
 from zo_common.llm import chat as _default_chat
 from zo_common.llm import content, message_text, token_logprobs
-from zo_train.datagen import SEP
+from zo_train.datagen import anomaly_example, completion_example, nextstep_example
 
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
 from zo_eval.submission import AnomalyInput, ValidInput
+
+if TYPE_CHECKING:
+    from zo_common.featherless import HFModelRef
+
+
+# Prompts MUST match the instruction-tuning framing byte-for-byte (datagen.*_example), or a
+# small instruct model won't follow them — divergent prompts collapsed next-step/anomaly to chance.
+def _ns_prompt(item: ValidInput) -> str:
+    return nextstep_example(item.family, list(item.partial_sequence), "")["prompt"]
+
+
+def _cp_prompt(item: ValidInput) -> str:
+    return completion_example(item.family, list(item.partial_sequence), [])["prompt"]
+
+
+def _an_prompt(item: AnomalyInput) -> str:
+    return anomaly_example(item.family, list(item.sequence), True)["prompt"]
 
 
 def _valid_prob(resp: dict) -> float | None:
@@ -61,12 +79,7 @@ class ServedLLMPredictor:
         )
 
     def next_step(self, item: ValidInput) -> list[str]:
-        prompt = (
-            f"Product family: {item.family}\n"
-            f"Process so far: {SEP.join(item.partial_sequence)}\n\n"
-            f"List the 5 most likely next process steps, best first, pipe-separated."
-        )
-        ranked = parse_pipe_list(content(self._ask(prompt, 128)), self.vocab, strict=True)
+        ranked = parse_pipe_list(content(self._ask(_ns_prompt(item), 24)), self.vocab, strict=True)
         out: list[str] = []
         for s in ranked:  # dedupe, preserve rank, cap 5
             if s not in out:
@@ -74,21 +87,11 @@ class ServedLLMPredictor:
         return out[:5]
 
     def complete(self, item: ValidInput) -> list[str]:
-        prompt = (
-            f"Product family: {item.family}\n"
-            f"Partial process sequence: {SEP.join(item.partial_sequence)}\n\n"
-            f"Complete the remaining steps in order, pipe-separated, ending with SHIP LOT."
-        )
-        txt = extract_answer(content(self._ask(prompt, 1024)))
+        txt = extract_answer(content(self._ask(_cp_prompt(item), 1024)))
         return parse_pipe_list(txt, self.vocab, strict=True)
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        prompt = (
-            f"Product family: {item.family}\n"
-            f"Process sequence: {SEP.join(item.sequence)}\n\n"
-            f"Is this a valid process sequence? Answer VALID or INVALID; if INVALID, name the rule id."
-        )
-        resp = self._ask(prompt, 48, logprobs=True, top_logprobs=5)
+        resp = self._ask(_an_prompt(item), 64, logprobs=True, top_logprobs=5)
         is_valid, rule = parse_anomaly(content(resp))
         score = _valid_prob(resp)
         if score is None:
@@ -111,29 +114,18 @@ class HFGeneratePredictor:
         return self._client.generate(prompt, max_new_tokens=max_new_tokens or self._client.max_new_tokens)
 
     def next_step(self, item: ValidInput) -> list[str]:
-        prompt = (
-            f"Product family: {item.family}\nProcess so far: {SEP.join(item.partial_sequence)}\n\n"
-            f"List the 5 most likely next process steps, best first, pipe-separated."
-        )
+        # Training framing emits ONE next step → that's rank-1 (top-1 is the headline metric).
         seen: list[str] = []
-        for s in parse_pipe_list(self._gen(prompt, 128), self.vocab, strict=True):
+        for s in parse_pipe_list(self._gen(_ns_prompt(item), 24), self.vocab, strict=True):
             if s not in seen:
                 seen.append(s)
         return seen[:5]
 
     def complete(self, item: ValidInput) -> list[str]:
-        prompt = (
-            f"Product family: {item.family}\nPartial process sequence: {SEP.join(item.partial_sequence)}\n\n"
-            f"Complete the remaining steps in order, pipe-separated, ending with SHIP LOT."
-        )
-        return parse_pipe_list(extract_answer(self._gen(prompt, 1024)), self.vocab, strict=True)
+        return parse_pipe_list(extract_answer(self._gen(_cp_prompt(item), 1024)), self.vocab, strict=True)
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        prompt = (
-            f"Product family: {item.family}\nProcess sequence: {SEP.join(item.sequence)}\n\n"
-            f"Is this a valid process sequence? Answer VALID or INVALID; if INVALID, name the rule id."
-        )
-        is_valid, rule = parse_anomaly(self._gen(prompt, 48))
+        is_valid, rule = parse_anomaly(self._gen(_an_prompt(item), 64))
         return (is_valid, 0.9 if is_valid else 0.1, rule)
 
 
@@ -184,12 +176,7 @@ class FeatherlessPredictor:
         return message_text(resp)
 
     def next_step(self, item: ValidInput) -> list[str]:
-        prompt = (
-            f"Product family: {item.family}\n"
-            f"Process so far: {SEP.join(item.partial_sequence)}\n\n"
-            f"List the 5 most likely next process steps, best first, pipe-separated."
-        )
-        ranked = parse_pipe_list(self._text(self._ask(prompt, 128)), self.vocab, strict=True)
+        ranked = parse_pipe_list(self._text(self._ask(_ns_prompt(item), 24)), self.vocab, strict=True)
         out: list[str] = []
         for s in ranked:
             if s not in out:
@@ -197,21 +184,11 @@ class FeatherlessPredictor:
         return out[:5]
 
     def complete(self, item: ValidInput) -> list[str]:
-        prompt = (
-            f"Product family: {item.family}\n"
-            f"Partial process sequence: {SEP.join(item.partial_sequence)}\n\n"
-            f"Complete the remaining steps in order, pipe-separated, ending with SHIP LOT."
-        )
-        txt = extract_answer(self._text(self._ask(prompt, 1024)))
+        txt = extract_answer(self._text(self._ask(_cp_prompt(item), 1024)))
         return parse_pipe_list(txt, self.vocab, strict=True)
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        prompt = (
-            f"Product family: {item.family}\n"
-            f"Process sequence: {SEP.join(item.sequence)}\n\n"
-            f"Is this a valid process sequence? Answer VALID or INVALID; if INVALID, name the rule id."
-        )
-        resp = self._ask(prompt, 512, logprobs=True, top_logprobs=5)
+        resp = self._ask(_an_prompt(item), 64, logprobs=True, top_logprobs=5)
         is_valid, rule = parse_anomaly(self._text(resp))
         score = _valid_prob(resp)
         if score is None:
@@ -219,7 +196,7 @@ class FeatherlessPredictor:
         return (is_valid, score, rule)
 
 
-def _parse_featherless_model(spec: str) -> "HFModelRef":
+def _parse_featherless_model(spec: str) -> HFModelRef:
     from zo_common.featherless import HFModelRef
 
     parts = [p.strip() for p in spec.split(":") if p.strip()]
@@ -235,7 +212,7 @@ def _parse_featherless_model(spec: str) -> "HFModelRef":
 def _smoke() -> None:  # pragma: no cover - manual (no server/GPU needed)
     def fake_chat(messages, **kw):
         prompt = messages[-1]["content"]
-        if "next process steps" in prompt:
+        if "Next process step" in prompt:
             c = "DEPOSIT BARRIER METAL | CLEAN AFTER VIA ETCH | DEVELOP PHOTORESIST | OXIDE ETCH | SHIP LOT"
         elif "Complete the remaining" in prompt:
             c = "<think>backbone</think>\nDEPOSIT METAL 1 | ANNEAL METAL 1 | SHIP LOT"
