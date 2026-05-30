@@ -1,0 +1,13 @@
+# Minimal deps for HubInferenceClient / scripts/hub_infer.py (Windows & macOS).
+# From repo root:
+#   python -m pip install -r requirements-inference.txt
+#   python scripts/hub_infer.py --prompt "Say hello"
+#
+# Python 3.11+ recommended. CPU works; CUDA/MPS used when available.
+
+torch>=2.2
+transformers>=4.44
+peft>=0.12
+huggingface_hub>=0.24
+accelerate>=0.33
+safetensors>=0.4

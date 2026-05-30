@@ -69,7 +69,14 @@ and eval different ideas at once without stepping on each other. See [`CLAUDE.md
 Judges and reproducers: see **[docs/leonardo-eval.md](docs/leonardo-eval.md)** for running
 finetuned models on Leonardo and producing the three track submission CSVs.
 
-Quick path on a login node:
+**Local smoke test (Windows/macOS, Python only — no uv):**
+
+```bash
+python -m pip install -r requirements-inference.txt
+python scripts/hub_infer.py --prompt "Say hello"
+```
+
+Quick path on a Leonardo login node:
 
 ```bash
 cp .env.example .env   # ZO_CLUSTER_USER, HF_TOKEN, ZO_INFER_MODEL, ZO_CLUSTER_ON_LOGIN=1

@@ -84,7 +84,15 @@ client = HubInferenceClient("XCombinator/leonardo-smoke-qwen-0.5b-lora")
 text = client.complete("Your prompt here")
 ```
 
-Smoke: `uv run python -m zo_common.hub_inference` (needs `HF_TOKEN` + `uv sync --extra gpu`).
+**Minimal local setup (no uv, no full monorepo)** — Python 3.11+ on Windows or macOS:
+
+```bash
+python -m pip install -r requirements-inference.txt
+cp .env.example .env   # set HF_TOKEN for private XCombinator models
+python scripts/hub_infer.py --prompt "Say hello"
+```
+
+Uses CPU, CUDA, or Apple MPS automatically. First run downloads weights from Hugging Face.
 
 Input/output column specs: `packages/eval/zo_eval/submission.py`.
 
@@ -112,3 +120,23 @@ just track "-p llm --model default --valid extras/eval_local/eval_input_valid.cs
 | LoRA checkpoint | Merge adapter to full weights before serve/HF upload (Featherless also needs full weights) |
 
 More cluster detail: [`.claude/knowledge/cluster.md`](../.claude/knowledge/cluster.md).
+
+## Windows & macOS (local laptop)
+
+All **Python CLIs** (`uv run zo-cluster …`, `uv run zo-track …`, `HubInferenceClient`) are
+cross-platform. **SLURM** (`sbatch`) only exists on Leonardo Linux.
+
+| Goal | Windows / macOS command |
+|------|-------------------------|
+| Local inference + CSV outputs | `uv run zo-track predict -p hf …` or `python scripts/hub_infer.py` after `pip install -r requirements-inference.txt` |
+| Smoke-test HF loader | `python scripts/hub_infer.py` (no uv required) |
+| Render SLURM script (no GPU) | `uv run zo-cluster judge-eval --dry-run --no-stage --eval-dir extras/eval_local` |
+| Submit to Leonardo from laptop | Set `ZO_CLUSTER_HOST` + `ZO_CLUSTER_USER`; run `uv run zo-cluster judge-eval` (uses `ssh`/`scp`; OpenSSH on Windows 10+) |
+| Full GPU batch eval | SSH to Leonardo login node, then `just judge-setup && just judge-eval --local` |
+
+**Tips**
+
+- Use **`uv run`** directly if `just` is unavailable (Just requires [bash](https://just.systems/) — Git Bash on Windows, default on macOS).
+- Set `ZO_CLUSTER_REPO_DIR` in `.env` to the **Leonardo** path, not a local `C:\…` path, so generated sbatch scripts use valid cluster paths.
+- Staged models on a laptop default to `%USERPROFILE%\.cache\zo-models` (Windows) or `~/.cache/zo-models` (macOS); on Leonardo use `ZO_MODEL_CACHE_DIR=$SCRATCH/zo-models`.
+- sbatch files are always written with Unix line endings (`LF`).

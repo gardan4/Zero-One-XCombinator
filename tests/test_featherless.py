@@ -52,7 +52,7 @@ def test_hub_has_full_weights_detects_adapter_only(monkeypatch):
     from zo_common.featherless import hub_has_full_weights
 
     monkeypatch.setattr(
-        "zo_common.featherless._hf_list_files",
+        "zo_common.hf_hub_util._remote_list_files",
         lambda repo_id, token=None: ["adapter_config.json", "adapter_model.safetensors"],
     )
     assert hub_has_full_weights("org/lora-only") is False
@@ -62,7 +62,7 @@ def test_hub_has_full_weights_detects_merged(monkeypatch):
     from zo_common.featherless import hub_has_full_weights
 
     monkeypatch.setattr(
-        "zo_common.featherless._hf_list_files",
+        "zo_common.hf_hub_util._remote_list_files",
         lambda repo_id, token=None: ["config.json", "model.safetensors", "tokenizer.json"],
     )
     assert hub_has_full_weights("org/full-ckpt") is True

@@ -19,6 +19,7 @@ from typing import Any, Literal
 
 import httpx
 
+from zo_common.hf_hub_util import hub_has_full_weights
 from zo_common.llm import chat as _chat
 from zo_common.llm import message_text as _message_text
 
@@ -79,35 +80,6 @@ class HFModelRef:
         if hub_repo and lora:
             return cls(base=base_model, lora=hub_repo)
         return cls(full=base_model if not lora else None, base=base_model if lora else None)
-
-
-def _hf_list_files(repo_id: str, token: str | None = None) -> list[str]:
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
-    url = f"https://huggingface.co/api/models/{repo_id}/tree/main"
-    resp = httpx.get(url, headers=headers, timeout=30.0)
-    if resp.status_code == 404:
-        url = f"https://huggingface.co/api/models/{repo_id}/tree/master"
-        resp = httpx.get(url, headers=headers, timeout=30.0)
-    resp.raise_for_status()
-    return [item["path"] for item in resp.json()]
-
-
-def hub_has_full_weights(repo_id: str, token: str | None = None) -> bool:
-    """True when the HF repo contains a full model (not adapter-only)."""
-    try:
-        files = _hf_list_files(repo_id, token=token)
-    except httpx.HTTPError:
-        return False
-    names = {f.rsplit("/", 1)[-1] for f in files}
-    if "adapter_config.json" in names and "adapter_model.safetensors" in names:
-        if "model.safetensors" in names or any(n.startswith("model-") and n.endswith(".safetensors") for n in names):
-            return True
-        return False
-    return bool(
-        "model.safetensors" in names
-        or "pytorch_model.bin" in names
-        or any(n.startswith("model-") and n.endswith(".safetensors") for n in names)
-    )
 
 
 def resolve_featherless_model(ref: HFModelRef, hf_token: str | None = None) -> str:

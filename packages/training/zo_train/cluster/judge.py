@@ -15,6 +15,12 @@ from zo_common import new_run, update_run
 from zo_common.paths import repo_root
 from zo_common.registry import run_dir
 
+from zo_train.cluster._platform import (
+    has_slurm,
+    has_ssh_tools,
+    to_cluster_model_path,
+    to_cluster_path,
+)
 from zo_train.cluster._slurm import (
     cluster_env,
     ensure_cluster_env,
@@ -35,12 +41,13 @@ def _cluster_repo() -> str:
 
 
 def _cluster_path(local: Path) -> str:
-    """Map a repo-relative path to the cluster repo dir (for sbatch scripts)."""
-    try:
-        rel = local.resolve().relative_to(_repo().resolve())
-    except ValueError:
-        return str(local)
-    return f"{_cluster_repo()}/{rel.as_posix()}"
+    """Map a local repo-relative path to the cluster repo dir (for sbatch scripts)."""
+    return to_cluster_path(local, _cluster_repo())
+
+
+def _write_sbatch(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8", newline="\n")
 
 
 def _eval_dir() -> Path:
@@ -65,17 +72,16 @@ def _on_login_node() -> bool:
 
 def _submit_sbatch(sbatch_path: Path, *, local: bool) -> str | None:
     repo_dir = _cluster_repo()
-    if local or _on_login_node():
+    use_local = (local or _on_login_node()) and has_slurm()
+    if use_local:
         result = subprocess.run(
             ["sbatch", str(sbatch_path)],
             cwd=_repo(),
             capture_output=True,
             text=True,
         )
-    else:
+    elif has_ssh_tools() and _ssh_target():
         target = _ssh_target()
-        if not target:
-            return None
         remote = f"{repo_dir}/{sbatch_path.relative_to(_repo()).as_posix()}"
         subprocess.run(["scp", str(sbatch_path), f"{target}:{remote}"], check=True)
         result = subprocess.run(
@@ -83,6 +89,8 @@ def _submit_sbatch(sbatch_path: Path, *, local: bool) -> str | None:
             capture_output=True,
             text=True,
         )
+    else:
+        return None
     typer.echo((result.stdout + result.stderr).strip())
     if result.returncode != 0:
         return None
@@ -189,7 +197,9 @@ def judge_eval(
         os.environ.setdefault("ZO_INFER_MODEL_PATH", str(dest))
 
     try:
-        model_path = os.path.expandvars(resolve_infer_model(model))
+        model_path = to_cluster_model_path(
+            os.path.expandvars(resolve_infer_model(model)), _cluster_repo()
+        )
     except ValueError as e:
         typer.secho(str(e), fg="red")
         raise typer.Exit(1) from e
@@ -222,7 +232,7 @@ def judge_eval(
     )
     sbatch = render_template("infer.sbatch.j2", **ctx)
     sbatch_path = run_dir(run.id) / "infer.sbatch"
-    sbatch_path.write_text(sbatch)
+    _write_sbatch(sbatch_path, sbatch)
     typer.echo(f"run {run.id} → {sbatch_path}")
 
     if dry_run:
@@ -232,12 +242,24 @@ def judge_eval(
 
     job_id = _submit_sbatch(sbatch_path, local=local)
     if not job_id:
-        typer.secho(
-            "Wrote sbatch locally. On Leonardo login node:\n"
+        hint = (
+            "Wrote sbatch locally. On Leonardo login node run:\n"
             f"  export ZO_CLUSTER_ON_LOGIN=1\n"
-            f"  sbatch {sbatch_path.relative_to(_repo())}",
-            fg="yellow",
+            f"  sbatch {sbatch_path.relative_to(_repo()).as_posix()}"
         )
+        if not has_slurm() and has_ssh_tools() and _ssh_target():
+            hint = (
+                "No local sbatch — submit remotely with:\n"
+                f"  uv run zo-cluster judge-eval --eval-dir {eval_path.as_posix()}"
+            )
+        elif not has_slurm():
+            hint = (
+                "No sbatch on this machine (expected on Windows/macOS). Either:\n"
+                "  • SSH to Leonardo and run with --local, or\n"
+                "  • Use --dry-run here, copy infer.sbatch to the cluster, or\n"
+                "  • Run local inference: uv run zo-track predict -p hf --model …"
+            )
+        typer.secho(hint, fg="yellow")
         update_run(run.id, status="queued", notes="rendered; submit manually on login node")
         raise typer.Exit()
 
@@ -268,7 +290,9 @@ def judge_serve(
         os.environ.setdefault("ZO_INFER_MODEL_PATH", str(dest))
 
     try:
-        model_path = os.path.expandvars(resolve_infer_model(model))
+        model_path = to_cluster_model_path(
+            os.path.expandvars(resolve_infer_model(model)), _cluster_repo()
+        )
     except ValueError as e:
         typer.secho(str(e), fg="red")
         raise typer.Exit(1) from e
@@ -283,8 +307,7 @@ def judge_serve(
     )
     sbatch = render_template("serve.sbatch.j2", **ctx)
     serve_path = _repo() / "slurm_logs" / "judge-serve.sbatch"
-    serve_path.parent.mkdir(parents=True, exist_ok=True)
-    serve_path.write_text(sbatch)
+    _write_sbatch(serve_path, sbatch)
     typer.echo(f"Wrote {serve_path}")
 
     if dry_run:

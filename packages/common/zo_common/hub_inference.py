@@ -1,20 +1,81 @@
 """Local Hugging Face checkpoint inference (full weights or LoRA adapter).
 
-Use this for **XCombinator** (and any other HF) fine-tunes. Unlike ``FeatherlessClient``, this
-loads weights directly via ``transformers`` (+ ``peft`` for LoRA) — works for private org repos
-when ``HF_TOKEN`` is set, and is the path used on Leonardo by ``zo-track predict -p hf``.
+Use this for **XCombinator** (and any other HF) fine-tunes. Loads weights via
+``transformers`` (+ ``peft`` for LoRA). Works for private org repos when ``HF_TOKEN`` is set.
 
-Requires the GPU extra on the machine that loads weights: ``uv sync --extra gpu``.
-For private org repos set ``HF_TOKEN`` in ``.env``.
+**Minimal setup (no uv, no full monorepo):**
+
+.. code-block:: bash
+
+   python -m pip install -r requirements-inference.txt
+   python scripts/hub_infer.py --prompt "Say hello"
+
+Set ``HF_TOKEN`` in the environment or in ``.env`` at the repo root for private models.
 """
 
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
-from zo_common.featherless import hub_has_full_weights
+from zo_common.hf_hub_util import hub_has_full_weights
+
+_INFERENCE_DEPS: tuple[tuple[str, str], ...] = (
+    ("torch", "torch"),
+    ("transformers", "transformers"),
+    ("peft", "peft"),
+    ("huggingface_hub", "huggingface_hub"),
+)
+
+
+def ensure_inference_deps() -> None:
+    """Raise ``SystemExit`` with a pip one-liner when ML deps are missing."""
+    missing = [pip for mod, pip in _INFERENCE_DEPS if not _can_import(mod)]
+    if not missing:
+        return
+    root = Path(__file__).resolve().parents[3]
+    req = root / "requirements-inference.txt"
+    hint = f"python -m pip install -r {req}" if req.is_file() else f"python -m pip install {' '.join(missing)}"
+    raise SystemExit(
+        "Missing inference packages: "
+        + ", ".join(missing)
+        + f"\nInstall from the repo root:\n  {hint}\n"
+        "Then run: python scripts/hub_infer.py"
+    )
+
+
+def _can_import(name: str) -> bool:
+    try:
+        __import__(name)
+        return True
+    except ImportError:
+        return False
+
+
+def _load_dotenv(path: Path | None = None) -> None:
+    env_file = path or Path(__file__).resolve().parents[3] / ".env"
+    if not env_file.is_file():
+        return
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#") or "=" not in s:
+            continue
+        key, _, val = s.partition("=")
+        key = key.strip()
+        if key:
+            os.environ.setdefault(key, val.strip().strip('"').strip("'"))
+
+def _default_device() -> str:
+    import torch
+
+    if torch.cuda.is_available():
+        return "cuda"
+    mps = getattr(torch.backends, "mps", None)
+    if mps is not None and mps.is_available():
+        return "mps"
+    return "cpu"
 
 
 def hf_token() -> str | None:
@@ -48,7 +109,9 @@ def _normalize_base_model(base: str | None) -> str | None:
     if not base.startswith(("/","\\")) and os.path.isdir(base):
         return base
     if base.startswith(("/", "\\")) or base.startswith("leonardo"):
-        leaf = base.rstrip("/\\").split("/")[-1]
+        from pathlib import Path as _Path
+
+        leaf = _Path(base.rstrip("/\\")).name
         override = os.environ.get("ZO_INFER_BASE_MODEL")
         if override:
             return override
@@ -127,10 +190,11 @@ class HubInferenceClient:
     def _load(self) -> None:
         if self._model is not None:
             return
+        ensure_inference_deps()
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
+        device = self.device or _default_device()
         self._device = device
         tok_src = self.spec.base_model or self.spec.local_path or self.spec.repo_id
         adapter = None
@@ -221,9 +285,8 @@ def default_xcombinator_model() -> str:
 
 
 def _smoke() -> None:  # pragma: no cover
-    from zo_common.env import load_dotenv
-
-    load_dotenv()
+    _load_dotenv()
+    ensure_inference_deps()
     model = default_xcombinator_model()
     print(f"HubInferenceClient smoke — model={model!r}")
     client = HubInferenceClient(model)

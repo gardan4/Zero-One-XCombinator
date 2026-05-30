@@ -10,6 +10,8 @@ from jinja2 import Template
 from zo_common.env import load_dotenv
 from zo_common.paths import repo_root
 
+from zo_train.cluster._platform import local_model_cache_dir, posix_path
+
 _TEMPLATES = Path(__file__).parent / "slurm"
 
 
@@ -64,14 +66,15 @@ def is_hf_repo_id(model: str) -> bool:
 def default_model_cache_dir() -> str:
     explicit = cluster_env("ZO_MODEL_CACHE_DIR")
     if explicit:
-        return os.path.expandvars(explicit)
-    scratch = os.environ.get("SCRATCH") or os.path.expanduser("~/scratch")
-    return os.path.join(scratch, "zo-models")
+        return posix_path(os.path.expandvars(explicit))
+    if os.environ.get("SCRATCH"):
+        return posix_path(Path(os.environ["SCRATCH"]) / "zo-models")
+    return posix_path(local_model_cache_dir())
 
 
 def staged_model_path(hf_repo: str) -> str:
     slug = hf_repo.replace("/", "--")
-    return os.path.join(default_model_cache_dir(), slug)
+    return posix_path(Path(default_model_cache_dir()) / slug)
 
 
 def resolve_infer_model(model: str | None = None) -> str:
@@ -85,6 +88,6 @@ def resolve_infer_model(model: str | None = None) -> str:
     if is_hf_repo_id(raw):
         staged = cluster_env("ZO_INFER_MODEL_PATH")
         if staged:
-            return staged
+            return posix_path(os.path.expandvars(staged))
         return staged_model_path(raw)
-    return raw
+    return posix_path(os.path.expandvars(raw))
