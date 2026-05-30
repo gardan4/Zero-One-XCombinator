@@ -1,0 +1,42 @@
+# Model-size comparison via Featherless (zero-shot rules-in-context).
+# Usage:
+#   just featherless-eval -V zeroshot-deepseek-v4-flash-v1
+#   uv run zo-track suite packages/eval/eval_suites/featherless_compare.yaml
+#
+# Compare results on dashboard/W&B with Leonardo 1.5B zeroshot and finetuned runs.
+
+defaults:
+  valid_csv: extras/eval_local/eval_input_valid.csv
+  anomaly_csv: extras/eval_local/eval_input_anomaly.csv
+  gold: extras/eval_local/gold.json
+  eval_set: local
+  self_check: true
+  run_proxy: false
+  predictor: llm-zeroshot
+  base_url: https://api.featherless.ai/v1
+  tags:
+    - split:id
+    - role:baseline
+    - method:rules-in-context
+    - baseline:zeroshot
+    - provider:featherless
+    - reportable
+
+runs:
+  - name: featherless-qwen-1.5b-zeroshot
+    model: Qwen/Qwen2.5-1.5B-Instruct
+    model_ref: Qwen/Qwen2.5-1.5B-Instruct
+    version: unified-prompt-featherless-qwen-1.5b-v1
+    tags: [size:1.5b, compare:leonardo-baseline, method:unified-json]
+
+  - name: featherless-qwen-7b-zeroshot
+    model: Qwen/Qwen2.5-7B-Instruct
+    model_ref: Qwen/Qwen2.5-7B-Instruct
+    version: unified-prompt-featherless-qwen-7b-v1
+    tags: [size:7b, method:unified-json]
+
+  - name: featherless-deepseek-v4-flash-zeroshot
+    model: deepseek-ai/DeepSeek-V4-Flash
+    model_ref: deepseek-ai/DeepSeek-V4-Flash
+    version: unified-prompt-featherless-deepseek-v4-flash-v1
+    tags: [size:284b-moe-13b-active, compare:large-baseline, method:unified-json]

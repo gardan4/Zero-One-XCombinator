@@ -50,6 +50,7 @@ both shapes.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 
 from zo_train.grammar import validate_sequence
@@ -63,14 +64,28 @@ PROGRESS_BONUS = 0.05  # smaller still: advancing into the ship/test tail withou
 SHIP_LOT = "SHIP LOT"
 # Backbone tail markers — being here means the sequence is "advancing toward" ship.
 _TAIL_MARKERS = ("WAFER SORT TEST", "FINAL VISUAL INSPECTION", "CURE PASSIVATION")
-# Marker *stems* that precede the pipe-joined prefix route in a GRPO prompt (see datagen's
+# Marker *stems* that precede the prefix route in a GRPO prompt (see datagen's
 # {completion,nextstep}_example and their *_context_example siblings). We match the stem (no colon)
-# and then skip the header punctuation, so both layouts parse:
-#   "Process so far: A | B | C"                (inline, original prompts)
-#   "Process so far (74 steps):\nA | B | C"    (header + next line, the base-model context prompts)
-# A guard test pins this to the datagen formats so a wording change can't silently revert the reward
-# to (degenerate) isolation scoring. Most-specific stem first.
-_PREFIX_MARKERS = ("Partial process sequence", "Process so far")
+# and then skip the header punctuation. Supports numbered lines (unified JSON prompts) and legacy
+# pipe-joined layouts. Most-specific stem first.
+_NUMBERED_STEP = re.compile(r"^\s*\d+\.\s+(.+)$")
+_PREFIX_MARKERS = (
+    "Partial sequence (prefix, numbered in execution order)",
+    "Partial sequence (numbered in execution order)",
+    "Partial process sequence",
+    "Process so far",
+)
+
+
+def _parse_numbered_block(text: str) -> list[str]:
+    steps: list[str] = []
+    for line in text.splitlines():
+        m = _NUMBERED_STEP.match(line)
+        if m:
+            steps.append(m.group(1).strip())
+        elif steps and line.strip():
+            break
+    return steps
 
 
 def _text(completion: object) -> str:
@@ -118,8 +133,12 @@ def _prefix_from_prompt(prompt: object) -> list[str]:
         colon = after.find(":")  # skip the header (covers "<marker>:" and "<marker> (N steps):")
         if colon != -1:
             after = after[colon + 1 :]
-        # The prefix is a single SEP-joined line; take the first non-empty parse within this block.
-        for line in after.split("\n\n", 1)[0].splitlines():
+        block = after.split("\n\n", 1)[0]
+        numbered = _parse_numbered_block(block)
+        if numbered:
+            return numbered
+        # Legacy: single SEP-joined line within this block.
+        for line in block.splitlines():
             steps = parse_pipe_list(line, strict=True)
             if steps:
                 return steps

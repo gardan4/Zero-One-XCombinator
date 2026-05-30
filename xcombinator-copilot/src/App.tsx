@@ -135,7 +135,6 @@ export default function App() {
   const selPhase = phases.find((p) => p.steps.some((s) => s.idx === selectedIdx))
   const stepRule = useMemo(() => ruleForStep(steps, selectedIdx, violations), [steps, selectedIdx, violations])
   const detailFraction = Math.min(1, (selectedIdx + 1) / total)
-  const headFraction = Math.min(1, steps.length / total)
 
   return (
     <div className="app">
@@ -193,9 +192,9 @@ export default function App() {
             <FullRouteRail
               roadmap={roadmap}
               headPhaseIndex={headPhaseIndex}
-              fraction={headFraction}
               expectedTotal={total}
               currentCount={steps.length}
+              currentPhaseDone={headPhase?.steps.length ?? 0}
             />
           </div>
 

@@ -84,6 +84,16 @@ eval task model:
 track *args:
     uv run zo-track predict {{args}}
 
+# Featherless hosted inference — zero-shot rules-in-context (see packages/eval/zo_eval/featherless.py).
+featherless-probe *args:
+    uv run zo-track featherless-probe {{args}}
+
+featherless-eval *args:
+    uv run zo-track featherless-eval {{args}}
+
+featherless-compare *args:
+    uv run zo-track featherless-compare {{args}}
+
 # Re-score existing CSVs against gold (no re-inference).
 rescore *args:
     uv run zo-track rescore {{args}}

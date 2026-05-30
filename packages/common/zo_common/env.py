@@ -14,7 +14,15 @@ from pathlib import Path
 
 from zo_common.paths import repo_root
 
-_STRIP_SECRET_KEYS = frozenset({"HF_TOKEN", "HUGGINGFACE_HUB_TOKEN", "WANDB_API_KEY"})
+_STRIP_SECRET_KEYS = frozenset(
+    {
+        "HF_TOKEN",
+        "HUGGINGFACE_HUB_TOKEN",
+        "WANDB_API_KEY",
+        "FEATHERLESS_API_KEY",
+        "FEATHERLESS_PASSWORD",
+    }
+)
 
 
 def normalize_env_value(key: str, value: str) -> str:

@@ -17,8 +17,9 @@ family, where the correct step may not be in our known vocab.
 
 from __future__ import annotations
 
+import json
 import re
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from zo_train.datagen import ALL_RULES
 from zo_train.fab import FAMILIES, all_steps
@@ -63,7 +64,11 @@ def _clean(text: str) -> str:
     t = _STEP_PREFIX.sub("", t)
     t = t.strip().strip("\"'`").strip()
     t = _LEAD_NOISE.sub("", t)
-    return t.strip().strip("\"'`.").strip()
+    t = t.strip().strip("\"'`.").strip()
+    if "_" in t:
+        t = re.sub(r"_+", " ", t)
+        t = re.sub(r"\s+", " ", t).strip()
+    return t
 
 
 def snap(text: str, vocab_set: set[str] | None = None, strict: bool = True, max_word_edits: int = 2) -> str | None:
@@ -106,17 +111,64 @@ def parse_pipe_list(text: str, vocab_set: set[str] | None = None, strict: bool =
 
 
 def extract_reasoning(text: str) -> str | None:
-    """Return thinking/rationale block if present (for reporting traces)."""
+    """Return rationale from JSON ``reasoning`` or legacy thinking tags."""
+    obj = _try_parse_json_response(text)
+    if obj and obj.get("reasoning"):
+        r = str(obj["reasoning"]).strip()
+        return r or None
     m = re.search(r"(?is)<think>(.*?)</think>", text or "")
     if m:
         return m.group(1).strip() or None
     return None
 
 
+def _try_parse_json_response(text: str) -> dict[str, Any] | None:
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
+    if fenced:
+        raw = fenced.group(1)
+    else:
+        start, end = raw.find("{"), raw.rfind("}")
+        if start >= 0 and end > start:
+            raw = raw[start : end + 1]
+        else:
+            return None
+    try:
+        obj = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return obj if isinstance(obj, dict) else None
+
+
+def _steps_from_json(obj: dict[str, Any]) -> str | None:
+    steps = obj.get("steps")
+    if isinstance(steps, list) and steps:
+        return " | ".join(str(s).strip() for s in steps if str(s).strip())
+    for key in ("answer", "submission", "submission_line"):
+        if obj.get(key):
+            return str(obj[key]).strip()
+    return None
+
+
 def extract_answer(text: str) -> str:
-    """Strip a ``<think>…</think>`` rationale; return the post-'Answer:' text or the last line."""
+    """Parse structured JSON answer; fall back to legacy Answer:/last-line heuristics."""
+    obj = _try_parse_json_response(text)
+    if obj:
+        joined = _steps_from_json(obj)
+        if joined:
+            return joined
+        if "valid" in obj:
+            if obj.get("valid") in (True, "true", "True", 1, "1"):
+                return "VALID."
+            rule = obj.get("rule")
+            if rule and str(rule).upper().startswith("RULE_"):
+                return f"INVALID. {str(rule).upper()}"
+            return "INVALID."
+
     t = re.sub(r"(?is)<think>.*?</think>", "", text or "")
-    m = re.search(r"(?is)(?:final\s+answer|answer)\s*:\s*(.+)$", t)
+    m = re.search(r"(?is)(?:final\s+answer|answer|submission\s*line)\s*:\s*(.+)$", t)
     if m:
         return m.group(1).strip()
     lines = [ln for ln in t.splitlines() if ln.strip()]
@@ -124,7 +176,25 @@ def extract_answer(text: str) -> str:
 
 
 def parse_anomaly(text: str) -> tuple[int, str | None]:
-    """Free text → (is_valid 1/0, predicted_rule or None). 'INVALID'/'not valid' ⇒ 0."""
+    """Free text or JSON → (is_valid 1/0, predicted_rule or None)."""
+    obj = _try_parse_json_response(text)
+    if obj is not None and "valid" in obj:
+        valid_raw = obj.get("valid")
+        if isinstance(valid_raw, str):
+            is_valid = valid_raw.strip().lower() in ("true", "1", "yes", "valid")
+        else:
+            is_valid = bool(valid_raw)
+        rule = obj.get("rule")
+        rule_id = None
+        if rule and str(rule).strip().upper() in _RULES:
+            rule_id = str(rule).strip().upper()
+        if not is_valid:
+            if rule_id is None:
+                m = re.search(r"RULE_[A-Z_]+", extract_answer(text))
+                rule_id = m.group() if m and m.group() in _RULES else None
+            return 0, rule_id
+        return 1, None
+
     up = (text or "").upper()
     invalid = bool(re.search(r"\bINVALID\b|\bNOT\s+VALID\b", up))
     m = re.search(r"RULE_[A-Z_]+", up)

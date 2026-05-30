@@ -1,17 +1,15 @@
+import type { CSSProperties } from 'react'
 import type { RoadmapPhase } from '../lib/grammar'
 
 interface Props {
   roadmap: RoadmapPhase[]
   headPhaseIndex: number
-  fraction: number
   expectedTotal: number
   currentCount: number
+  currentPhaseDone: number
 }
 
-export default function FullRouteRail({ roadmap, headPhaseIndex, fraction, expectedTotal, currentCount }: Props) {
-  const totalWeight = roadmap.reduce((a, p) => a + p.weight, 0) || 1
-  const herePct = Math.min(99, Math.max(1, fraction * 100))
-
+export default function FullRouteRail({ roadmap, headPhaseIndex, expectedTotal, currentCount, currentPhaseDone }: Props) {
   return (
     <div className="flow-rail">
       <div className="rail-head">
@@ -24,6 +22,33 @@ export default function FullRouteRail({ roadmap, headPhaseIndex, fraction, expec
       <div className="rail">
         {roadmap.map((p) => {
           const state = p.index < headPhaseIndex ? 'done' : p.index === headPhaseIndex ? 'current' : 'future'
+
+          if (state === 'current') {
+            // per-step meter: solid teal up to the steps done, faint split cells beyond.
+            const expected = Math.max(1, Math.round(p.weight))
+            const done = Math.max(0, currentPhaseDone)
+            const cells = Math.max(expected, done, 1)
+            const fillPct = Math.min(100, (done / cells) * 100)
+            const pitch = cells > 22 ? 7 : 10
+            const minWidth = cells * pitch + 14 // expand instead of crushing the splits
+            const style = {
+              flex: p.weight,
+              minWidth: `${minWidth}px`,
+              '--cells': cells,
+              '--fill': `${fillPct}%`,
+            } as CSSProperties
+
+            return (
+              <div key={p.index} className="seg current" style={style}>
+                <span className="seg-fill" />
+                <span className="seg-seam" />
+                <span className="seg-name">
+                  {p.name} <span className="seg-count mono">{currentCount}</span>
+                </span>
+              </div>
+            )
+          }
+
           return (
             <div key={p.index} className={`seg ${state}`} style={{ flex: p.weight }}>
               <span className="seg-name">{p.name}</span>
@@ -36,11 +61,6 @@ export default function FullRouteRail({ roadmap, headPhaseIndex, fraction, expec
         <span className="cap start mono">
           <span className="tk" />
           01
-        </span>
-        <span className="here" style={{ left: `${herePct}%` }}>
-          <span className="nib" />
-          <span className="htk" />
-          <span className="hnum mono">{currentCount}</span>
         </span>
         <span className="cap end mono">
           <span className="tk" />
