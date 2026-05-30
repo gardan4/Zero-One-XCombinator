@@ -364,6 +364,69 @@ def validate(
         typer.echo(f"saved -> {save}")
 
 
+@app.command("featherless-probe")
+def featherless_probe(
+    model: str = typer.Option(None, help="Featherless model id (default: FEATHERLESS_MODEL env)"),
+):
+    """Smoke-test Featherless credentials and model availability."""
+    from zo_eval.featherless import default_model, probe
+
+    m = model or default_model()
+    resp = probe(model=m)
+    content = resp["choices"][0]["message"].get("content") or ""
+    typer.secho(f"Featherless OK — model={m!r} reply={content!r}", fg="green")
+
+
+@app.command("featherless-eval")
+def featherless_eval(
+    model: str = typer.Option(None, help="Featherless model (default: deepseek-ai/DeepSeek-V4-Flash)"),
+    version: str = typer.Option(..., "-V", help="Repro label, e.g. zeroshot-featherless-v1"),
+    eval_dir: str = typer.Option("extras/eval_local", help="Dir with eval CSVs + gold.json"),
+    tasks: str = typer.Option("nextstep,completion,anomaly", help="Task subset"),
+    tags: str = typer.Option("", help="Extra comma-separated registry tags"),
+    out: str = typer.Option(None, help="Output dir (default: experiments/<run>/results)"),
+    self_check: bool = typer.Option(True, "--self-check/--no-self-check"),
+    promote: str = typer.Option(None, "--promote", help="Copy to extras/results/<slug>/"),
+    note: str = typer.Option(None, "--note"),
+    timeout: float = typer.Option(300.0, help="Per-request HTTP timeout (seconds)"),
+    concurrency: int = typer.Option(1, "--concurrency", "-c", help="Parallel HTTP requests (Featherless)"),
+    wandb_log: bool = typer.Option(True, "--wandb/--no-wandb"),
+):
+    """Zero-shot rules-in-context eval via Featherless (compare vs Leonardo / finetunes)."""
+    from zo_eval.featherless import default_model, run_featherless_eval
+
+    m = model or default_model()
+    res = run_featherless_eval(
+        model=m,
+        version=version,
+        eval_dir=eval_dir,
+        tasks=tuple(t.strip() for t in tasks.split(",") if t.strip()),
+        tags=_parse_tags(tags, []),
+        out_dir=out,
+        self_check=self_check,
+        wandb_log=wandb_log,
+        promote=promote,
+        note=note,
+        timeout=timeout,
+        concurrency=concurrency,
+    )
+    _echo_run_result(res)
+    if res.get("concurrent_stats"):
+        typer.echo(f"  concurrent: {res['concurrent_stats']['summary']}")
+
+
+@app.command("featherless-compare")
+def featherless_compare(
+    eval_dir: str = typer.Option("extras/eval_local_smoke", help="Eval inputs + gold.json"),
+    timeout: float = typer.Option(300.0, help="Per-request HTTP timeout (seconds)"),
+    wandb_log: bool = typer.Option(False, "--wandb/--no-wandb"),
+):
+    """Run 1.5B / 7B / DeepSeek zero-shot evals and print a comparison table."""
+    from zo_eval.featherless import run_featherless_compare
+
+    run_featherless_compare(eval_dir=eval_dir, wandb_log=wandb_log, timeout=timeout)
+
+
 @app.command()
 def report(
     run_id: str = typer.Argument(..., help="Registry run id to rebuild metrics_report from meta"),

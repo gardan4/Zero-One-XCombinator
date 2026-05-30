@@ -29,11 +29,11 @@
       "train_seqs": 800,
       "negatives": 400,
       "per_rule": {
-        "RULE_DEP_NO_CLEAN": 38,
-        "RULE_ETCH_NO_MASK": 102,
-        "RULE_METAL_ETCH_NO_LITHO": 52,
-        "RULE_IMPLANT_NO_MASK": 50,
-        "RULE_CMP_NO_DEP": 40,
+        "RULE_DEP_NO_CLEAN": 41,
+        "RULE_ETCH_NO_MASK": 100,
+        "RULE_METAL_ETCH_NO_LITHO": 45,
+        "RULE_IMPLANT_NO_MASK": 56,
+        "RULE_CMP_NO_DEP": 41,
         "RULE_LITHO_LEVEL_SKIP": 40,
         "RULE_TEST_BEFORE_PASSIVATION": 40,
         "RULE_SHIP_BEFORE_TEST": 40,
@@ -48,11 +48,11 @@
       "train_seqs": 800,
       "negatives": 400,
       "per_rule": {
-        "RULE_DEP_NO_CLEAN": 39,
-        "RULE_ETCH_NO_MASK": 107,
-        "RULE_METAL_ETCH_NO_LITHO": 47,
-        "RULE_IMPLANT_NO_MASK": 46,
-        "RULE_CMP_NO_DEP": 40,
+        "RULE_DEP_NO_CLEAN": 41,
+        "RULE_ETCH_NO_MASK": 109,
+        "RULE_METAL_ETCH_NO_LITHO": 45,
+        "RULE_IMPLANT_NO_MASK": 53,
+        "RULE_CMP_NO_DEP": 39,
         "RULE_LITHO_LEVEL_SKIP": 40,
         "RULE_TEST_BEFORE_PASSIVATION": 40,
         "RULE_SHIP_BEFORE_TEST": 40,
@@ -62,7 +62,8 @@
       "sft_lm_examples": 800,
       "completion_examples": 1600,
       "eval_nextstep_examples": 800
-    }
+    },
+    "instruct_all_examples": 18000
   },
-  "fingerprint": "659a991defaef08c"
+  "fingerprint": "fbf8350f4f1e64e9"
 }

@@ -79,3 +79,9 @@ The shared, model-agnostic path every stream uses (there was NO inference code b
 - Backend: `GET /api/compare/report`, `/api/compare/examples`, `/api/runs/{id}/examples`.
 - Frontend: `/compare` uses report API + disagreement panel; `lib/api.ts` restored.
 - Static dashboard: `node infineon-results-dashboard/scripts/build-results.mjs` from `extras/results/INDEX.json`.
+
+### Unified JSON prompts (2026-05-31)
+Single prompt stack in `zo_train/prompts.py` — JSON output + numbered user input, no rules digest by default. SFT instruct data uses JSON assistant labels; retrain required. Digest ablation: `ZO_RULES_IN_CONTEXT=1`. Version tags: `unified-prompt-v1`, `unified-prompt-featherless-*-v1`. Snapshot: `prompt_snapshots/zeroshot_rules_v9.md`.
+
+### Featherless + DeepSeek zero-shot (2026-05-30)
+See **[featherless-deepseek-zeroshot.md](../.claude/knowledge/featherless-deepseek-zeroshot.md)** — hosted API eval, JSON/repair, numbered prompts, anomaly truncation pitfalls, smoke5 run matrix.

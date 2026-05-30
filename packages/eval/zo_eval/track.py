@@ -175,6 +175,16 @@ def rescore_results(
     return {"run_id": run.id, "out_dir": str(results_dir), "version": version, **metrics}
 
 
+def _log_concurrent_stats(traced) -> None:
+    inner = getattr(traced, "_inner", traced)
+    stats = getattr(inner, "last_batch_stats", None)
+    if stats is None:
+        return
+    msg = stats.summary()
+    if stats.errors or getattr(inner, "concurrency", 1) > 1:
+        print(f"[zo-track] concurrent ({getattr(inner, 'concurrency', 1)} workers): {msg}", flush=True)
+
+
 def run_track(
     predictor,
     valid_csv: str | None = None,
@@ -307,6 +317,7 @@ def run_track(
                     f"elapsed={time.perf_counter() - t0:.1f}s",
                     flush=True,
                 )
+                _log_concurrent_stats(traced)
             sub.write_nextstep(list(nextstep_preds.items()), out / "nextstep.csv")
             if gold and gold.get("next"):
                 fam_br = M.per_family(M.score_nextstep, nextstep_preds, gold["next"], fam_of)
@@ -345,6 +356,7 @@ def run_track(
                     f"elapsed={time.perf_counter() - t0:.1f}s",
                     flush=True,
                 )
+                _log_concurrent_stats(traced)
             sub.write_completion(list(completion_preds.items()), out / "completion.csv")
             if gold and gold.get("completion"):
                 fam_br = M.per_family(M.score_completion, completion_preds, gold["completion"], fam_of)
@@ -390,6 +402,7 @@ def run_track(
                 f"elapsed={time.perf_counter() - t0:.1f}s",
                 flush=True,
             )
+            _log_concurrent_stats(traced)
         sub.write_anomaly(rows, out / "anomaly.csv")
         if gold and gold.get("anomaly"):
             anom_for_score = {

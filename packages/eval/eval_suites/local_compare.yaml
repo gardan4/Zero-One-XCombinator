@@ -34,8 +34,8 @@ runs:
     predictor: llm-zeroshot
     model: Qwen/Qwen2.5-1.5B-Instruct
     model_ref: Qwen/Qwen2.5-1.5B-Instruct
-    version: zeroshot-rules-v1
-    tags: [role:baseline, method:rules-in-context, baseline:zeroshot, reportable]
+    version: unified-prompt-v1
+    tags: [role:baseline, method:unified-json, baseline:zeroshot, reportable]
 
   # Uncomment and set model for finetuned comparison:
   # - name: hf-finetuned

@@ -17,6 +17,7 @@ non-obvious. `/log-learning` does the append in one step.
 - [track-industrial-ai.md](track-industrial-ai.md) — **our track (Infineon)**: data, grammar, 10 rules, 3 eval tasks + metrics, deliverables, how the scaffold maps
 - [training.md](training.md) — trl SFT + GRPO, LoRA, config schema, dry-run, version gotchas
 - [eval.md](eval.md) — task spec format, metrics, serving a model, adding a task
+- [featherless-deepseek-zeroshot.md](featherless-deepseek-zeroshot.md) — **Featherless + DeepSeek zero-shot baseline** (JSON prompts, numbered input, anomaly pitfalls)
 - **[../../docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md)** — **production playbook** (train → HF → eval → W&B → promote)
 - [agents.md](agents.md) — tool registry, rollout loop, scenarios, adding a tool
 - [hackathon.md](hackathon.md) — Zero One hackathon: schedule, submission rules (public+MIT+REPORT.md), judging
@@ -52,6 +53,7 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 ## Learnings log
 Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
+- 2026-05-30 — **Featherless + DeepSeek-V4-Flash zero-shot eval notes:** JSON prompts, duplicate-`content` HTTP repair, numbered step input (+next-step), reason-first anomaly prompts, pad-rule FP/root-cause, 256-token truncation → [featherless-deepseek-zeroshot.md](featherless-deepseek-zeroshot.md) — (eval)
 - 2026-05-30 — **Docs reconciled to repo state (CLAUDE.md + stack.md):** in-repo `apps/frontend` Next.js dashboard **removed** (commit "remove front") → submission UI is the standalone **`infineon-results-dashboard/`** (Cloudflare Workers, `:8787`); ⚠️ `scripts/{setup,dev,frontend}.py` (npm steps of `just setup`/`dev`/`frontend`) still target the deleted `apps/frontend` and fail there (`uv sync` + backend still work — use `just backend`). Remote is **`gardan4/Zero-One-XCombinator`**, org **XCombinator**. New top-level `tests/` (pytest), `extras/`, `submissions/`. Eval package exposes a 2nd CLI **`zo-track`**. Cruft: a gitignored literal **`$SCRATCH/`** dir (HF cache from an unset `$SCRATCH`) — safe to delete. — (stack, eval)
 - 2026-05-30 — **Prefix-aware GRPO completion reward:** `reward_validate`/`reward_process` now validate `prefix+completion` in context (prefix recovered from the trl `prompts`; robust to inline + `(N steps):` layouts); anti-hack floor on the completion length; fixes the degenerate next-step run (all -0.99 → zero advantage). Completion configs tagged `real-run`/`reportable`; next-step tagged `debug` (documented-degenerate). — (training)
 - 2026-05-30 — **W&B results migration + doc pass:** durable metrics on W&B, weights on HF, local scratch default `~/.cache/zo-experiments`; production tags `real-run`/`reportable`; single playbook in `docs/eval-and-artifacts.md` (aligned README, training configs, leonardo-eval, judge-quickstart, track-industrial-sources). — (eval, stack)

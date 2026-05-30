@@ -29,16 +29,17 @@ from zo_train.datagen import (
     nextstep_context_example,
     nextstep_example,
 )
+from zo_train.prompts import build_messages as build_sft_messages
 
+from zo_eval.concurrent_served import ConcurrentStats, map_concurrent
 from zo_eval.examples_trace import trace_from_llm_response
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
 from zo_eval.rules_context import build_messages as build_zeroshot_messages
 from zo_eval.submission import AnomalyInput, ValidInput
-from zo_train.prompts import build_messages as build_sft_messages
 
 
 def _unique_vocab_ranked(raw: str, vocabulary: set[str], *, limit: int = 5) -> list[str]:
-    ranked = parse_pipe_list(raw, vocabulary, strict=True)
+    ranked = parse_pipe_list(extract_answer(raw), vocabulary, strict=True)
     out: list[str] = []
     for step in ranked:
         if step not in out:
@@ -170,15 +171,11 @@ class ServedLLMPredictor:
         if self.style == "base":
             resp = self._ask(_ns_prompt_base(item), 64)
         else:
-            resp = self._ask_task("nextstep", item, 24)
+            resp = self._ask_task("nextstep", item, 512)
         raw = content(resp)
-        ranked = parse_pipe_list(raw, self.vocab, strict=True)
-        out: list[str] = []
-        for s in ranked:
-            if s not in out:
-                out.append(s)
+        out = _unique_vocab_ranked(raw, self.vocab)
         trace = {**trace_from_llm_response(raw), "model": self.model}
-        return out[:5], trace
+        return out, trace
 
     def complete(self, item: ValidInput) -> list[str]:
         steps, _ = self.complete_with_trace(item)
@@ -202,7 +199,7 @@ class ServedLLMPredictor:
         if self.style == "base":
             resp = self._ask(_an_prompt_base(item), 64, logprobs=True, top_logprobs=5)
         else:
-            resp = self._ask_task("anomaly", item, 64, logprobs=True, top_logprobs=5)
+            resp = self._ask_task("anomaly", item, 512, logprobs=True, top_logprobs=5)
         raw = content(resp)
         is_valid, rule = parse_anomaly(raw)
         lp_score = _valid_prob(resp)
@@ -215,11 +212,21 @@ class ServedLLMPredictor:
         return (is_valid, score, rule), trace
 
 
+def _served_concurrency(explicit: int | None) -> int:
+    if explicit is not None and explicit > 0:
+        return explicit
+    raw = os.environ.get("ZO_LLM_CONCURRENCY", "1").strip()
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return 1
+
+
 class RulesContextLLMPredictor:
     """Zero-shot baseline: process rules in system context, frozen base instruct model.
 
-    Unlike ``ServedLLMPredictor`` / ``HFGeneratePredictor``, prompts come from
-    ``rules_context.build_messages`` (generation_rules digest), not SFT ``datagen`` framing.
+    Uses ``rules_context.build_messages`` (unified JSON prompts; optional rules digest via
+    ``ZO_RULES_IN_CONTEXT=1``).
     """
 
     name = "llm-zeroshot"
@@ -234,6 +241,7 @@ class RulesContextLLMPredictor:
         backend: str = "served",
         device: str | None = None,
         batch_size: int | None = None,
+        concurrency: int | None = None,
     ):
         self.model = model
         self.base_url = base_url
@@ -241,6 +249,8 @@ class RulesContextLLMPredictor:
         self.backend = backend.strip().lower()
         self.vocab = vocab()
         self.batch_size = batch_size
+        self.concurrency = _served_concurrency(concurrency)
+        self.last_batch_stats: ConcurrentStats | None = None
         if self.backend == "hf":
             from zo_common.hub_inference import HubInferenceClient
 
@@ -268,34 +278,60 @@ class RulesContextLLMPredictor:
     def _content(self, resp: dict | str) -> str:
         return resp if isinstance(resp, str) else content(resp)
 
+    def _error_trace(self, exc: BaseException) -> dict:
+        from zo_eval.concurrent_served import classify_error
+
+        return {
+            "model": self.model,
+            "backend": self.backend,
+            "error": classify_error(exc),
+            "error_detail": str(exc)[:500],
+        }
+
+    def _map_served(self, items, fn, *, on_error):
+        if self.backend == "hf" or self.concurrency <= 1:
+            out = [fn(item) for item in items]
+            self.last_batch_stats = ConcurrentStats(total=len(items), ok=len(out))
+            return out
+        results, stats = map_concurrent(items, fn, concurrency=self.concurrency, on_error=on_error)
+        self.last_batch_stats = stats
+        return results
+
     def next_step(self, item: ValidInput) -> list[str]:
         ranks, _ = self.next_step_with_trace(item)
         return ranks
 
     def next_step_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
-        raw = self._content(self._ask("nextstep", item, 256))
+        raw = self._content(self._ask("nextstep", item, 512))
         out = _unique_vocab_ranked(extract_answer(raw), self.vocab)
         trace = {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend}
         return out, trace
 
     def next_step_batch(self, items: list[ValidInput]) -> list[tuple[list[str], dict]]:
-        if self.backend != "hf":
-            return [self.next_step_with_trace(item) for item in items]
-        assert self._hf is not None
-        messages = [build_zeroshot_messages("nextstep", item) for item in items]
-        raws = self._hf.chat_batch(
-            messages,
-            max_new_tokens=256,
-            temperature=self.temp,
-            batch_size=self.batch_size,
-        )
-        return [
-            (
-                _unique_vocab_ranked(extract_answer(raw), self.vocab),
-                {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend, "batched": True},
+        if self.backend == "hf":
+            assert self._hf is not None
+            messages = [build_zeroshot_messages("nextstep", item) for item in items]
+            raws = self._hf.chat_batch(
+                messages,
+                max_new_tokens=256,
+                temperature=self.temp,
+                batch_size=self.batch_size,
             )
-            for raw in raws
-        ]
+            return [
+                (
+                    _unique_vocab_ranked(extract_answer(raw), self.vocab),
+                    {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend, "batched": True},
+                )
+                for raw in raws
+            ]
+
+        def _one(item: ValidInput) -> tuple[list[str], dict]:
+            return self.next_step_with_trace(item)
+
+        def _err(_item: ValidInput, exc: BaseException) -> tuple[list[str], dict]:
+            return [], self._error_trace(exc)
+
+        return self._map_served(items, _one, on_error=_err)
 
     def complete(self, item: ValidInput) -> list[str]:
         steps, _ = self.complete_with_trace(item)
@@ -308,30 +344,37 @@ class RulesContextLLMPredictor:
         return steps, {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend}
 
     def complete_batch(self, items: list[ValidInput]) -> list[tuple[list[str], dict]]:
-        if self.backend != "hf":
-            return [self.complete_with_trace(item) for item in items]
-        assert self._hf is not None
-        messages = [build_zeroshot_messages("completion", item) for item in items]
-        raws = self._hf.chat_batch(
-            messages,
-            max_new_tokens=1024,
-            temperature=self.temp,
-            batch_size=self.batch_size,
-        )
-        return [
-            (
-                parse_pipe_list(extract_answer(raw), self.vocab, strict=True),
-                {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend, "batched": True},
+        if self.backend == "hf":
+            assert self._hf is not None
+            messages = [build_zeroshot_messages("completion", item) for item in items]
+            raws = self._hf.chat_batch(
+                messages,
+                max_new_tokens=1024,
+                temperature=self.temp,
+                batch_size=self.batch_size,
             )
-            for raw in raws
-        ]
+            return [
+                (
+                    parse_pipe_list(extract_answer(raw), self.vocab, strict=True),
+                    {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend, "batched": True},
+                )
+                for raw in raws
+            ]
+
+        def _one(item: ValidInput) -> tuple[list[str], dict]:
+            return self.complete_with_trace(item)
+
+        def _err(_item: ValidInput, exc: BaseException) -> tuple[list[str], dict]:
+            return [], self._error_trace(exc)
+
+        return self._map_served(items, _one, on_error=_err)
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
         result, _ = self.anomaly_with_trace(item)
         return result
 
     def anomaly_with_trace(self, item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
-        resp = self._ask("anomaly", item, 64, logprobs=True, top_logprobs=5)
+        resp = self._ask("anomaly", item, 512, logprobs=True, top_logprobs=5)
         raw = self._content(resp)
         is_valid, rule = parse_anomaly(extract_answer(raw))
         lp_score = _valid_prob(resp) if isinstance(resp, dict) else None
@@ -345,29 +388,36 @@ class RulesContextLLMPredictor:
         return (is_valid, score, rule), trace
 
     def anomaly_batch(self, items: list[AnomalyInput]) -> list[tuple[tuple[int, float, str | None], dict]]:
-        if self.backend != "hf":
-            return [self.anomaly_with_trace(item) for item in items]
-        assert self._hf is not None
-        messages = [build_zeroshot_messages("anomaly", item) for item in items]
-        raws = self._hf.chat_batch(
-            messages,
-            max_new_tokens=64,
-            temperature=self.temp,
-            batch_size=self.batch_size,
-        )
-        out: list[tuple[tuple[int, float, str | None], dict]] = []
-        for raw in raws:
-            is_valid, rule = parse_anomaly(extract_answer(raw))
-            result = (is_valid, 0.9 if is_valid else 0.1, rule)
-            trace = {
-                **trace_from_llm_response(raw),
-                "model": self.model,
-                "backend": self.backend,
-                "batched": True,
-                "valid_prob_from_logprobs": None,
-            }
-            out.append((result, trace))
-        return out
+        if self.backend == "hf":
+            assert self._hf is not None
+            messages = [build_zeroshot_messages("anomaly", item) for item in items]
+            raws = self._hf.chat_batch(
+                messages,
+                max_new_tokens=64,
+                temperature=self.temp,
+                batch_size=self.batch_size,
+            )
+            out: list[tuple[tuple[int, float, str | None], dict]] = []
+            for raw in raws:
+                is_valid, rule = parse_anomaly(extract_answer(raw))
+                result = (is_valid, 0.9 if is_valid else 0.1, rule)
+                trace = {
+                    **trace_from_llm_response(raw),
+                    "model": self.model,
+                    "backend": self.backend,
+                    "batched": True,
+                    "valid_prob_from_logprobs": None,
+                }
+                out.append((result, trace))
+            return out
+
+        def _one(item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
+            return self.anomaly_with_trace(item)
+
+        def _err(_item: AnomalyInput, exc: BaseException) -> tuple[tuple[int, float, str | None], dict]:
+            return (1, 0.5, None), self._error_trace(exc)
+
+        return self._map_served(items, _one, on_error=_err)
 
 
 class HFGeneratePredictor:
@@ -390,7 +440,7 @@ class HFGeneratePredictor:
         return self._client.generate(prompt, max_new_tokens=max_new_tokens or self._client.max_new_tokens)
 
     def next_step(self, item: ValidInput) -> list[str]:
-        max_tok = 64 if self.style == "base" else 24
+        max_tok = 64 if self.style == "base" else 512
         if self.style == "base":
             raw = self._gen(_ns_prompt_base(item), max_tok)
         else:
@@ -398,7 +448,7 @@ class HFGeneratePredictor:
         return _unique_vocab_ranked(raw, self.vocab)
 
     def next_step_batch(self, items: list[ValidInput]) -> list[list[str]]:
-        max_tok = 64 if self.style == "base" else 24
+        max_tok = 64 if self.style == "base" else 512
         if self.style == "base":
             prompts = [[{"role": "user", "content": _ns_prompt_base(it)}] for it in items]
         else:
@@ -425,7 +475,7 @@ class HFGeneratePredictor:
         if self.style == "base":
             raw = self._gen(_an_prompt_base(item), 64)
         else:
-            raw = self._chat_task("anomaly", item, 64)
+            raw = self._chat_task("anomaly", item, 512)
         is_valid, rule = parse_anomaly(raw)
         return (is_valid, 0.9 if is_valid else 0.1, rule)
 
@@ -434,7 +484,7 @@ class HFGeneratePredictor:
             prompts = [[{"role": "user", "content": _an_prompt_base(it)}] for it in items]
         else:
             prompts = [build_sft_messages("anomaly", it) for it in items]
-        raws = self._client.chat_batch(prompts, max_new_tokens=64)
+        raws = self._client.chat_batch(prompts, max_new_tokens=512)
         out = []
         for raw in raws:
             is_valid, rule = parse_anomaly(raw)
@@ -446,12 +496,15 @@ def _smoke() -> None:  # pragma: no cover - manual (no server/GPU needed)
     def fake_chat(messages, **kw):
         assert messages[0]["role"] == "system"
         prompt = messages[-1]["content"]
-        if "Next process step" in prompt:
-            c = "DEPOSIT BARRIER METAL | CLEAN AFTER VIA ETCH | DEVELOP PHOTORESIST | OXIDE ETCH | SHIP LOT"
-        elif "Complete the remaining" in prompt:
-            c = "<think>backbone</think>\nDEPOSIT METAL 1 | ANNEAL METAL 1 | SHIP LOT"
+        if "Last executed step" in prompt:
+            c = (
+                '{"reasoning": "next steps", "steps": ["DEPOSIT BARRIER METAL", "CLEAN AFTER VIA ETCH", '
+                '"DEVELOP PHOTORESIST", "OXIDE ETCH", "SHIP LOT"]}'
+            )
+        elif "Partial sequence (prefix" in prompt:
+            c = '{"reasoning": "finish route", "steps": ["DEPOSIT METAL 1", "ANNEAL METAL 1", "SHIP LOT"]}'
         else:
-            c = "INVALID. RULE_DEP_NO_CLEAN"
+            c = '{"reasoning": "violates clean rule", "valid": false, "rule": "RULE_DEP_NO_CLEAN"}'
         return {"choices": [{"message": {"content": c}}]}
 
     p = ServedLLMPredictor(chat_fn=fake_chat)
@@ -469,13 +522,13 @@ def _smoke_zeroshot() -> None:  # pragma: no cover - manual
     def fake_chat(messages, **kw):
         user = messages[-1]["content"]
         assert messages[0]["role"] == "system"
-        assert "Process grammar reference" in messages[0]["content"]
-        if "next allowed step" in user.lower():
-            c = "DEPOSIT BARRIER METAL | CLEAN AFTER VIA ETCH | DEVELOP PHOTORESIST"
-        elif "Complete the route" in user:
-            c = "DEPOSIT METAL 1 | ANNEAL METAL 1 | SHIP LOT"
+        assert "OUTPUT FORMAT" in messages[0]["content"]
+        if "Last executed step" in user:
+            c = '{"reasoning": "next", "steps": ["DEPOSIT BARRIER METAL", "CLEAN AFTER VIA ETCH", "DEVELOP PHOTORESIST"]}'
+        elif "Partial sequence (prefix" in user:
+            c = '{"reasoning": "finish", "steps": ["DEPOSIT METAL 1", "ANNEAL METAL 1", "SHIP LOT"]}'
         else:
-            c = "INVALID. RULE_SHIP_BEFORE_TEST"
+            c = '{"reasoning": "ship before test", "valid": false, "rule": "RULE_SHIP_BEFORE_TEST"}'
         return {"choices": [{"message": {"content": c}}]}
 
     p = RulesContextLLMPredictor(chat_fn=fake_chat)

@@ -101,11 +101,14 @@ def test_classifier_detector_injected_chat():
     from zo_eval.submission import AnomalyInput
 
     def fake_chat(messages, **kw):
-        # Pretend the model flags any sequence that does not start with RECEIVE WAFER LOT.
-        seq_line = messages[-1]["content"].split("Process sequence:")[1].strip()
-        invalid = not seq_line.startswith("RECEIVE WAFER LOT")
-        verdict = "INVALID. RULE_SHIP_BEFORE_TEST" if invalid else "VALID."
-        first = "INVALID" if invalid else "VALID"
+        user = messages[-1]["content"]
+        invalid = "1. SHIP LOT" in user and "2. RECEIVE WAFER LOT" in user
+        if invalid:
+            content = '{"reasoning": "ship before receive", "valid": false, "rule": "RULE_SHIP_BEFORE_TEST"}'
+            first = "INVALID"
+        else:
+            content = '{"reasoning": "ok", "valid": true, "rule": null}'
+            first = "VALID"
         logprobs = {
             "content": [
                 {
@@ -118,7 +121,7 @@ def test_classifier_detector_injected_chat():
                 }
             ]
         }
-        return {"choices": [{"message": {"content": verdict}, "logprobs": logprobs}]}
+        return {"choices": [{"message": {"content": content}, "logprobs": logprobs}]}
 
     clf = ClassifierDetector(chat_fn=fake_chat)
     iv_ok, sc_ok, rule_ok = clf.anomaly(AnomalyInput("g", "MOSFET", ["RECEIVE WAFER LOT", "WAFER SORT TEST", "SHIP LOT"]))

@@ -350,11 +350,16 @@ def _nl_block(steps, descriptions, nl: bool) -> str:
 
 
 def nextstep_example(family, prefix, target, descriptions=None, nl=False) -> dict:
-    p = (
-        f"Product family: {family}{_nl_block(prefix[-8:], descriptions, nl)}\n"
-        f"Process so far: {SEP.join(prefix)}\n\nNext process step?"
-    )
-    return {"prompt": p, "completion": " " + target, "family": family}
+    from zo_train.prompts import PromptItem, build_json_completion_nextstep, build_sft_user
+
+    item = PromptItem(family, partial_sequence=list(prefix))
+    p = build_sft_user("nextstep", item)
+    if nl and descriptions:
+        nl_part = _nl_block(prefix[-8:], descriptions, nl)
+        if nl_part:
+            p = p.replace(f"Product family: {family}\n", f"Product family: {family}{nl_part}\n", 1)
+    comp = build_json_completion_nextstep(target)
+    return {"prompt": p, "completion": " " + comp, "family": family}
 
 
 def lm_example(family, steps, descriptions=None, nl=False) -> dict:
@@ -368,28 +373,30 @@ def lm_example(family, steps, descriptions=None, nl=False) -> dict:
 
 
 def completion_example(family, prefix, rest, descriptions=None, nl=False) -> dict:
-    p = (
-        f"Product family: {family}\n"
-        f"Partial process sequence: {SEP.join(prefix)}\n\n"
-        f"Complete the remaining steps in order:"
-    )
-    return {"prompt": p, "completion": " " + SEP.join(rest), "family": family}
+    from zo_train.prompts import PromptItem, build_json_completion_completion, build_sft_user
+
+    item = PromptItem(family, partial_sequence=list(prefix))
+    p = build_sft_user("completion", item)
+    comp = build_json_completion_completion(list(rest))
+    return {"prompt": p, "completion": " " + comp, "family": family}
 
 
 def anomaly_example(family, steps, is_valid, rules=None, descriptions=None, explain=False) -> dict:
-    p = (
-        f"Product family: {family}\n"
-        f"Process sequence: {SEP.join(steps)}\n\n"
-        f"Is this a valid process sequence? If not, name the violated rule."
-    )
-    if explain and not is_valid:
-        why = explain_violation(steps, descriptions) or ""
-        comp = f" INVALID. {why}"
-    elif is_valid:
-        comp = " VALID."
+    from zo_train.prompts import PromptItem, build_json_completion_anomaly, build_sft_user
+
+    item = PromptItem(family, sequence=list(steps))
+    p = build_sft_user("anomaly", item)
+    if is_valid:
+        comp = build_json_completion_anomaly(True)
     else:
-        comp = f" INVALID. Rule(s): {', '.join(rules or [])}."
-    return {"prompt": p, "completion": comp, "text": p + comp, "family": family, "is_valid": int(bool(is_valid))}
+        rule = (rules or ["RULE_UNKNOWN"])[0]
+        reasoning = None
+        if explain:
+            why = explain_violation(steps, descriptions) or ""
+            if why:
+                reasoning = why.strip()[:120]
+        comp = build_json_completion_anomaly(False, rule, reasoning=reasoning)
+    return {"prompt": p, "completion": " " + comp, "text": p + " " + comp, "family": family, "is_valid": int(bool(is_valid))}
 
 
 # --------------------------------------------------------------------------------------
@@ -630,15 +637,20 @@ def build_all(
         )
 
         # Instruct SFT rows (shared system prompt + datagen-aligned user + assistant).
-        from zo_train.prompts import PromptItem, build_instruct_messages
+        from zo_train.prompts import (
+            PromptItem,
+            build_instruct_messages,
+            build_json_completion_completion,
+        )
 
         for s in train_seqs:
+            ex_valid = anomaly_example(fam, list(s), True)
             instruct_rows.append(
                 {
                     "messages": build_instruct_messages(
                         "anomaly",
                         PromptItem(fam, sequence=list(s)),
-                        " VALID.",
+                        ex_valid["completion"].lstrip(),
                     ),
                     "family": fam,
                     "task": "anomaly",
@@ -647,12 +659,13 @@ def build_all(
             for frac in (0.6, 0.8):
                 cut = int(len(s) * frac)
                 prefix, rest = s[:cut], s[cut:]
+                comp = build_json_completion_completion(list(rest))
                 instruct_rows.append(
                     {
                         "messages": build_instruct_messages(
                             "completion",
                             PromptItem(fam, partial_sequence=list(prefix)),
-                            " " + SEP.join(rest),
+                            comp,
                         ),
                         "family": fam,
                         "task": "completion",
@@ -666,7 +679,7 @@ def build_all(
                             "messages": build_instruct_messages(
                                 "nextstep",
                                 PromptItem(fam, partial_sequence=list(s[:i])),
-                                ex["completion"],
+                                ex["completion"].lstrip(),
                             ),
                             "family": fam,
                             "task": "nextstep",
@@ -679,7 +692,7 @@ def build_all(
                     "messages": build_instruct_messages(
                         "anomaly",
                         PromptItem(fam, sequence=list(n["steps"])),
-                        ex["completion"],
+                        ex["completion"].lstrip(),
                     ),
                     "family": fam,
                     "task": "anomaly",

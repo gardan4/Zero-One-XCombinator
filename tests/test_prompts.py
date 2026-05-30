@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from zo_eval.submission import AnomalyInput, ValidInput
 from zo_train.datagen import (
     anomaly_example,
@@ -17,6 +16,7 @@ from zo_train.prompts import (
     PromptItem,
     build_base_system,
     build_instruct_messages,
+    build_json_completion_nextstep,
     build_messages,
     build_sft_user,
     load_system_general,
@@ -28,6 +28,8 @@ def test_base_system_contains_general_and_task():
     sys = build_base_system("nextstep")
     assert load_system_general() in sys
     assert "Next-step prediction" in sys
+    assert "OUTPUT FORMAT" in sys
+    assert '"steps"' in sys
     assert "Process grammar reference" not in sys
 
 
@@ -46,6 +48,19 @@ def test_sft_user_matches_datagen_prompts():
     assert build_sft_user("anomaly", ai) == anomaly_example("MOSFET", prefix, True)["prompt"]
 
 
+def test_numbered_user_nextstep():
+    vi = ValidInput("e1", "MOSFET", 0.6, ["RECEIVE WAFER LOT", "LOT IDENTIFICATION"])
+    user = build_sft_user("nextstep", vi)
+    assert "1. RECEIVE WAFER LOT" in user
+    assert 'Last executed step (#2): "LOT IDENTIFICATION"' in user
+
+
+def test_datagen_nextstep_json_completion():
+    ex = nextstep_example("MOSFET", ["A"], "B")
+    assert '"steps": ["B"]' in ex["completion"]
+    assert '"reasoning": ""' in ex["completion"]
+
+
 def test_build_messages_has_system_and_user():
     vi = ValidInput("e1", "MOSFET", 0.6, ["A"])
     msgs = build_messages("nextstep", vi)
@@ -56,13 +71,14 @@ def test_build_messages_has_system_and_user():
 
 
 def test_instruct_messages_includes_assistant():
+    comp = build_json_completion_nextstep("B")
     row = build_instruct_messages(
         "nextstep",
         PromptItem("MOSFET", partial_sequence=["A"]),
-        " B",
+        comp,
     )
     assert row[-1]["role"] == "assistant"
-    assert row[-1]["content"] == " B"
+    assert row[-1]["content"] == comp
 
 
 def test_system_prompt_path_override(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
