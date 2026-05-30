@@ -1,0 +1,24 @@
+# Stream 1 — LOFO (leave-one-family-out) OOD model: IGBT held out.
+# Trains ONLY on IC + MOSFET; IGBT is the unseen family the eval tests against.
+# Pairs with splits.json lofo.IGBT (train_families: [IC, MOSFET]).
+#
+# Validate:  just train configs/sft_fab_lofo_igbt.yaml --dry-run
+# Real (GPU): uv run zo-train sft -c configs/sft_fab_lofo_igbt.yaml
+name: sft-fab-lofo-igbt
+kind: sft
+model: Qwen/Qwen2.5-1.5B-Instruct
+dataset: data/generated/IC_sft_lm.jsonl,data/generated/MOSFET_sft_lm.jsonl
+text_field: text
+lora: false
+epochs: 3
+batch_size: 8
+grad_accum: 2
+learning_rate: 2.0e-5
+max_seq_len: 1024
+warmup_ratio: 0.03
+bf16: true
+seed: 42
+extra:
+  tags: [stream:1, lofo:igbt, split:ood]
+  held_out_family: IGBT
+  max_steps: 50
