@@ -126,19 +126,21 @@ export default function ComparePage() {
 
   // --- Loss-curve overlay: align series by step index ---
   const lossChart = useMemo(() => {
-    if (lossSeries.length === 0) return { rows: [] as Record<string, number>[], keys: [] as string[] };
-    const keys = lossSeries.map((s) => s.name || s.runId);
+    if (lossSeries.length === 0)
+      return { rows: [] as Record<string, number>[], keys: [] as string[], labels: {} as Record<string, string> };
+    const keys = lossSeries.map((s) => s.runId); // unique — run names can collide across sessions
+    const labels = Object.fromEntries(lossSeries.map((s) => [s.runId, s.name || s.runId]));
     const maxLen = Math.max(...lossSeries.map((s) => s.data.length));
     const rows: Record<string, number>[] = [];
     for (let i = 0; i < maxLen; i++) {
       const row: Record<string, number> = { step: i };
-      lossSeries.forEach((s, idx) => {
+      lossSeries.forEach((s) => {
         const v = s.data[i]?.loss;
-        if (typeof v === "number") row[keys[idx]] = v;
+        if (typeof v === "number") row[s.runId] = v;
       });
       rows.push(row);
     }
-    return { rows, keys };
+    return { rows, keys, labels };
   }, [lossSeries]);
 
   const selectedRun = anomalyRuns.find((r) => r.id === selected) ?? null;
@@ -154,6 +156,9 @@ export default function ComparePage() {
         Industrial AI track — process-logic generalization. The headline is the anomaly detector&apos;s
         in-distribution vs out-of-distribution collapse.
       </p>
+
+      {/* (0) Run comparison matrix — every eval run, key metrics side by side */}
+      <RunMatrix runs={runs} />
 
       {loaded && anomalyRuns.length === 0 && (
         <div className="mt-6 rounded-lg border border-neutral-800 p-6 text-sm text-neutral-400">
@@ -278,6 +283,7 @@ export default function ComparePage() {
                     key={k}
                     type="monotone"
                     dataKey={k}
+                    name={lossChart.labels[k]}
                     stroke={lineColors[i % lineColors.length]}
                     dot={false}
                     strokeWidth={2}
@@ -290,6 +296,81 @@ export default function ComparePage() {
         </div>
       </section>
     </div>
+  );
+}
+
+const METRIC_COLS: { key: string; label: string; group: string }[] = [
+  { key: "top1", label: "Top-1", group: "next-step" },
+  { key: "top5", label: "Top-5", group: "next-step" },
+  { key: "mrr", label: "MRR", group: "next-step" },
+  { key: "block_acc", label: "Block", group: "completion" },
+  { key: "ned", label: "NED", group: "completion" },
+  { key: "anomaly_f1", label: "Anom F1", group: "anomaly" },
+  { key: "anomaly_auc", label: "Anom AUC", group: "anomaly" },
+];
+
+// All eval runs, their key metrics side by side, ID/OOD-colored. The "compare runs" surface.
+function RunMatrix({ runs }: { runs: CompareRun[] }) {
+  const evalRuns = runs.filter(
+    (r) => r.kind === "eval" || METRIC_COLS.some((c) => num(r.metrics, c.key) !== null),
+  );
+  if (evalRuns.length === 0) {
+    return (
+      <section className="mt-6">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-950 p-6 text-sm text-neutral-500">
+          No eval runs yet — run the OOD eval (or an n-gram baseline) to populate the comparison.
+        </div>
+      </section>
+    );
+  }
+  const splitTone = (s: string | null) =>
+    s === "ood" ? "text-rose-300" : s === "id" ? "text-emerald-300" : "text-neutral-400";
+  return (
+    <section className="mt-6">
+      <h2 className="mb-2 text-sm font-medium text-neutral-300">Run comparison — eval metrics</h2>
+      <div className="overflow-auto rounded-lg border border-neutral-800">
+        <table className="w-full text-xs">
+          <thead className="bg-neutral-900 text-left text-neutral-400">
+            <tr>
+              <th className="px-3 py-2 font-medium">run</th>
+              <th className="px-3 py-2 font-medium">split</th>
+              <th className="px-3 py-2 font-medium">family</th>
+              <th className="px-3 py-2 font-medium">predictor</th>
+              {METRIC_COLS.map((c) => (
+                <th key={c.key} className="px-3 py-2 text-right font-medium" title={c.group}>
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {evalRuns.map((r) => {
+              const s = tagValue(r.tags, "split");
+              return (
+                <tr key={r.id} className="border-t border-neutral-800 hover:bg-neutral-900/40">
+                  <td className="px-3 py-1.5">
+                    <Link href={`/runs/${r.id}`} className="text-neutral-200 hover:underline">
+                      {r.name}
+                    </Link>
+                  </td>
+                  <td className={`px-3 py-1.5 font-medium ${splitTone(s)}`}>{s ?? "—"}</td>
+                  <td className="px-3 py-1.5 text-neutral-400">{tagValue(r.tags, "family") ?? "—"}</td>
+                  <td className="px-3 py-1.5 text-neutral-400">{tagValue(r.tags, "predictor") ?? r.kind}</td>
+                  {METRIC_COLS.map((c) => {
+                    const v = num(r.metrics, c.key);
+                    return (
+                      <td key={c.key} className="px-3 py-1.5 text-right tabular-nums text-neutral-300">
+                        {v === null ? "·" : v.toFixed(3)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from zo_backend.api.copilot import router as copilot_router
 from zo_backend.api.runs import router as runs_router
 from zo_backend.config import settings
 
@@ -27,3 +28,4 @@ def health() -> dict[str, str]:
 
 
 app.include_router(runs_router, prefix="/api")
+app.include_router(copilot_router, prefix="/api")
