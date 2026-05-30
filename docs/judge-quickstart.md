@@ -41,10 +41,12 @@ just leonardo-smoke --dry-run
 
 ## Inference & track eval
 
-Run a finetuned checkpoint locally or batch-eval on Leonardo. We submit three CSVs; organizers score
-with their script. Self-eval: [track-industrial-sources.md](track-industrial-sources.md).
-Team checkpoints: Hugging Face **`XCombinator`**; training logs: W&B **`XCombinator/XCombinator`**.
-Every `zo-track predict` run requires `--version` and writes `metrics_report.md` under the run results dir.
+Run a finetuned checkpoint locally or batch-eval on Leonardo. Full playbook:
+**[docs/eval-and-artifacts.md](eval-and-artifacts.md)**.
+
+Checkpoints: Hugging Face **`XCombinator`**. Metrics + eval artifacts: W&B **`XCombinator/XCombinator`**.
+
+Production eval tags: `real-run`, `reportable`, `version:<id>`, plus `--train-run <train_run_id>`.
 
 ### Laptop — pip only (local HF inference, no dashboard)
 
@@ -72,7 +74,10 @@ python scripts/zo_cluster.py judge-stage
 python scripts/zo_cluster.py judge-eval --local
 
 # uv / just (optional)
-just judge-setup && just judge-stage && just judge-eval --local
+just judge-setup && just judge-stage && just judge-eval --local \
+  --model XCombinator/sft-fab-all \
+  --train-run <train_run_id> \
+  --tags real-run,reportable,version:v1,split:id
 ```
 
 For **local HF inference on the login node**: `requirements-inference.txt` + `scripts/hub_infer.py`.

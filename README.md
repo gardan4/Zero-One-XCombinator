@@ -17,7 +17,7 @@ packages/
   training/     zo_train  — SFT + GRPO/RL recipes, configs, and SLURM cluster submission
   eval/         zo_eval   — model eval harness (tasks → metrics → run registry)
   agent/        zo_agent  — agent rollout harness (tools, scenarios, task success)
-experiments/    per-run outputs (meta.json, metrics.jsonl, artifacts/) — gitignored
+experiments/    local scratch run registry (default: ~/.cache/zo-experiments) — gitignored
 .claude/        team Claude config: settings, slash commands, subagents, knowledge base
 scripts/        dev.py, setup.py (cross-platform), wt.sh (worktrees)
 ```
@@ -41,8 +41,8 @@ Install `uv`: [official guide](https://docs.astral.sh/uv/getting-started/install
 
 Optional teammate shortcuts: `mise trust && mise install`, then `just setup` and `just dev`.
 
-Copy `.env.example` to `.env` only if you need private Hugging Face models, cluster submission,
-custom paths, or `ZO_ALLOW_DASHBOARD_INFERENCE=1` for HF/LLM predictors.
+Copy `.env.example` to `.env` for W&B, Hugging Face, cluster, and dashboard source settings
+(`WANDB_API_KEY`, `HF_TOKEN`, `ZO_RESULTS_SOURCE`, etc.). See [docs/eval-and-artifacts.md](docs/eval-and-artifacts.md).
 
 Heavy ML deps (torch/trl/transformers/vllm) are an optional extra and install **on the
 cluster**, not your laptop:
@@ -58,15 +58,15 @@ GPU pin lives in `uv.lock` and installs via the extra above. Regenerate:
 ## The core loop
 
 ```bash
-just train packages/training/configs/sft_smoke.yaml   # local smoke / SLURM job
-just submit packages/training/configs/sft_qwen.yaml   # render + sbatch on Leonardo
-just runs                                             # list every run, newest first
-just eval packages/eval/tasks/example.yaml $MODEL     # score a model
-just agent packages/agent/scenarios/example.yaml $MODEL  # measure agentic task success
+just train packages/training/configs/sft_smoke.yaml --dry-run   # validate config + registry path
+just submit packages/training/configs/sft_fab_lofo_mosfet.yaml # Leonardo training
+just runs                                                     # list local scratch runs
+just track "-p hf --model XCombinator/... -V v1 --gold ..."   # eval → W&B + CSVs
 ```
 
-Every run — training, eval, or agent — writes through `zo_common` into `experiments/`,
-which is exactly what the backend serves and the dashboard shows.
+Every run writes a local scratch copy **and** (when `WANDB_API_KEY` is set) logs to W&B.
+Weights go to Hugging Face; the dashboard reads `source=local|wandb|repo`.
+Full playbook: **[docs/eval-and-artifacts.md](docs/eval-and-artifacts.md)**.
 
 ## Working in parallel (4 people, many experiments)
 
@@ -86,9 +86,12 @@ See also [docs/track-industrial-sources.md](docs/track-industrial-sources.md).
 
 | Where | What |
 |-------|------|
-| Hugging Face **`XCombinator`** | Fine-tuned checkpoints — each repo has `README.md` + `training_manifest.json` (tags + full config). See [docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md) |
-| W&B **`XCombinator/XCombinator`** | Training logs and loss curves (`WANDB_ENTITY` / `WANDB_PROJECT` in `.env`) |
-| `experiments/<run_id>/` | Registry runs, metrics, `results/*.csv`, `metrics_report.md` |
+| **W&B** `XCombinator/XCombinator` | Training + eval metrics, eval CSV artifacts |
+| **Hugging Face** `XCombinator/*` | Checkpoints, `training_manifest.json`, model card |
+| **Local scratch** | Disposable cache (`~/.cache/zo-experiments` by default) |
+| **`extras/results/`** | Promoted final CSVs for pitch / REPORT |
+
+Production run checklist: **[docs/eval-and-artifacts.md](docs/eval-and-artifacts.md)** (playbook at top).
 
 Repro eval: `just kickoff-predict "-p hf --model XCombinator/<repo> -V <tag> …"` or local proxy via
 `just local-eval MOSFET` (see `docs/leonardo-eval.md`).

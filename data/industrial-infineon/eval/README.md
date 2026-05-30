@@ -14,7 +14,8 @@ organizers hold ground-truth labels for scoring.
 ```bash
 uv run zo-track predict -p hf --model XCombinator/<checkpoint> --version v1 \
   --eval-set kickoff --tags split:id
-# → experiments/<run>/results/{nextstep,completion,anomaly}.csv
+# → $ZO_EXPERIMENTS_DIR/<run_id>/results/{nextstep,completion,anomaly}.csv
+# (+ W&B eval artifact when WANDB_API_KEY is set)
 ```
 
 ## Self-evaluation during development
@@ -24,9 +25,9 @@ uv run zo-track predict -p hf --model XCombinator/<checkpoint> --version v1 \
 | Labeled hold-out proxy | `just local-eval MOSFET` → `extras/eval_local/` + `gold.json` |
 | Tagged comparison matrix | `just eval-suite packages/eval/eval_suites/local_compare.yaml` |
 | Kickoff submission + promote | `just eval-suite packages/eval/eval_suites/kickoff_submit.yaml --model XCombinator/...` |
-| Re-score without re-inference | `just rescore --results experiments/.../results --gold extras/eval_local/gold.json --self-check` |
+| Re-score without re-inference | `just rescore --results $ZO_EXPERIMENTS_DIR/<run_id>/results --gold extras/eval_local/gold.json --self-check` |
 | Promote to submission folder | `just promote kickoff-final <run_id>` → `extras/results/` |
-| Grammar validity of completions | `just validate-completion experiments/.../results/completion.csv` |
+| Grammar validity of completions | `just validate-completion $ZO_EXPERIMENTS_DIR/<run_id>/results/completion.csv` |
 | Exact metrics (labeled proxy) | `just self-check --results ... --gold ... --valid ... --anomaly ...` |
 | Compare index | `extras/results/INDEX.json` lists all promoted runs + tags |
 

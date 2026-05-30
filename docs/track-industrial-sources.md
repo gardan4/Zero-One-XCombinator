@@ -35,8 +35,8 @@ labels** for those IDs and score our three output CSVs after submission:
 | Baseline vs model matrix (labeled) | `just eval-suite packages/eval/eval_suites/local_compare.yaml --model XCombinator/...` |
 | Kickoff submission + auto-promote | `just eval-suite packages/eval/eval_suites/kickoff_submit.yaml --model XCombinator/...` |
 | Single run + promote | `just track "-p hf --model … -V final --eval-set kickoff --promote kickoff-final"` |
-| Re-score CSVs only | `just rescore --results experiments/…/results --gold extras/eval_local/gold.json --self-check` |
-| Promote after the fact | `just promote kickoff-final <run_id>` |
+| Re-score CSVs only | `just rescore --results $ZO_EXPERIMENTS_DIR/<run_id>/results --gold extras/eval_local/gold.json --self-check` |
+| Promote after the fact | `just promote kickoff-final <run_id>` or `uv run zo-track promote-wandb <wandb_run_id> --slug kickoff-final` |
 | HF training params on model repo | `just hub-manifest <run_id> --hub-model-id XCombinator/...` |
 | Compare index | `extras/results/INDEX.json` |
 
@@ -83,7 +83,8 @@ Registry keys and per-family / per-cut (`_frac60`, `_frac80`) breakdowns: see `.
 | Artifact | Location |
 |----------|----------|
 | Checkpoints | Hugging Face **`XCombinator`** |
-| Training logs / loss curves | W&B **`XCombinator/XCombinator`** |
-| Eval CSVs + reports | `experiments/<run_id>/results/` or `extras/results/` |
+| Training + eval metrics, eval CSV artifacts | W&B **`XCombinator/XCombinator`** |
+| Local scratch (disposable) | `~/.cache/zo-experiments/` or `$SCRATCH/zo-experiments` |
+| Promoted pitch CSVs | `extras/results/` |
 
-See `docs/leonardo-eval.md`, `packages/training/configs/README.md`, `.env.example`.
+**Production playbook:** [eval-and-artifacts.md](eval-and-artifacts.md) (train → HF → eval → W&B → promote).

@@ -43,9 +43,11 @@ families is our only OOD proxy — the hidden 4th family (Task 4) can't be rehea
 
 | Artifact | Location |
 |----------|----------|
-| Published checkpoints | Hugging Face org **`XCombinator`** (`extra.hub_model_id` / `leonardo_upload_artifact.sh`) |
-| Training metrics | W&B project **`XCombinator/XCombinator`** (`WANDB_ENTITY` / `WANDB_PROJECT`) |
-| SLURM-local checkpoint | `experiments/<run_id>/artifacts/` before upload |
+| Published checkpoints | Hugging Face org **`XCombinator`** (`extra.hub_model_id` or `leonardo_upload_artifact.sh`) |
+| Training + eval metrics | W&B **`XCombinator/XCombinator`** (needs `WANDB_API_KEY` in `.env`) |
+| Local scratch | `~/.cache/zo-experiments/<run_id>/` by default (`ZO_EXPERIMENTS_DIR` to override) |
+
+**End-to-end playbook** (train → HF → eval → W&B → promote): [docs/eval-and-artifacts.md](../../../docs/eval-and-artifacts.md).
 
 ### Hugging Face model cards (tags + training params)
 
@@ -63,40 +65,38 @@ into the artifact folder **before** push:
 extra:
   hub_model_id: XCombinator/sft-fab-lofo-mosfet
   push_to_hub: true
-  tags: [leonardo, sft, full-ft, lofo:mosfet]      # also on registry run
-  hub_tags: [report-final, attempt-3, best-run]     # extra HF-only tags (any strings)
-  hub_notes: "2ep lr1e-5; held-out MOSFET; W&B run xyz"
+  tags: [real-run, reportable, version:sft-lofo-mosfet-v1, leonardo, sft, lofo:mosfet]
+  hub_tags: [real-run, reportable]
+  hub_notes: "2ep lr1e-5; held-out MOSFET"
 ```
 
 Regenerate locally (e.g. before re-upload): `uv run zo-runs hub-manifest <run_id> --hub-model-id XCombinator/...`
 
 On Hugging Face: open the model repo → read **README** or download **`training_manifest.json`**.
 
-## Checkpoint -> submissions (the path)
+## Checkpoint → eval → W&B → submission
 
-Training is **not** the submission step. After upload, point eval at the HF repo id. The **shared
-driver** (`zo-track`) produces the three submission CSVs + `metrics_report.md`:
+Training is **not** the submission step. After HF upload, run eval with matching tags:
 
 ```bash
-# 1. serve the full-FT checkpoint (vLLM, OpenAI-compatible; no merge needed)
-just serve experiments/<run_id>/artifacts
+# Local labeled proxy (scores + W&B eval artifact)
+just track "-p hf \
+  --model XCombinator/sft-fab-lofo-mosfet \
+  --model-ref XCombinator/sft-fab-lofo-mosfet \
+  --version sft-lofo-mosfet-v1 \
+  --train-run <train_run_id> \
+  --valid extras/eval_local/eval_input_valid.csv \
+  --anomaly extras/eval_local/eval_input_anomaly.csv \
+  --gold extras/eval_local/gold.json \
+  --self-check \
+  --tags real-run,reportable,split:ood,family:MOSFET"
 
-# 2. generate submissions; self-score with gold.json (organizers score CSVs with their script)
-zo-track predict -p hf --model XCombinator/sft-fab-lofo-mosfet \
-  --version sft-lofo-mosfet-v1 --model-ref XCombinator/sft-fab-lofo-mosfet \
-  --valid   eval_input_valid.csv \
-  --anomaly eval_input_anomaly.csv \
-  --gold    gold.json \
-  --tags    split:ood,family:MOSFET,eval-set:local   # LOFO held-out family
-
-# Baseline on same inputs (restrict train families for honest OOD):
-zo-track predict -p ngram --train-families IGBT,IC \
-  --version ngram-baseline-v1 --tags split:ood,family:MOSFET,eval-set:local \
-  --valid ... --gold ...
+# Leonardo GPU batch
+just judge-eval --local --model XCombinator/sft-fab-lofo-mosfet \
+  --train-run <train_run_id> \
+  --tags real-run,reportable,version:sft-lofo-mosfet-v1,split:ood,family:MOSFET
 ```
 
-This writes `nextstep.csv` / `completion.csv` / `anomaly.csv` (to `extras/results/<run>/`) and
-logs scored, tagged metrics to the registry -> dashboard. Tag the all-family baseline
-`split:id` and each LOFO checkpoint `split:ood,family:<held-out>` so the dashboard can draw the
-ID-vs-OOD bars per family. **Lead completion results with edit-distance / block-acc, not exact
-match** (EM is ~0 for everyone — synonyms + optional steps mean many valid completions exist).
+Outputs: three CSVs, `metrics_report.md`, W&B eval metrics + `eval-results` artifact.
+Tag the all-family baseline `split:id` and each LOFO checkpoint `split:ood,family:<held-out>`.
+**Lead completion results with edit-distance / block-acc, not exact match** (EM is ~0 for everyone).

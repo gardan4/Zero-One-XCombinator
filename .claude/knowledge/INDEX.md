@@ -17,6 +17,7 @@ non-obvious. `/log-learning` does the append in one step.
 - [track-industrial-ai.md](track-industrial-ai.md) — **our track (Infineon)**: data, grammar, 10 rules, 3 eval tasks + metrics, deliverables, how the scaffold maps
 - [training.md](training.md) — trl SFT + GRPO, LoRA, config schema, dry-run, version gotchas
 - [eval.md](eval.md) — task spec format, metrics, serving a model, adding a task
+- **[../../docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md)** — **production playbook** (train → HF → eval → W&B → promote)
 - [agents.md](agents.md) — tool registry, rollout loop, scenarios, adding a tool
 - [hackathon.md](hackathon.md) — Zero One hackathon: schedule, submission rules (public+MIT+REPORT.md), judging
 - [decisions/](decisions/) — architecture decision records (ADRs)
@@ -51,6 +52,7 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 ## Learnings log
 Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
+- 2026-05-30 — **W&B results migration + doc pass:** durable metrics on W&B, weights on HF, local scratch default `~/.cache/zo-experiments`; production tags `real-run`/`reportable`; single playbook in `docs/eval-and-artifacts.md` (aligned README, training configs, leonardo-eval, judge-quickstart, track-industrial-sources). — (eval, stack)
 - 2026-05-30 — **Eval + HF artifact guide:** `docs/eval-and-artifacts.md`; kickoff eval drop; eval final plumbing (suites, promote, self-check, tagging, `training_manifest.json` on HF). Branch `feature/eval-final-plumbing`. — (eval, training)
 - 2026-05-30 — **Leonardo finetune pipeline (adapted from the `leonardo-finetune-reference` branch):** prestage→offline-GPU→live-W&B(proxy)→HF-upload scripts + `train.sbatch.j2`/`submit.py`/`sft.py` (offline `local_files_only` + `_supported_kwargs` trl-drift guard) + a `wandb-smoke` CLI. **Pinned transformers<5 / trl<1**, dropped vLLM/bitsandbytes from the gpu extra (re-locked: transformers 4.57, trl 0.29). Configs `leonardo_smoke_{hf,fab}.yaml`. Verified locally (parse/dry-run/sbatch-render/lint/30 tests); real GPU run on Leonardo still pending. — (cluster, training)
 - 2026-05-30 — **Cross-platform local dev:** `docs/setup.md`; `scripts/setup.py` + `scripts/dev.py` (no bash on Windows); `just dev`/`just setup` call them; default `pytest` skips `@pytest.mark.integration`. — (stack)

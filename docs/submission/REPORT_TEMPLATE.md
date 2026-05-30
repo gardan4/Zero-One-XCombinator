@@ -75,9 +75,9 @@ If you used the track's official scoring script (Infineon `eval_metrics.py`), pa
 **========== XCombinator-TEAM-START ==========**  
 *(not in original Lumos REPORT_TEMPLATE)*
 
-We do not receive `eval_metrics.py`. Paste scores from `experiments/<run>/results/metrics_report.md`
-(from `zo-track predict`, metrics in `generation_rules.md` §5). Organizers score submitted CSVs
-with their script.
+We do not receive `eval_metrics.py`. Paste scores from `$ZO_EXPERIMENTS_DIR/<run_id>/results/metrics_report.md`
+(or download from the W&B eval artifact). Metrics align with `generation_rules.md` §5. Organizers score
+submitted CSVs with their script. Promoted finals live in `extras/results/`.
 
 **========== XCombinator-TEAM-END ==========**
 

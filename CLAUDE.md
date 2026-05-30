@@ -40,7 +40,7 @@ packages/
   training/   zo_train: SFT + GRPO via trl; cluster/ submits SLURM jobs    → CLI: zo-train, zo-cluster
   eval/       zo_eval: task-based eval harness against an OpenAI endpoint  → CLI: zo-eval
   agent/      zo_agent: tool-calling rollout + scenario harness            → CLI: zo-agent
-experiments/  one dir per run (gitignored): meta.json, metrics.jsonl, config.yaml, logs/, artifacts/
+experiments/    legacy in-repo scratch (default is ~/.cache/zo-experiments) — gitignored
 data/         industrial-infineon/: vendored track data + grammar + generate_sequences.py (our track)
 docs/         track briefing, Leonardo deck (Z10_compressed.pdf), submission/ (REPORT_TEMPLATE, SUBMISSION)
 scripts/      dev.py, setup.py (cross-platform), wt.sh (worktrees)
@@ -73,8 +73,9 @@ CLIs also run directly: `uv run zo-train sft -c <config> --dry-run`, `uv run zo-
 
 ## The run registry — the shared contract
 
-Every run is a directory: `experiments/<run_id>/` where `run_id = <YYYYMMDD_HHMMSS>_<kind>_<slug>_<rand>`
-(the trailing 6-hex random suffix keeps same-second runs from colliding on a shared store).
+Every run is a directory: `<ZO_EXPERIMENTS_DIR>/<run_id>/` where
+`run_id = <YYYYMMDD_HHMMSS>_<kind>_<slug>_<rand>` (default scratch:
+`~/.cache/zo-experiments`; set `ZO_EXPERIMENTS_DIR=./experiments` for the legacy in-repo folder).
 
 - `meta.json` — `RunMeta` (id, name, kind, status, git info, slurm_job_id, config, metrics summary)
 - `metrics.jsonl` — one JSON object per logged step (append-only)
@@ -83,8 +84,10 @@ Every run is a directory: `experiments/<run_id>/` where `run_id = <YYYYMMDD_HHMM
 
 The flow is **one direction**: training/eval/agent code writes via
 `zo_common.registry.append_metric(run_id, step=i, **metrics)` → the backend reads the files →
-the frontend plots them. To surface a new metric anywhere, just append it; nothing else needs to
-change. **`zo_common` is shared by every package** — coordinate before changing its schemas.
+the frontend plots them. When `WANDB_API_KEY` is set, metrics also land in W&B; checkpoints on HF.
+Dashboard source: `ZO_RESULTS_SOURCE=local|wandb|repo`. Playbook: `docs/eval-and-artifacts.md`.
+To surface a new metric anywhere, just append it; nothing else needs to change.
+**`zo_common` is shared by every package** — coordinate before changing its schemas.
 
 ## Local-light / cluster-heavy
 

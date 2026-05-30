@@ -34,12 +34,12 @@
 - Training code lazy-imports torch/trl *inside functions* so `--dry-run` works with no GPU stack.
 
 ## The run registry (shared contract — `zo_common.registry`)
-- `experiments/<run_id>/` with `meta.json` (`RunMeta`), `metrics.jsonl`, `config.yaml`, `logs/`,
-  `artifacts/`. `run_id = <YYYYMMDD_HHMMSS>_<kind>_<slug>_<rand>` (6-hex random suffix so
-  same-second runs on a shared store don't collide).
-- Producers (train/eval/agent) call `append_metric(run_id, step=i, **metrics)`; the backend reads
-  the files; the frontend plots them. Change `zo_common` schemas only with teammate sign-off.
-- `ZO_EXPERIMENTS_DIR` overrides the store location (point at shared scratch to share runs).
+- `$ZO_EXPERIMENTS_DIR/<run_id>/` (default `~/.cache/zo-experiments`; legacy `./experiments`) with
+  `meta.json` (`RunMeta`), `metrics.jsonl`, `config.yaml`, `logs/`, `artifacts/`.
+  `run_id = <YYYYMMDD_HHMMSS>_<kind>_<slug>_<rand>`.
+- Producers dual-write to local scratch; with `WANDB_API_KEY`, metrics also go to W&B. Checkpoints on HF.
+  Dashboard: `ZO_RESULTS_SOURCE=local|wandb|repo`. Playbook: [docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md).
+- Change `zo_common` schemas only with teammate sign-off.
 
 ## Recommended Claude permissions (opt-in)
 The scaffold does **not** ship an `allow` list (granting your own agent permissions is your call).

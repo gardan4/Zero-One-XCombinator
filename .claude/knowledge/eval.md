@@ -5,9 +5,9 @@ Code: `packages/eval/zo_eval/` (`tasks.py`, `harness.py`, `cli.py`). Tasks: `pac
 > **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** submit 3 CSVs; organizers score
 > with vendored **`data/industrial-infineon/eval/eval_metrics.py`** (kickoff labels held by organizers).
 > Self-eval: **`track_metrics.py`** on `extras/eval_local/` + `gold.json`, or **`zo-track score-official`**
-> when ground-truth CSVs exist. Kickoff inputs: **`data/industrial-infineon/eval/`**. See
-> [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
-> Checkpoints: HF **`XCombinator`**; logs: W&B **`XCombinator/XCombinator`**. Not the OpenAI harness below.
+> when ground-truth CSVs exist. Kickoff inputs: **`data/industrial-infineon/eval/`**. Production playbook:
+> **[docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md)** · [track-industrial-sources.md](../../docs/track-industrial-sources.md).
+> Checkpoints: HF **`XCombinator`**; metrics: W&B **`XCombinator/XCombinator`**. Not the OpenAI harness below.
 
 ## How it works
 - A **task** is a YAML: an id, a list of items (`prompt` + expected answer), and a `metric`.
@@ -56,14 +56,15 @@ The shared, model-agnostic path every stream uses (there was NO inference code b
 - **`baselines.py`** — `NGramPredictor` (back-off; restrict to LOFO train families for OOD),
   `OraclePredictor` (`validate_sequence` — the **submitted** anomaly path, ~100%), `FreqPredictor`.
 - **`track.py` / `track_cli.py`** (`zo-track`, `just track` / `just local-eval`) — run a predictor →
-  write the 3 CSVs (namespaced `experiments/<run>/results/`) → score+`per_family` → flat tagged
-  scalars in the registry + `metrics_report.md`.
+  write the 3 CSVs under `$ZO_EXPERIMENTS_DIR/<run>/results/` → score+`per_family` → flat tagged
+  scalars in the registry + W&B (when `WANDB_API_KEY` set) + `metrics_report.md`.
 - **Metric/tag convention (dashboard contract):** flat scalars `top1/top3/top5/mrr`,
   `em/ned/token_acc/block_acc`, `anomaly_acc/anomaly_p/anomaly_r/anomaly_f1/anomaly_auc/rule_attr_acc`,
   `cm_tp/fp/tn/fn`; per-family adds `_MOSFET|_IGBT|_IC`; per-cut adds `_frac60` / `_frac80` (60%/80%).
   **ID vs OOD is a run TAG** (`split:id|ood`), not a metric name. Required repro tags:
   `version:<label>`, `model-ref:<hf-repo-or-path>`, `eval-set:local|kickoff`, plus
-  `predictor:ngram|oracle|freq|hf|llm|likelihood-ngram|classifier`.
+  `predictor:ngram|oracle|freq|hf|llm|likelihood-ngram|classifier`. Production runs also need
+  `real-run`, `reportable`; link eval to train with `--train-run <id>`.
 - Each eval run writes `results/metrics_report.json` + `metrics_report.md` (paste into REPORT.md).
 - Predictors for reproducible matrix: `ngram`/`freq` (baselines), `oracle` (submitted anomaly),
   `hf`/`llm` (finetuned via Leonardo batch inference or vLLM), `likelihood-ngram` (learned anomaly science),

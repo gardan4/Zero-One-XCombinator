@@ -38,12 +38,11 @@ sparse-clone the repo and copy those two folders (see INDEX "Sources").
 > See **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**.
 
 ### Artifact locations (not in git)
-- **Checkpoints:** Hugging Face org **`XCombinator`** (e.g. `XCombinator/sft-fab-all`, LOFO variants).
-  Upload via Leonardo `scripts/leonardo_upload_artifact.sh` / training `extra.hub_model_id`.
-- **Training logs / loss curves:** Weights & Biases **`XCombinator/XCombinator`** (`WANDB_ENTITY` /
-  `WANDB_PROJECT` in `.env`; offline on compute nodes, `wandb sync` on login).
-- **Eval outputs + scored reports:** `experiments/<run_id>/results/` + `metrics_report.json` /
-  `metrics_report.md` (tag runs with `version:<id>`, `model-ref:<hf-repo>`, `eval-set:local|kickoff`).
+- **Checkpoints:** Hugging Face org **`XCombinator`**. Upload via `leonardo_upload_artifact.sh` or `extra.hub_model_id`.
+- **Training + eval metrics:** W&B **`XCombinator/XCombinator`** (`WANDB_API_KEY`; offline on compute, `wandb sync` on login).
+- **Eval CSVs + reports:** local scratch `$ZO_EXPERIMENTS_DIR/<run_id>/results/` + W&B `eval-results` artifact.
+- **Pitch finals:** `extras/results/` via `just promote` or `zo-track promote-wandb`.
+- **Playbook:** [docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md). Production tags: `real-run`, `reportable`, `version:<id>`.
 
 ## The data (3 product families)
 Long format, **one step per row**: `SEQUENCE_ID,STEP` (e.g. `MOSFET_0001,RECEIVE WAFER LOT`).
