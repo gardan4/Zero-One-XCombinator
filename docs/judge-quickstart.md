@@ -1,0 +1,81 @@
+# Judge quickstart — no uv required
+
+Judges only need **Python 3.11+** and **`pip`** on a laptop (Windows or macOS).  
+**`uv`**, **`just`**, and **bash** are optional — developers on the team may prefer them.
+
+---
+
+## Finetune (`leonardo-finetune-reference`)
+
+Train a smoke LoRA on Leonardo and upload to Hugging Face.
+
+### Laptop (Windows / macOS) — pip only
+
+```bash
+git clone <repo> && cd Zero-One-Philyr
+cp .env.example .env          # fill ZO_CLUSTER_USER, HF_TOKEN, paths
+python -m pip install -r requirements-orchestrator.txt
+
+python scripts/leonardo_smoke.py --dry-run    # validate sbatch locally
+python scripts/leonardo_smoke.py              # sync → prestage → submit
+python scripts/leonardo_smoke.py --wait-upload
+```
+
+Needs **OpenSSH** (`ssh`/`scp`) or **PuTTY** (`plink`/`pscp` + `ZO_CLUSTER_PASSWORD` in `.env`).
+
+### Optional: uv (developers)
+
+```bash
+uv sync
+uv run python scripts/leonardo_smoke.py --dry-run
+uv run zo-cluster leonardo-smoke --dry-run
+just leonardo-smoke --dry-run
+```
+
+---
+
+## Inference (`feature/leonardo-inference-eval`)
+
+Run a finetuned checkpoint locally or batch-eval on Leonardo.
+
+### Laptop — pip only (local inference)
+
+```bash
+python -m pip install -r requirements-inference.txt
+cp .env.example .env          # HF_TOKEN for private XCombinator models
+python scripts/hub_infer.py --prompt "Say hello"
+```
+
+### Laptop — pip only (SLURM dry-run / submit)
+
+```bash
+python -m pip install -r requirements-orchestrator.txt
+python scripts/zo_cluster.py judge-eval --dry-run --no-stage --eval-dir extras/eval_local
+python scripts/zo_cluster.py judge-eval          # submit over SSH
+```
+
+### Leonardo login node — pip or uv
+
+```bash
+# pip (no uv required on laptop)
+python -m pip install -r requirements-orchestrator.txt
+python scripts/zo_cluster.py judge-setup
+python scripts/zo_cluster.py judge-stage
+python scripts/zo_cluster.py judge-eval --local
+
+# uv / just (optional)
+just judge-setup && just judge-stage && just judge-eval --local
+```
+
+For **local HF inference on the login node**: `requirements-inference.txt` + `scripts/hub_infer.py`.
+
+---
+
+## Requirements files
+
+| File | Purpose | uv alternative |
+|------|---------|----------------|
+| `requirements-orchestrator.txt` | Laptop SLURM / judge CLIs (`zo_cluster.py`, `leonardo_smoke.py`) | `uv sync` (light workspace) |
+| `requirements-inference.txt` | Local HF inference (`hub_infer.py`) | `uv sync --extra gpu` |
+
+Leonardo **GPU jobs** use `uv sync --extra gpu` on the login node (prestage installs uv there) — judges do not need uv on their laptop.

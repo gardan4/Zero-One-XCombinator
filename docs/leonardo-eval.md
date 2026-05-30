@@ -3,8 +3,12 @@
 Run **finetuned checkpoint → three submission CSVs** on Leonardo (A100). Judges fill in
 `.env` credentials; the rest is scripted.
 
-For **training + HF upload** on Leonardo, see branch `leonardo-finetune-reference` and its
-`scripts/leonardo_smoke_hf.sh` flow (prestage → SLURM train → upload to `XCombinator/…`).
+> **Judges without uv:** see **[judge-quickstart.md](judge-quickstart.md)** — use `pip` +
+> `scripts/hub_infer.py` (local inference) or `scripts/zo_cluster.py` (SLURM dry-run/submit).
+> **`uv` / `just` are optional** for developers who already use them.
+
+For **training + HF upload** on Leonardo, see branch `leonardo-finetune-reference` and
+`python scripts/leonardo_smoke.py` (pip) or `uv run zo-cluster leonardo-smoke` (optional uv).
 
 ## Prerequisites
 
@@ -31,8 +35,12 @@ Fill in at minimum:
 Pre-stage GPU deps **once** on the login node (compute nodes have no internet):
 
 ```bash
-just setup          # light uv sync
-just judge-setup    # uv sync --extra gpu + local eval inputs
+# Optional uv / just (team dev):
+just setup && just judge-setup
+
+# Or pip + zo_cluster (no uv):
+python -m pip install -r requirements-orchestrator.txt
+python scripts/zo_cluster.py judge-setup
 ```
 
 ## One-command batch eval (in-repo eval set)
@@ -56,6 +64,10 @@ Metrics are logged to the run registry (`just runs`).
 Dry-run (render SLURM script, no GPU job):
 
 ```bash
+# pip (no uv):
+python scripts/zo_cluster.py judge-eval --dry-run --no-stage --eval-dir extras/eval_local
+
+# optional uv:
 just judge-eval --dry-run --local
 ```
 
@@ -123,20 +135,25 @@ More cluster detail: [`.claude/knowledge/cluster.md`](../.claude/knowledge/clust
 
 ## Windows & macOS (local laptop)
 
-All **Python CLIs** (`uv run zo-cluster …`, `uv run zo-track …`, `HubInferenceClient`) are
-cross-platform. **SLURM** (`sbatch`) only exists on Leonardo Linux.
+**pip only (no uv required):**
 
-| Goal | Windows / macOS command |
-|------|-------------------------|
-| Local inference + CSV outputs | `uv run zo-track predict -p hf …` or `python scripts/hub_infer.py` after `pip install -r requirements-inference.txt` |
-| Smoke-test HF loader | `python scripts/hub_infer.py` (no uv required) |
-| Render SLURM script (no GPU) | `uv run zo-cluster judge-eval --dry-run --no-stage --eval-dir extras/eval_local` |
-| Submit to Leonardo from laptop | Set `ZO_CLUSTER_HOST` + `ZO_CLUSTER_USER`; run `uv run zo-cluster judge-eval` (uses `ssh`/`scp`; OpenSSH on Windows 10+) |
+| Goal | Command |
+|------|---------|
+| Local inference smoke test | `pip install -r requirements-inference.txt` then `python scripts/hub_infer.py` |
+| Render SLURM eval script (dry-run) | `pip install -r requirements-orchestrator.txt` then `python scripts/zo_cluster.py judge-eval --dry-run --no-stage …` |
+| Submit eval to Leonardo | `python scripts/zo_cluster.py judge-eval` (needs `ZO_CLUSTER_HOST` + ssh) |
+
+**Optional uv / just (developers):**
+
+| Goal | Command |
+|------|---------|
+| Local inference | `uv run python scripts/hub_infer.py` |
+| Dry-run / submit | `uv run zo-cluster judge-eval --dry-run …` or `just judge-eval --dry-run --local` |
 | Full GPU batch eval | SSH to Leonardo login node, then `just judge-setup && just judge-eval --local` |
 
 **Tips**
 
-- Use **`uv run`** directly if `just` is unavailable (Just requires [bash](https://just.systems/) — Git Bash on Windows, default on macOS).
-- Set `ZO_CLUSTER_REPO_DIR` in `.env` to the **Leonardo** path, not a local `C:\…` path, so generated sbatch scripts use valid cluster paths.
-- Staged models on a laptop default to `%USERPROFILE%\.cache\zo-models` (Windows) or `~/.cache/zo-models` (macOS); on Leonardo use `ZO_MODEL_CACHE_DIR=$SCRATCH/zo-models`.
-- sbatch files are always written with Unix line endings (`LF`).
+- **`uv` and `just` are not required for judges** — use the `python scripts/…` entry points above.
+- Set `ZO_CLUSTER_REPO_DIR` in `.env` to the **Leonardo** path, not a local `C:\…` path.
+- Staged models on a laptop: `%USERPROFILE%\.cache\zo-models` (Windows) or `~/.cache/zo-models` (macOS).
+- sbatch files use Unix line endings (`LF`).

@@ -1,7 +1,10 @@
 # Minimal deps for HubInferenceClient / scripts/hub_infer.py (Windows & macOS).
-# From repo root:
+# Judges: pip only — uv is NOT required.
+#
 #   python -m pip install -r requirements-inference.txt
 #   python scripts/hub_infer.py --prompt "Say hello"
+#
+# Optional: uv run python scripts/hub_infer.py  (if uv is installed)
 #
 # Python 3.11+ recommended. CPU works; CUDA/MPS used when available.
 

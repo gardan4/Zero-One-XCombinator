@@ -66,15 +66,26 @@ and eval different ideas at once without stepping on each other. See [`CLAUDE.md
 
 ## Leonardo inference & eval
 
-Judges and reproducers: see **[docs/leonardo-eval.md](docs/leonardo-eval.md)** for running
-finetuned models on Leonardo and producing the three track submission CSVs.
+**Judges:** see **[docs/judge-quickstart.md](docs/judge-quickstart.md)** — Python + pip only; **uv is optional**.
 
-**Local smoke test (Windows/macOS, Python only — no uv):**
+Full guide: **[docs/leonardo-eval.md](docs/leonardo-eval.md)**.
+
+**Local smoke test (Windows/macOS — pip only, no uv):**
 
 ```bash
 python -m pip install -r requirements-inference.txt
 python scripts/hub_infer.py --prompt "Say hello"
 ```
+
+**Dry-run batch eval sbatch from laptop (pip only):**
+
+```bash
+python -m pip install -r requirements-orchestrator.txt
+python scripts/zo_cluster.py judge-eval --dry-run --no-stage --eval-dir extras/eval_local
+```
+
+**Optional (if you have [uv](https://docs.astral.sh/uv/) installed):**  
+`uv run python scripts/hub_infer.py …` · `uv run zo-cluster judge-eval --dry-run …` · `just judge-eval --dry-run --local`
 
 Quick path on a Leonardo login node:
 
