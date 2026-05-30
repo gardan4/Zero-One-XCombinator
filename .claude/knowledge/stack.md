@@ -4,10 +4,17 @@
 - **uv workspace**: one virtual root `pyproject.toml` (no `[build-system]`), one `uv.lock`.
   Members: `apps/backend`, `packages/common`, `packages/training`, `packages/eval`,
   `packages/agent`. Cross-deps wired via `[tool.uv.sources]` → `{ workspace = true }`.
-- `apps/frontend` is a **separate npm app** (Next.js 16 / React 19 / Tailwind v4), not a uv member.
-- Non-code dirs (not workspace members): `data/industrial-infineon/` (vendored track data + grammar +
-  `generate_sequences.py`, ~21 MB of CSV — tracked, not gitignored) and `docs/` (track briefing,
-  Leonardo deck, `submission/` templates). See [track-industrial-ai.md](track-industrial-ai.md).
+- The dashboard is **`infineon-results-dashboard/`** — a standalone **Cloudflare Workers / npm app**
+  (Worker on `:8787` + a `public/` static UI), **not a uv member**. It replaced the old in-repo
+  `apps/frontend` Next.js dashboard, which was **deleted** (commit "remove front", 2026-05-30).
+  ⚠️ `scripts/{setup,dev,frontend}.py` (and so the npm steps of `just setup` / `just dev` /
+  `just frontend`) still point at the removed `apps/frontend` and fail there — `uv sync`, `just backend`,
+  plus the dashboard's own `npm install && npm run dev -- --port 8787` is the working path. See its README.
+- Non-code / non-member dirs: `data/industrial-infineon/` (vendored track data + grammar +
+  `generate_sequences.py`, ~21 MB CSV — tracked) · `extras/` (labeled proxy eval sets + promoted
+  `results/`) · `submissions/XCombinator/REPORT.md` · `tests/` (top-level pytest, `testpaths=["tests"]`) ·
+  `docs/` (track briefing, Leonardo deck, `submission/` templates, playbooks). See
+  [track-industrial-ai.md](track-industrial-ai.md).
 - Minimum local dashboard setup is **Python 3.11+ + uv + Node/npm 20+**. See
   **[docs/setup.md](../../docs/setup.md)**. **No bash/WSL, `just`, `mise`, global `next`, or GPU
   stack required.** Run `uv run python scripts/setup.py`, then `uv run python scripts/dev.py`.
@@ -20,11 +27,11 @@
 ## Packages & entry points
 | Package | Module | CLI(s) | Role |
 |---|---|---|---|
-| common | `zo_common` | `zo-runs` | run registry, config schema, paths, OpenAI-compatible LLM client |
-| training | `zo_train` | `zo-train`, `zo-cluster` | SFT + GRPO (trl); SLURM submission |
-| eval | `zo_eval` | `zo-eval` | task-based eval harness |
+| common | `zo_common` | `zo-runs` | run registry, config schema, paths, W&B/HF helpers, OpenAI-compatible LLM client |
+| training | `zo_train` | `zo-train`, `zo-cluster` | SFT + GRPO (trl); data factory (grammar/datagen); SLURM submission |
+| eval | `zo_eval` | `zo-eval`, **`zo-track`** | `zo-track` = the track pipeline (predict→3 CSVs→score→tagged run); `zo-eval` = legacy task harness |
 | agent | `zo_agent` | `zo-agent` | tool-calling rollout + scenario harness |
-| backend | `zo_backend` | (uvicorn) | FastAPI control plane over the registry |
+| backend | `zo_backend` | (uvicorn) | FastAPI control plane over the registry (runs/compare/inference) |
 
 ## Dependency split (the important bit)
 - Base `uv sync` = **light** deps only (pydantic, typer, rich, httpx, fastapi, jinja2). CLIs import
