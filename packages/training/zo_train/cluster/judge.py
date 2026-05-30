@@ -178,7 +178,8 @@ def judge_eval(
     eval_dir: str = typer.Option(None, help="Dir with eval_input_*.csv (+ gold.json for labeled)."),
     eval_set: str = typer.Option("local", help="eval-set tag: local|kickoff"),
     tasks: str = typer.Option("nextstep,completion,anomaly", help="Task subset."),
-    tags: str = typer.Option("judge,repro,split:id", help="Comma-separated run tags."),
+    tags: str = typer.Option("judge,repro,split:id,real-run,reportable", help="Comma-separated run tags."),
+    train_run: str = typer.Option(None, "--train-run", help="Training run id to tag and link."),
     time: str = typer.Option(None, help="SLURM wall time (default ZO_SLURM_INFER_TIME or 00:30:00)."),
     dry_run: bool = typer.Option(False, "--dry-run", help="Render sbatch only."),
     local: bool = typer.Option(False, "--local", help="sbatch on this login node."),
@@ -223,6 +224,8 @@ def judge_eval(
         raise typer.Exit(1) from e
 
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    if train_run and f"train-run:{train_run}" not in tag_list:
+        tag_list.append(f"train-run:{train_run}")
     ver = (version or Path(model_path).name).strip()
     mref = hf_raw if is_hf_repo_id(hf_raw) else None
 
@@ -237,6 +240,7 @@ def judge_eval(
             "eval_set": eval_set,
             "eval_dir": str(eval_path),
             "tasks": tasks,
+            "train_run_id": train_run,
         },
         tags=tag_list,
         cluster=cluster_env("ZO_CLUSTER_HOST"),
@@ -257,6 +261,7 @@ def judge_eval(
         version=ver,
         model_ref=mref or "",
         eval_set=eval_set,
+        train_run_id=train_run or "",
         out_dir=_cluster_path(out_dir),
         run_id=run.id,
         self_check=self_check,

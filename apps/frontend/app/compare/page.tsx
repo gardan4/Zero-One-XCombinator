@@ -59,6 +59,7 @@ export default function ComparePage() {
   const [legacyRuns, setLegacyRuns] = useState<Awaited<ReturnType<typeof getCompare>>>([]);
   const [loaded, setLoaded] = useState(false);
   const [taskGroup, setTaskGroup] = useState<(typeof TASK_GROUPS)[number]>("all");
+  const [filterSource, setFilterSource] = useState("local");
   const [filterSplit, setFilterSplit] = useState("");
   const [filterRole, setFilterRole] = useState("");
   const [filterFamily, setFilterFamily] = useState("");
@@ -76,6 +77,7 @@ export default function ComparePage() {
     const tags: string[] = [];
     getCompareReport({
       tags,
+      source: filterSource,
       split: filterSplit || undefined,
       role: filterRole || undefined,
       family: filterFamily || undefined,
@@ -84,7 +86,7 @@ export default function ComparePage() {
       setLoaded(true);
     });
     getCompare([]).then(setLegacyRuns);
-  }, [filterSplit, filterRole, filterFamily]);
+  }, [filterSource, filterSplit, filterRole, filterFamily]);
 
   useEffect(() => {
     refresh();
@@ -195,6 +197,7 @@ export default function ComparePage() {
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2 text-xs">
+        <FilterSelect label="Source" value={filterSource} onChange={setFilterSource} options={["local", "wandb", "repo"]} />
         <FilterSelect label="Split" value={filterSplit} onChange={setFilterSplit} options={["", "id", "ood"]} />
         <FilterSelect label="Role" value={filterRole} onChange={setFilterRole} options={["", "baseline", "finetuned", "oracle"]} />
         <FilterSelect label="Family" value={filterFamily} onChange={setFilterFamily} options={["", ...FAMILIES]} />

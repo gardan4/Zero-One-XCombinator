@@ -11,6 +11,7 @@ Look up a model on HF: open the repo → ``README.md`` or download ``training_ma
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -85,7 +86,26 @@ def build_training_manifest(
         "notes": manifest_notes,
         "training": training,
         "metrics_summary": meta.get("metrics") or {},
+        "wandb_run_url": _wandb_run_url(run_id),
     }
+
+
+def _wandb_run_url(run_id: str) -> str | None:
+    if not os.environ.get("WANDB_API_KEY"):
+        return None
+    try:
+        import wandb
+
+        if wandb.run is not None:
+            return wandb.run.get_url()
+    except Exception:
+        pass
+    entity = os.environ.get("WANDB_ENTITY")
+    project = os.environ.get("WANDB_PROJECT", "XCombinator")
+    base = "https://wandb.ai"
+    if entity:
+        return f"{base}/{entity}/{project}/runs/{run_id}"
+    return f"{base}/{project}/runs/{run_id}"
 
 
 def render_model_card(manifest: dict[str, Any]) -> str:

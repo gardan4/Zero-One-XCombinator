@@ -5,6 +5,7 @@ from typing import Any
 from zo_common import append_metric, new_run, update_run
 from zo_common.llm import chat, content
 from zo_common.registry import get_run
+from zo_common.wandb_runs import finish_run, init_run, log_metrics, pytest_auto_tags, wandb_enabled
 
 from zo_eval.tasks import TaskSpec, score
 
@@ -30,6 +31,9 @@ def run_eval(
             tags=["eval"],
         )
     update_run(run.id, status="running")
+    eval_tags = (run.tags or []) + pytest_auto_tags() + ["eval"]
+    if wandb_enabled():
+        init_run(run.id, "eval", tags=eval_tags, config={"task": task.name, "model": model})
 
     total, n = 0.0, 0
     for i, item in enumerate(items):
@@ -44,7 +48,14 @@ def run_eval(
         s = score(task.metric, pred, item.answer, task.pattern)
         total += s
         n += 1
-        append_metric(run.id, step=i, item_score=s, running_acc=round(total / n, 4))
+        row = {"item_score": s, "running_acc": round(total / n, 4)}
+        append_metric(run.id, step=i, **row)
+        log_metrics(row, step=i, prefix="eval")
+
+    accuracy = round(total / max(n, 1), 4)
+    if wandb_enabled():
+        log_metrics({"accuracy": accuracy, "n": n}, step=n, prefix="eval")
+        finish_run(exit_code=0)
 
     accuracy = round(total / max(n, 1), 4)
     update_run(

@@ -261,7 +261,7 @@ async def create_inference_job(
     anomaly_data = await _read_upload(anomaly_csv)
 
     pred_kind = predictor.strip().lower()
-    tag_list = _parse_tags(tags, ["source:dashboard-inference"])
+    tag_list = _parse_tags(tags, ["source:dashboard-inference", "debug"])
     run_name = name or f"inference:{pred_kind}:{version}"
     meta = new_run(
         run_name,

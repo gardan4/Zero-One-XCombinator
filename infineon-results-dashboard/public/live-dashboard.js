@@ -32,6 +32,7 @@ const $ = (id) => document.getElementById(id);
 let compareState = {
   report: null,
   allRuns: [],
+  filterSource: "local",
   filterSplit: "",
   filterRole: "",
   filterFamily: "",
@@ -88,7 +89,11 @@ function setControlPlaneStatus(online) {
 async function refreshLiveData() {
   if (!controlPlaneOnline()) return;
   try {
-    const [runs, report] = await Promise.all([getRuns(), getCompareReport({})]);
+    const src = compareState.filterSource || "local";
+    const [runs, report] = await Promise.all([
+      getRuns({ source: src }),
+      getCompareReport({ source: src, refresh: src === "wandb" }),
+    ]);
     compareState.allRuns = runs;
     compareState.report = report;
     initRunSelection(report?.rows ?? []);
@@ -107,6 +112,11 @@ async function refreshLiveData() {
 }
 
 function bindCompareFilters() {
+  $("cpFilterSource")?.addEventListener("change", (e) => {
+    compareState.filterSource = e.target.value;
+    compareState.selectionInitialized = false;
+    refreshLiveData();
+  });
   $("cpFilterSplit")?.addEventListener("change", (e) => {
     compareState.filterSplit = e.target.value;
     loadCompareReport();
@@ -141,6 +151,7 @@ function bindCompareFilters() {
 async function loadCompareReport() {
   if (!controlPlaneOnline()) return;
   compareState.report = await getCompareReport({
+    source: compareState.filterSource || "local",
     split: compareState.filterSplit || undefined,
     role: compareState.filterRole || undefined,
     family: compareState.filterFamily || undefined,

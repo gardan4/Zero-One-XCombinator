@@ -13,6 +13,7 @@ Outputs per run (under ``experiments/<run_id>/results/`` unless ``out_dir`` set)
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 from zo_common import append_metric, new_run, update_run
@@ -29,6 +30,7 @@ from zo_eval.predict_trace import wrap_with_tracing
 from zo_eval.proxy_metrics import build_proxy_report
 from zo_eval.results_io import load_predictions_from_dir, promote_results, write_manifest
 from zo_eval.self_check import run_self_check
+from zo_eval.wandb_publish import apply_eval_tags, publish_eval_run
 
 TASKS = ("nextstep", "completion", "anomaly")
 
@@ -87,6 +89,7 @@ def rescore_results(
         eval_set=eval_set,
         extra=tags,
     )
+    tag_list = apply_eval_tags(tag_list, has_gold=bool(gold), source="rescore")
     run = get_run(run_id) if run_id else None
     if run is None:
         run = new_run(
@@ -161,6 +164,13 @@ def rescore_results(
     if metrics:
         append_metric(run.id, step=0, **metrics)
     update_run(run.id, status="completed", metrics=metrics or {"note": "rescore — no matching preds"})
+    publish_eval_run(
+        run.id,
+        results_dir,
+        metrics,
+        tags=tag_list,
+        config={"mode": "rescore", "version": version, "predictor": predictor},
+    )
     return {"run_id": run.id, "out_dir": str(results_dir), "version": version, **metrics}
 
 
@@ -205,6 +215,7 @@ def run_track(
         train_run_id=train_run_id,
         extra=tags,
     )
+    tag_list = apply_eval_tags(tag_list, has_gold=bool(gold), source=None)
 
     train_meta = get_run(train_run_id) if train_run_id else None
 
@@ -411,6 +422,25 @@ def run_track(
     if metrics:
         append_metric(run.id, step=0, **metrics)
     update_run(run.id, status="completed", metrics=metrics or {"note": "no gold — CSVs + proxy only"})
+
+    aliases = [a.strip() for a in os.environ.get("ZO_WANDB_ARTIFACT_ALIASES", "latest").split(",") if a.strip()]
+    use_wandb = os.environ.get("ZO_TRACK_USE_WANDB", "1") != "0"
+    publish_eval_run(
+        run.id,
+        out,
+        metrics,
+        tags=tag_list,
+        config={
+            "predictor": pred_name,
+            "version": version,
+            "model_ref": model_ref,
+            "eval_set": eval_set,
+            "tasks": list(tasks),
+        },
+        job_type="eval",
+        artifact_aliases=aliases,
+        use_wandb=use_wandb,
+    )
 
     result = {"run_id": run.id, "out_dir": str(out), "version": version, **metrics}
     if promote:

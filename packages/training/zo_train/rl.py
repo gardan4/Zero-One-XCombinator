@@ -18,6 +18,8 @@ import inspect
 import os
 
 from zo_common import ExperimentConfig, append_metric, run_dir, update_run
+from zo_common.wandb_runs import finish_run, init_run, log_metrics, wandb_enabled
+from zo_common.wandb_schema import merge_tags, pytest_auto_tags
 
 
 def _report_to() -> list[str]:
@@ -47,13 +49,29 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
             "ML deps missing. Run `just gpu-sync` on a cluster node, or pass --dry-run."
         ) from e
 
+    from zo_common.registry import get_run
+
     from zo_train.data import load_prompt_dataset
     from zo_train.preflight import checkpoint_kwargs
     from zo_train.rewards import select_rewards
 
+    def _as_list(value: object) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [t.strip() for t in value.split(",") if t.strip()]
+        if isinstance(value, list):
+            return [str(t).strip() for t in value if str(t).strip()]
+        return [str(value)]
+
     update_run(run_id, status="running")
     out_dir = cfg.output_dir or str(run_dir(run_id) / "artifacts")
     dataset = load_prompt_dataset(cfg)
+
+    meta = get_run(run_id)
+    train_tags = merge_tags(_as_list(cfg.extra.get("tags")), meta.tags if meta else [], extra=pytest_auto_tags())
+    if wandb_enabled():
+        init_run(run_id, "train", tags=train_tags, config=cfg.model_dump(), group=cfg.name)
 
     reward_funcs = select_rewards(str(cfg.extra.get("reward", "validate")))
 
@@ -65,6 +83,7 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
             scalars = {k: float(v) for k, v in logs.items() if isinstance(v, (int, float))}
             if scalars:
                 append_metric(run_id, step=int(state.global_step), **scalars)
+                log_metrics(scalars, step=int(state.global_step), prefix="train")
 
     peft_cfg = (
         LoraConfig(r=cfg.lora_r, lora_alpha=cfg.lora_alpha, task_type="CAUSAL_LM")
@@ -105,4 +124,6 @@ def run_grpo(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
     )
     trainer.train()
     trainer.save_model(out_dir)
+    if wandb_enabled():
+        finish_run(exit_code=0)
     update_run(run_id, status="completed", metrics={"output_dir": out_dir})

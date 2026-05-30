@@ -17,9 +17,16 @@ def repo_root() -> Path:
 
 
 def experiments_dir() -> Path:
-    """The shared run store. Override with ZO_EXPERIMENTS_DIR (e.g. cluster scratch)."""
+    """The shared run store. Override with ZO_EXPERIMENTS_DIR (e.g. cluster scratch).
+
+    Default: ``~/.cache/zo-experiments`` (outside the repo) so scratch stays disposable.
+    Set ``ZO_EXPERIMENTS_DIR=experiments`` in ``.env`` to use the legacy in-repo path.
+    """
     env = os.environ.get("ZO_EXPERIMENTS_DIR")
-    base = Path(env).expanduser().resolve() if env else repo_root() / "experiments"
+    if env:
+        base = Path(env).expanduser().resolve()
+    else:
+        base = Path.home() / ".cache" / "zo-experiments"
     base.mkdir(parents=True, exist_ok=True)
     return base
 

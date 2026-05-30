@@ -52,21 +52,37 @@ print("wrote training_manifest.json + README.md -> $ARTIFACT_DIR")
 PY
 
 uv run python - <<PY
+import json
 import os
 from pathlib import Path
 
 from huggingface_hub import HfApi
 
 artifact = Path("$ARTIFACT_DIR")
+run_dir = Path("$RUN_DIR")
 api = HfApi(token="${HF_TOKEN:?Set HF_TOKEN in .env}")
 api.create_repo(repo_id="$HUB_MODEL_ID", repo_type="model", private=True, exist_ok=True)
-api.upload_folder(
+commit = api.upload_folder(
     repo_id="$HUB_MODEL_ID",
     repo_type="model",
     folder_path=str(artifact),
     commit_message="Upload Leonardo run $RUN_ID",
 )
+revision = getattr(commit, "oid", None) or getattr(commit, "commit_hash", None)
+(run_dir / "hf_upload.json").write_text(json.dumps({
+    "hub_model_id": "$HUB_MODEL_ID",
+    "revision": revision,
+    "url": "https://huggingface.co/$HUB_MODEL_ID",
+}, indent=2))
+try:
+    from zo_common.wandb_runs import log_hf_to_training_run
+
+    log_hf_to_training_run("$RUN_ID", "$HUB_MODEL_ID", revision=revision)
+except Exception as exc:
+    print(f"W&B HF metadata log skipped: {exc}")
 print("uploaded $ARTIFACT_DIR to https://huggingface.co/$HUB_MODEL_ID")
+if revision:
+    print(f"hf revision: {revision}")
 PY
 
 if [[ -d "$WANDB_DIR" ]]; then

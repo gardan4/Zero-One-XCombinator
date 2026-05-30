@@ -67,6 +67,7 @@ def test_submit_dry_run_renders_sbatch(tmp_path, monkeypatch):
     monkeypatch.setattr("zo_train.cluster._remote.repo_root", lambda: repo)
     monkeypatch.setenv("ZO_CLUSTER_REPO_DIR", "/leonardo/home/user/Zero-One-Philyr")
     monkeypatch.setenv("ZO_CLUSTER_EXPERIMENTS_DIR", "/leonardo_scratch/user/zo-experiments")
+    monkeypatch.setenv("ZO_EXPERIMENTS_DIR", str(repo / "experiments"))
 
     import typer
 
@@ -101,6 +102,7 @@ def test_submit_uses_kind_from_yaml(tmp_path, monkeypatch):
     monkeypatch.setattr("zo_train.cluster._remote.repo_root", lambda: repo)
     monkeypatch.setenv("ZO_CLUSTER_REPO_DIR", "/leonardo/home/user/Zero-One-Philyr")
     monkeypatch.setenv("ZO_CLUSTER_EXPERIMENTS_DIR", "/leonardo_scratch/user/zo-experiments")
+    monkeypatch.setenv("ZO_EXPERIMENTS_DIR", str(repo / "experiments"))
 
     import typer
 

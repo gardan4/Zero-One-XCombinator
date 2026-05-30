@@ -339,6 +339,14 @@
           <div class="cp-toolbar">
             <button id="cpRefreshBtn" class="btn ghost" type="button">Refresh</button>
             <label class="field compact">
+              <span>Source</span>
+              <select id="cpFilterSource">
+                <option value="local">Local cache</option>
+                <option value="wandb">W&amp;B results</option>
+                <option value="repo">GitHub final</option>
+              </select>
+            </label>
+            <label class="field compact">
               <span>Split</span>
               <select id="cpFilterSplit">
                 <option value="">any</option>

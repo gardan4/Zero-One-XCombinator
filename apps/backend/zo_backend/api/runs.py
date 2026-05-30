@@ -7,32 +7,49 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from zo_common.paths import repo_root
-from zo_common.registry import get_run, list_runs, read_metrics, run_dir
+from zo_common.registry import get_run, read_metrics, run_dir
 from zo_eval.examples_trace import compare_example_traces, load_examples
-from zo_eval.reporting import METRIC_SPECS, build_compare_row, metric_deltas
+from zo_eval.reporting import build_compare_row
+from zo_eval.run_store import compare_report_from_store, default_source, filter_runs, get_store
 
 router = APIRouter(tags=["runs"])
 
 _CM_KEYS = ("tp", "fp", "tn", "fn")
 
 
-def _runs_matching_tags(wanted: list[str]):
-    for r in list_runs():
-        if all(w in r.tags for w in wanted):
-            yield r
+def _runs_from_source(source: str | None):
+    store = get_store(source)
+    return store.list_runs()
 
 
 @router.get("/runs")
-def runs() -> list[dict[str, Any]]:
-    return [r.model_dump() for r in list_runs()]
+def runs(
+    source: str = Query(default_source(), description="local | wandb | repo"),
+    only_reportable: bool = Query(True),
+    include_tests: bool = Query(False),
+    include_proxy: bool = Query(False),
+) -> list[dict[str, Any]]:
+    all_runs = _runs_from_source(source)
+    filtered = filter_runs(
+        all_runs,
+        only_reportable=only_reportable,
+        include_tests=include_tests,
+        include_proxy=include_proxy,
+    )
+    return [r.model_dump() for r in filtered]
 
 
 @router.get("/compare")
-def compare(tag: Annotated[list[str], Query()] = []) -> list[dict[str, Any]]:  # noqa: B006
+def compare(
+    tag: Annotated[list[str], Query()] = [],  # noqa: B006
+    source: str = Query(default_source()),
+) -> list[dict[str, Any]]:
     """Runs whose tags contain ALL of the given ``tag`` filters (legacy projection)."""
     wanted = [t for t in tag if t]
     out: list[dict[str, Any]] = []
-    for r in _runs_matching_tags(wanted):
+    for r in filter_runs(_runs_from_source(source), wanted_tags=wanted or None, only_reportable=False):
+        if wanted and not all(w in r.tags for w in wanted):
+            continue
         out.append(
             {"id": r.id, "name": r.name, "kind": r.kind, "status": r.status, "tags": r.tags, "metrics": r.metrics}
         )
@@ -49,36 +66,41 @@ def compare_report(
     suite: str | None = None,
     eval_set: str | None = None,
     model_ref: str | None = None,
+    source: str = Query(default_source(), description="local | wandb | repo"),
+    only_reportable: bool = Query(True),
+    include_tests: bool = Query(False),
+    include_proxy: bool = Query(False),
+    refresh: bool = Query(False, description="Bypass W&B TTL cache"),
 ) -> dict[str, Any]:
     """Normalized comparison rows with model identity, structured metrics, artifact links."""
     wanted = [t for t in tag if t]
-    rows: list[dict[str, Any]] = []
-    for r in _runs_matching_tags(wanted):
-        if kind and r.kind != kind:
-            continue
-        row = build_compare_row(r)
-        pt = row.get("parsed_tags") or {}
-        m = row.get("model") or {}
-        d = row.get("dataset") or {}
-        if role and pt.get("role") != role:
-            continue
-        if split and pt.get("split") != split:
-            continue
-        if family and pt.get("family") != family:
-            continue
-        if suite and pt.get("suite") != suite:
-            continue
-        if eval_set and d.get("eval_set") != eval_set:
-            continue
-        if model_ref and m.get("model_ref") != model_ref:
-            continue
-        rows.append(row)
-    return {
-        "metric_specs": METRIC_SPECS,
-        "rows": rows,
-        "deltas_vs_baseline": metric_deltas(rows) if rows else {},
-        "count": len(rows),
-    }
+    return compare_report_from_store(
+        source,
+        force_refresh=refresh,
+        wanted_tags=wanted or None,
+        only_reportable=only_reportable,
+        include_tests=include_tests,
+        include_proxy=include_proxy,
+        kind=kind,
+        role=role,
+        split=split,
+        family=family,
+        suite=suite,
+        eval_set=eval_set,
+        model_ref=model_ref,
+    )
+
+
+@router.post("/compare/refresh")
+def compare_refresh(source: str = Query("wandb")) -> dict[str, Any]:
+    """Force-refresh W&B-backed comparison cache."""
+    from zo_eval.run_store import WandbRunStore
+
+    store = get_store(source)
+    if isinstance(store, WandbRunStore):
+        store.invalidate_cache()
+    report = compare_report_from_store(source, force_refresh=True, only_reportable=True)
+    return {"refreshed": True, "count": report["count"], "source": source}
 
 
 @router.get("/compare/examples")
@@ -88,16 +110,18 @@ def compare_examples(
     task: str = Query("nextstep"),
     mode: str = Query("different"),
     limit: int = Query(50, ge=1, le=200),
+    source: str = Query(default_source()),
 ) -> dict[str, Any]:
     """Side-by-side per-example comparison from ``examples.jsonl`` artifacts."""
+    store = get_store(source)
+    meta_a = store.get_run(run_a)
+    meta_b = store.get_run(run_b)
     pa = run_dir(run_a) / "results" / "examples.jsonl"
     pb = run_dir(run_b) / "results" / "examples.jsonl"
     if not pa.exists():
         raise HTTPException(status_code=404, detail=f"no examples.jsonl for run {run_a}")
     if not pb.exists():
         raise HTTPException(status_code=404, detail=f"no examples.jsonl for run {run_b}")
-    meta_a = get_run(run_a)
-    meta_b = get_run(run_b)
     examples = compare_example_traces(pa, pb, task=task, mode=mode, limit=limit)
     return {
         "run_a": build_compare_row(meta_a) if meta_a else {"run_id": run_a},
@@ -110,8 +134,8 @@ def compare_examples(
 
 
 @router.get("/runs/{run_id}")
-def run_detail(run_id: str) -> dict[str, Any]:
-    meta = get_run(run_id)
+def run_detail(run_id: str, source: str = Query(default_source())) -> dict[str, Any]:
+    meta = get_store(source).get_run(run_id) or get_run(run_id)
     if meta is None:
         raise HTTPException(status_code=404, detail="no such run")
     data = meta.model_dump()
@@ -120,8 +144,8 @@ def run_detail(run_id: str) -> dict[str, Any]:
 
 
 @router.get("/runs/{run_id}/confusion")
-def run_confusion(run_id: str) -> dict[str, int]:
-    meta = get_run(run_id)
+def run_confusion(run_id: str, source: str = Query(default_source())) -> dict[str, int]:
+    meta = get_store(source).get_run(run_id) or get_run(run_id)
     if meta is None:
         raise HTTPException(status_code=404, detail="no such run")
     m = meta.metrics or {}
@@ -165,8 +189,8 @@ def run_examples(
 
 
 @router.get("/runs/{run_id}/artifacts")
-def run_artifacts(run_id: str) -> dict[str, Any]:
-    meta = get_run(run_id)
+def run_artifacts(run_id: str, source: str = Query(default_source())) -> dict[str, Any]:
+    meta = get_store(source).get_run(run_id) or get_run(run_id)
     if meta is None:
         raise HTTPException(status_code=404, detail="no such run")
     row = build_compare_row(meta)

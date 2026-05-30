@@ -34,7 +34,8 @@ uv run zo-track predict \
   --model "{{ model_path }}" \
   {% if model_ref %}--model-ref "{{ model_ref }}" \
   {% endif %}--eval-set "{{ eval_set }}" \
-  --valid "{{ valid_csv }}" \
+  {% if train_run_id %}--train-run "{{ train_run_id }}" \
+  {% endif %}--valid "{{ valid_csv }}" \
   --anomaly "{{ anomaly_csv }}" \
 {% if gold_json %}  --gold "{{ gold_json }}" \
 {% endif %}{% if self_check %}  --self-check \

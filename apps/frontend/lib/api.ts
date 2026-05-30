@@ -87,6 +87,7 @@ export type CompareReportRow = {
 };
 
 export type CompareReport = {
+  source?: string;
   metric_specs: MetricSpec[];
   rows: CompareReportRow[];
   deltas_vs_baseline: Record<string, Record<string, number | null>>;
@@ -151,6 +152,10 @@ export async function getCompareReport(params: {
   suite?: string;
   eval_set?: string;
   model_ref?: string;
+  source?: string;
+  refresh?: boolean;
+  include_tests?: boolean;
+  include_proxy?: boolean;
 }): Promise<CompareReport | null> {
   try {
     const q = new URLSearchParams();
@@ -162,6 +167,10 @@ export async function getCompareReport(params: {
     if (params.suite) q.set("suite", params.suite);
     if (params.eval_set) q.set("eval_set", params.eval_set);
     if (params.model_ref) q.set("model_ref", params.model_ref);
+    if (params.source) q.set("source", params.source);
+    if (params.refresh) q.set("refresh", "true");
+    if (params.include_tests) q.set("include_tests", "true");
+    if (params.include_proxy) q.set("include_proxy", "true");
     const r = await fetch(`${BASE}/api/compare/report?${q}`, { cache: "no-store" });
     return r.ok ? r.json() : null;
   } catch {

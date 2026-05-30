@@ -8,6 +8,27 @@ Related: [track-industrial-sources.md](track-industrial-sources.md) · [leonardo
 
 ---
 
+## W&B + HF results (durable store)
+
+| Layer | Role |
+|-------|------|
+| **W&B** | Training/eval metrics + eval CSV artifacts (`eval-results` type) |
+| **Hugging Face** | Model weights + `training_manifest.json` (includes W&B run URL when set) |
+| **Local scratch** | `~/.cache/zo-experiments/` by default (`ZO_EXPERIMENTS_DIR` to override) |
+| **Repo pitch** | `extras/results/` via `zo-track promote-wandb` or `zo-track promote` |
+
+### Proper run checklist
+
+1. Set `WANDB_API_KEY`, `HF_TOKEN`, `hub_model_id` in training config.
+2. Tag production runs: `real-run`, `reportable`, `version:<id>`, `model-ref:<hf-repo>`.
+3. Train → upload to HF → eval with matching tags (`train-run:<id>`).
+4. Dashboard **source=wandb** for internal compare; **source=repo** for pitch.
+5. Cherry-pick finals: `uv run zo-track promote-wandb <artifact> --slug kickoff-final`.
+
+Dashboard filters hide `test`, `smoke`, `debug`, and `proxy-only` by default.
+
+---
+
 ## 1. Eval workflow (three tasks → three CSVs)
 
 Organizers grade three submission files (`nextstep.csv`, `completion.csv`, `anomaly.csv`).

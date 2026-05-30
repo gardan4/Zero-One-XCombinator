@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
+import os
 import random
+import tempfile
 from pathlib import Path
 
 import typer
 from zo_common.env import load_dotenv
 
 from zo_eval.inference_jobs import resolve_eval_paths as _resolve_eval_paths_impl
-from zo_eval.official_metrics import KICKOFF_ANOMALY, KICKOFF_VALID
+from zo_eval.official_metrics import KICKOFF_VALID
 from zo_eval.predictors import PredictorBuildError, build_predictor
 
 load_dotenv()
@@ -76,12 +78,17 @@ def predict(
     self_check: bool = typer.Option(False, "--self-check", help="Run vendored eval_metrics.py (needs --gold)"),
     no_proxy: bool = typer.Option(False, "--no-proxy", help="Skip kickoff proxy metrics when no gold"),
     promote: str = typer.Option(None, "--promote", help="Copy results to extras/results/<slug>/"),
+    wandb_log: bool = typer.Option(True, "--wandb/--no-wandb", help="Publish metrics+artifacts to W&B"),
+    wandb_artifact_alias: str = typer.Option("latest", help="Comma-separated W&B artifact aliases"),
 ):
     from zo_eval.track import run_track
 
     valid, anomaly = _resolve_eval_paths(eval_set, valid, anomaly)
     mref = model_ref or (model if "/" in model and not model.startswith("default") else None)
     pred = _build_predictor(predictor, train_families, order, model, base_url)
+    os.environ["ZO_TRACK_USE_WANDB"] = "1" if wandb_log else "0"
+    if wandb_artifact_alias:
+        os.environ["ZO_WANDB_ARTIFACT_ALIASES"] = wandb_artifact_alias
     res = run_track(
         pred,
         valid_csv=valid,
@@ -131,6 +138,56 @@ def rescore(
         eval_set=eval_set,
     )
     _echo_run_result(res)
+
+
+@app.command("promote-wandb")
+def promote_wandb(
+    artifact: str = typer.Argument(..., help="W&B artifact name or run id (eval-results)"),
+    slug: str = typer.Option(..., "--slug", "-s", help="Name under extras/results/"),
+    entity: str = typer.Option(None, help="W&B entity (default: WANDB_ENTITY env)"),
+    project: str = typer.Option(None, help="W&B project (default: WANDB_PROJECT env)"),
+):
+    """Download a W&B eval-results artifact into ``extras/results/<slug>/`` for pitch commit."""
+    if not os.environ.get("WANDB_API_KEY"):
+        typer.secho("WANDB_API_KEY required", fg="red")
+        raise typer.Exit(1)
+    try:
+        import wandb
+    except ImportError as exc:
+        raise typer.BadParameter("Install wandb: `uv sync --extra gpu`") from exc
+
+    from zo_eval.results_io import promote_results
+
+    api = wandb.Api()
+    ent = entity or os.environ.get("WANDB_ENTITY")
+    proj = project or os.environ.get("WANDB_PROJECT", "XCombinator")
+    prefix = f"{ent}/{proj}" if ent else proj
+    if "/" in artifact and ":" in artifact:
+        candidates = [artifact]
+    else:
+        names = [artifact]
+        if not artifact.startswith("eval-"):
+            names.append(f"eval-{artifact}")
+        candidates = [f"{prefix}/{name}" if ":" in name else f"{prefix}/{name}:latest" for name in names]
+
+    last_error: Exception | None = None
+    art = None
+    for candidate in candidates:
+        try:
+            art = api.artifact(candidate)
+            break
+        except Exception as exc:  # W&B raises several API-specific exception types.
+            last_error = exc
+    if art is None:
+        raise typer.BadParameter(f"Could not find W&B artifact. Tried: {', '.join(candidates)}") from last_error
+
+    with tempfile.TemporaryDirectory(prefix="zo-wandb-promote-") as tmp_dir:
+        tmp = Path(tmp_dir)
+        art.download(root=str(tmp))
+        dest = promote_results(tmp, slug)
+    typer.echo(f"promoted W&B artifact -> {dest}")
+    typer.echo("index: extras/results/INDEX.json")
+    typer.echo("commit extras/results/ when ready for pitch mode")
 
 
 @app.command()

@@ -391,6 +391,17 @@ def id_ood_nll_matrix(
                     flat[f"nll__{label}__{fam}"] = round(float(cell["mean_nll"]), 6)
                     flat[f"ppl__{label}__{fam}"] = round(float(cell["perplexity"]), 4)
                 append_metric(run.id, step=step, **flat)
+            from zo_common.wandb_runs import finish_run, init_run, log_metrics, wandb_enabled
+
+            if wandb_enabled():
+                init_run(run.id, "eval", tags=run.tags, config=run.config or {})
+                for step, (label, by_fam) in enumerate(matrix.items()):
+                    flat = {}
+                    for fam, cell in by_fam.items():
+                        flat[f"nll__{label}__{fam}"] = round(float(cell["mean_nll"]), 6)
+                        flat[f"ppl__{label}__{fam}"] = round(float(cell["perplexity"]), 4)
+                    log_metrics(flat, step=step, prefix="likelihood")
+                finish_run(exit_code=0)
             update_run(run.id, status="completed")
             result["run_id"] = run.id
         except Exception as exc:  # logging must never break the science

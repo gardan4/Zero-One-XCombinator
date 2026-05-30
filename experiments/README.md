@@ -14,5 +14,7 @@ experiments/
 ```
 
 Created via `zo_common.registry.new_run(...)`; metrics appended with `append_metric(run_id, step, **m)`.
-Override the location with `ZO_EXPERIMENTS_DIR` (point at shared scratch on the cluster so the
-dashboard sees cluster runs). Inspect with `just runs` / `uv run zo-runs show <id>`.
+Override the location with `ZO_EXPERIMENTS_DIR`. **Default scratch is now
+`~/.cache/zo-experiments`** (outside the repo). Set `ZO_EXPERIMENTS_DIR=./experiments` in `.env`
+to use this legacy in-repo folder. Durable metrics live in **W&B**; weights on **Hugging Face**;
+pitch artifacts in **`extras/results/`** (via `zo-track promote-wandb`).

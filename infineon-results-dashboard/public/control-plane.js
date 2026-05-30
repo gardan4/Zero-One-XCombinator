@@ -43,23 +43,36 @@ async function cpFetch(path, init = {}) {
   return data;
 }
 
-export function getRuns() {
-  return cpFetch("/runs");
-}
-
-export function getRun(runId) {
-  return cpFetch(`/runs/${encodeURIComponent(runId)}`);
+export function getRuns(params = {}) {
+  const q = new URLSearchParams();
+  if (params.source) q.set("source", params.source);
+  if (params.includeTests) q.set("include_tests", "true");
+  if (params.includeProxy) q.set("include_proxy", "true");
+  const qs = q.toString();
+  return cpFetch(`/runs${qs ? `?${qs}` : ""}`);
 }
 
 export function getCompareReport(params = {}) {
   const q = new URLSearchParams();
   (params.tags || []).forEach((t) => q.append("tag", t));
+  if (params.source) q.set("source", params.source);
   if (params.split) q.set("split", params.split);
   if (params.role) q.set("role", params.role);
   if (params.family) q.set("family", params.family);
   if (params.kind) q.set("kind", params.kind);
+  if (params.refresh) q.set("refresh", "true");
+  if (params.includeTests) q.set("include_tests", "true");
+  if (params.includeProxy) q.set("include_proxy", "true");
   const qs = q.toString();
   return cpFetch(`/compare/report${qs ? `?${qs}` : ""}`);
+}
+
+export function refreshCompareCache(source = "wandb") {
+  return cpFetch(`/compare/refresh?source=${encodeURIComponent(source)}`, { method: "POST" });
+}
+
+export function getRun(runId) {
+  return cpFetch(`/runs/${encodeURIComponent(runId)}`);
 }
 
 export function getCompareExamples(runA, runB, task, mode, limit = 25) {

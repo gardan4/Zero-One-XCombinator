@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 
 from zo_common import ExperimentConfig, append_metric, run_dir, update_run
+from zo_common.wandb_runs import finish_run, init_run, log_metrics, wandb_enabled
+from zo_common.wandb_schema import merge_tags, pytest_auto_tags
 
 
 def _report_to() -> list[str]:
@@ -39,12 +41,38 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
             "exercise the pipeline locally without torch."
         ) from e
 
+    from zo_common.registry import get_run
+
     from zo_train.data import load_sft_dataset
     from zo_train.preflight import checkpoint_kwargs
+
+    def _as_list(value: object) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [t.strip() for t in value.split(",") if t.strip()]
+        if isinstance(value, list):
+            return [str(t).strip() for t in value if str(t).strip()]
+        return [str(value)]
 
     update_run(run_id, status="running")
     out_dir = cfg.output_dir or str(run_dir(run_id) / "artifacts")
     dataset = load_sft_dataset(cfg)
+
+    meta = get_run(run_id)
+    train_tags = merge_tags(
+        _as_list(cfg.extra.get("tags")),
+        meta.tags if meta else [],
+        extra=pytest_auto_tags(),
+    )
+    if wandb_enabled():
+        init_run(
+            run_id,
+            "train",
+            tags=train_tags,
+            config={**cfg.model_dump(), "git_sha": meta.git_sha if meta else None},
+            group=cfg.name,
+        )
 
     local_files_only = (
         _truthy(cfg.extra.get("local_files_only", False)) or Path(cfg.model).is_absolute()
@@ -62,6 +90,7 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
             scalars = {k: float(v) for k, v in logs.items() if isinstance(v, (int, float))}
             if scalars:
                 append_metric(run_id, step=int(state.global_step), **scalars)
+                log_metrics(scalars, step=int(state.global_step), prefix="train")
 
     peft_cfg = (
         LoraConfig(
@@ -175,5 +204,15 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
                 commit_message=f"Training run {run_id}",
             )
             metrics["hub_model_id"] = hub_model_id
+            from zo_common.wandb_runs import log_hf_to_training_run
 
+            log_hf_to_training_run(
+                run_id,
+                str(hub_model_id),
+                tags=train_tags,
+                config=cfg.model_dump(),
+            )
+
+    if wandb_enabled():
+        finish_run(exit_code=0)
     update_run(run_id, status="completed", metrics=metrics)

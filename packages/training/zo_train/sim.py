@@ -1,33 +1,10 @@
 from __future__ import annotations
 
-import os
 import random
 import time
 
-from zo_common import ExperimentConfig, append_metric, run_dir, update_run
-
-
-def _maybe_wandb(run_id: str):
-    """Init W&B iff WANDB_API_KEY is set and `wandb` is importable — else None (no-op).
-
-    Lets a `--dry-run` push a simulated curve to W&B so you can VERIFY the integration with no
-    GPU. Real (non-dry) runs log to W&B via the trainer's `report_to=["wandb"]` instead.
-    """
-    if not os.environ.get("WANDB_API_KEY"):
-        return None
-    try:
-        import wandb
-    except ImportError:
-        return None
-    wandb.init(
-        entity=os.environ.get("WANDB_ENTITY") or None,
-        project=os.environ.get("WANDB_PROJECT", "XCombinator"),
-        name=run_id,
-        id=run_id,
-        resume="allow",
-        config={"dry_run": True},
-    )
-    return wandb
+from zo_common import ExperimentConfig, append_metric, update_run
+from zo_common.wandb_runs import finish_run, init_run, log_metrics, wandb_enabled
 
 
 def simulate_training(
@@ -49,16 +26,16 @@ def simulate_training(
         if max_steps > 0:
             total_steps = min(total_steps, max_steps)
     update_run(run_id, status="running")
-    wb = _maybe_wandb(run_id)
+    if wandb_enabled():
+        init_run(run_id, "train", tags=["smoke", "dry-run"], config={"dry_run": True})
     loss = 2.5
     for step in range(1, total_steps + 1):
         loss = max(0.2, loss * 0.92 + random.uniform(-0.02, 0.02))
         scalars = {"loss": round(loss, 4), "learning_rate": 2e-5, "reward": round(1 - loss / 2.5, 4)}
         append_metric(run_id, step=step, **scalars)
-        if wb:
-            wb.log(scalars, step=step)
+        log_metrics(scalars, step=step, prefix="train")
         if sleep:
             time.sleep(sleep)
-    if wb:
-        wb.finish()
+    if wandb_enabled():
+        finish_run(exit_code=0)
     update_run(run_id, status="completed")
