@@ -20,8 +20,8 @@ load_dotenv()
 app = typer.Typer(no_args_is_help=True, help="Track eval: predict → submission CSVs → score → tagged run.")
 
 PREDICTOR_HELP = (
-    "ngram|freq|oracle|llm|hf|likelihood-ngram|classifier "
-    "(baselines, finetuned, learned anomaly)"
+    "ngram|freq|oracle|llm|hf|llm-zeroshot|likelihood-ngram|classifier "
+    "(baselines, rules-in-context zero-shot, finetuned, learned anomaly)"
 )
 
 

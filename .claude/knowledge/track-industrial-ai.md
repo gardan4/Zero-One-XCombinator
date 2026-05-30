@@ -212,9 +212,36 @@ One git worktree per stream (`just wt <stream>`). In each worktree's `.env` set 
 `ZO_DATA_DIR=<shared path>` (every stream reads the identical frozen corpus; `paths.generated_data_dir()`).
 On Leonardo, point both at shared `$SCRATCH`.
 
+### Baseline ladder (2026-05-30) — rules-in-context zero-shot LLM
+Three baseline tiers before finetuned SFT, all via `zo-track predict` → same CSVs/metrics/W&B/dashboard:
+
+| Predictor | Role | What it tests |
+|---|---|---|
+| `freq` / `ngram` | `role:baseline` | Memorization of training CSV statistics (GPU-free) |
+| `llm-zeroshot` | `role:baseline`, `baseline:zeroshot` | Frozen Qwen + `generation_rules.md` digest in system prompt |
+| `oracle` | `role:oracle` | Perfect rule verifier (Task 3 submitted score) |
+| `hf` / `llm` | `role:finetuned` | SFT/GRPO checkpoint |
+
+Run zero-shot baseline (HF local or `just serve` + `--base-url`):
+
+```bash
+uv run zo-track predict -p llm-zeroshot \
+  --model Qwen/Qwen2.5-1.5B-Instruct \
+  -V zeroshot-rules-v1 \
+  --eval-set local \
+  --gold extras/eval_local/gold.json \
+  --tags split:id,role:baseline,method:rules-in-context,baseline:zeroshot,reportable
+```
+
+Or via suite: `uv run zo-track suite packages/eval/eval_suites/local_compare.yaml` (includes `zeroshot-rules-llm`).
+
+Code: `zo_eval/rules_context.py` (digest + messages), `RulesContextLLMPredictor` in `predict_llm.py`.
+**Submitted Task 3 still uses `oracle`**; zero-shot is for comparison/reporting (rules comprehension vs learning).
+
 ### Build status (2026-05-30) — Stream 0 + all 4 streams integrated to `main` (30 tests green)
 - **Eval/predict core** (`zo_eval/`): `predict.py` (Predictor + normalizer), `baselines.py` (n-gram/oracle/freq),
-  `predict_llm.py` (ServedLLM/HF), `track.py`+`track_cli.py` (`zo-track`; `just track`/`just local-eval`),
+  `predict_llm.py` (ServedLLM/HF/RulesContextLLMPredictor), `rules_context.py` (zero-shot digest),
+  `track.py`+`track_cli.py` (`zo-track`; `just track`/`just local-eval`),
   `anomaly_detect.py` (LikelihoodDetector/ClassifierDetector). `llm.py` has `logprobs`/`token_logprobs`.
 - **Stream 1 (SFT spine):** `configs/sft_fab.yaml` + 3 LOFO variants (Qwen-1.5B **full-FT**, servable as-is);
   `data.py` multi-file dataset loader. `just train <cfg> --dry-run` works; real run needs Leonardo + a built corpus.

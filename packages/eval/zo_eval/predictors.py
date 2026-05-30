@@ -8,6 +8,7 @@ PREDICTOR_KINDS = (
     "oracle",
     "llm",
     "hf",
+    "llm-zeroshot",
     "likelihood-ngram",
     "classifier",
 )
@@ -43,6 +44,12 @@ def build_predictor(
         from zo_eval.baselines import FreqPredictor
 
         return FreqPredictor(train_families=tf)
+    if kind == "llm-zeroshot":
+        from zo_eval.predict_llm import RulesContextLLMPredictor
+
+        if base_url or model == "default":
+            return RulesContextLLMPredictor(model=model, base_url=base_url, backend="served")
+        return RulesContextLLMPredictor(model=model, backend="hf")
     if kind in ("llm", "hf"):
         from zo_eval.predict_llm import HFGeneratePredictor, ServedLLMPredictor
 

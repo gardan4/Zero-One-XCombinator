@@ -23,6 +23,7 @@ from zo_train.datagen import anomaly_example, completion_example, nextstep_examp
 
 from zo_eval.examples_trace import trace_from_llm_response
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
+from zo_eval.rules_context import build_messages
 from zo_eval.submission import AnomalyInput, ValidInput
 
 
@@ -119,6 +120,100 @@ class ServedLLMPredictor:
         return (is_valid, score, rule), trace
 
 
+class RulesContextLLMPredictor:
+    """Zero-shot baseline: process rules in system context, frozen base instruct model.
+
+    Unlike ``ServedLLMPredictor`` / ``HFGeneratePredictor``, prompts come from
+    ``rules_context.build_messages`` (generation_rules digest), not SFT ``datagen`` framing.
+    """
+
+    name = "llm-zeroshot"
+
+    def __init__(
+        self,
+        model: str = "default",
+        base_url: str | None = None,
+        temperature: float = 0.0,
+        chat_fn=None,
+        *,
+        backend: str = "served",
+        device: str | None = None,
+    ):
+        self.model = model
+        self.base_url = base_url
+        self.temp = temperature
+        self.backend = backend.strip().lower()
+        self.vocab = vocab()
+        if self.backend == "hf":
+            from zo_common.hub_inference import HubInferenceClient
+
+            self._hf = HubInferenceClient(model, device=device, max_new_tokens=256)
+            self._chat = None
+        else:
+            self._hf = None
+            self._chat = chat_fn or _default_chat
+
+    def _ask(self, task: str, item: ValidInput | AnomalyInput, max_tokens: int, **kw) -> dict | str:
+        messages = build_messages(task, item)
+        if self.backend == "hf":
+            assert self._hf is not None
+            return self._hf.chat(messages, max_new_tokens=max_tokens, temperature=self.temp, **kw)
+        assert self._chat is not None
+        return self._chat(
+            messages,
+            model=self.model,
+            base_url=self.base_url,
+            temperature=self.temp,
+            max_tokens=max_tokens,
+            **kw,
+        )
+
+    def _content(self, resp: dict | str) -> str:
+        return resp if isinstance(resp, str) else content(resp)
+
+    def next_step(self, item: ValidInput) -> list[str]:
+        ranks, _ = self.next_step_with_trace(item)
+        return ranks
+
+    def next_step_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
+        raw = self._content(self._ask("nextstep", item, 64))
+        ranked = parse_pipe_list(raw, self.vocab, strict=True)
+        out: list[str] = []
+        for s in ranked:
+            if s not in out:
+                out.append(s)
+        trace = {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend}
+        return out[:5], trace
+
+    def complete(self, item: ValidInput) -> list[str]:
+        steps, _ = self.complete_with_trace(item)
+        return steps
+
+    def complete_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
+        raw = self._content(self._ask("completion", item, 1024))
+        txt = extract_answer(raw)
+        steps = parse_pipe_list(txt, self.vocab, strict=True)
+        return steps, {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend}
+
+    def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
+        result, _ = self.anomaly_with_trace(item)
+        return result
+
+    def anomaly_with_trace(self, item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
+        resp = self._ask("anomaly", item, 64, logprobs=True, top_logprobs=5)
+        raw = self._content(resp)
+        is_valid, rule = parse_anomaly(raw)
+        lp_score = _valid_prob(resp) if isinstance(resp, dict) else None
+        score = lp_score if lp_score is not None else (0.9 if is_valid else 0.1)
+        trace = {
+            **trace_from_llm_response(raw),
+            "model": self.model,
+            "backend": self.backend,
+            "valid_prob_from_logprobs": lp_score,
+        }
+        return (is_valid, score, rule), trace
+
+
 class HFGeneratePredictor:
     """Local ``transformers.generate`` predictor (lazy import; for CPU/GPU smoke without a server)."""
 
@@ -171,5 +266,28 @@ def _smoke() -> None:  # pragma: no cover - manual (no server/GPU needed)
     print(f"predict_llm.py smoke OK — next_step={len(ns)} complete={len(cp)} anomaly=({iv}, {score}, {rule})")
 
 
+def _smoke_zeroshot() -> None:  # pragma: no cover - manual
+    def fake_chat(messages, **kw):
+        user = messages[-1]["content"]
+        assert messages[0]["role"] == "system"
+        assert "RULE_DEP_NO_CLEAN" in messages[0]["content"]
+        if "next process step" in user.lower():
+            c = "DEPOSIT BARRIER METAL | CLEAN AFTER VIA ETCH | DEVELOP PHOTORESIST"
+        elif "Complete the remaining" in user:
+            c = "DEPOSIT METAL 1 | ANNEAL METAL 1 | SHIP LOT"
+        else:
+            c = "INVALID. RULE_SHIP_BEFORE_TEST"
+        return {"choices": [{"message": {"content": c}}]}
+
+    p = RulesContextLLMPredictor(chat_fn=fake_chat)
+    vi = ValidInput("v1", "MOSFET", 0.6, ["RECEIVE WAFER LOT", "LOT IDENTIFICATION"])
+    assert p.next_step(vi)[0] == "DEPOSIT BARRIER METAL"
+    assert "SHIP LOT" in p.complete(vi)
+    iv, score, rule = p.anomaly(AnomalyInput("a1", "MOSFET", ["RECEIVE WAFER LOT", "SHIP LOT"]))
+    assert iv == 0 and rule == "RULE_SHIP_BEFORE_TEST"
+    print("RulesContextLLMPredictor smoke OK")
+
+
 if __name__ == "__main__":  # pragma: no cover
     _smoke()
+    _smoke_zeroshot()

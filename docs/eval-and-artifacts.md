@@ -116,6 +116,19 @@ just track "-p hf \
 
 Writes three CSVs + `metrics_report.md`, logs metrics + `eval-results` artifact to W&B (unless `--no-wandb`).
 
+**Rules-in-context zero-shot baseline** (no finetuning; compare vs n-gram and SFT on dashboard):
+
+```bash
+uv run zo-track predict -p llm-zeroshot \
+  --model Qwen/Qwen2.5-1.5B-Instruct \
+  -V zeroshot-rules-v1 \
+  --eval-set local \
+  --gold extras/eval_local/gold.json \
+  --tags split:id,role:baseline,method:rules-in-context,baseline:zeroshot,reportable
+```
+
+Suite matrix: `uv run zo-track suite packages/eval/eval_suites/local_compare.yaml`.
+
 ### 5. Eval on Leonardo (GPU batch)
 
 ```bash
