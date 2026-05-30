@@ -565,6 +565,7 @@ def build_all(
     (out_dir / "splits.json").write_text(json.dumps(splits, indent=2))
 
     manifest: dict = {"seed": seed, "families": list(FAMILIES), "counts": {}}
+    instruct_rows: list[dict] = []
 
     for fam in FAMILIES:
         seqs = read_sequences(fam, data_dir)
@@ -627,6 +628,65 @@ def build_all(
         manifest["counts"][fam]["eval_nextstep_examples"] = _write_jsonl(
             out_dir / f"{fam}_eval_nextstep.jsonl", ns_eval
         )
+
+        # Instruct SFT rows (shared system prompt + datagen-aligned user + assistant).
+        from zo_train.prompts import PromptItem, build_instruct_messages
+
+        for s in train_seqs:
+            instruct_rows.append(
+                {
+                    "messages": build_instruct_messages(
+                        "anomaly",
+                        PromptItem(fam, sequence=list(s)),
+                        " VALID.",
+                    ),
+                    "family": fam,
+                    "task": "anomaly",
+                }
+            )
+            for frac in (0.6, 0.8):
+                cut = int(len(s) * frac)
+                prefix, rest = s[:cut], s[cut:]
+                instruct_rows.append(
+                    {
+                        "messages": build_instruct_messages(
+                            "completion",
+                            PromptItem(fam, partial_sequence=list(prefix)),
+                            " " + SEP.join(rest),
+                        ),
+                        "family": fam,
+                        "task": "completion",
+                    }
+                )
+            if len(s) >= 3:
+                for i in rng.sample(range(1, len(s)), k=min(4, len(s) - 1)):
+                    ex = nextstep_example(fam, s[:i], s[i])
+                    instruct_rows.append(
+                        {
+                            "messages": build_instruct_messages(
+                                "nextstep",
+                                PromptItem(fam, partial_sequence=list(s[:i])),
+                                ex["completion"],
+                            ),
+                            "family": fam,
+                            "task": "nextstep",
+                        }
+                    )
+        for n in negs:
+            ex = anomaly_example(fam, n["steps"], False, n["rules"])
+            instruct_rows.append(
+                {
+                    "messages": build_instruct_messages(
+                        "anomaly",
+                        PromptItem(fam, sequence=list(n["steps"])),
+                        ex["completion"],
+                    ),
+                    "family": fam,
+                    "task": "anomaly",
+                }
+            )
+
+    manifest["counts"]["instruct_all_examples"] = _write_jsonl(out_dir / "instruct_all.jsonl", instruct_rows)
 
     manifest["fingerprint"] = _fingerprint(out_dir)
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))

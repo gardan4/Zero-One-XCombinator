@@ -32,8 +32,9 @@ from zo_train.datagen import (
 
 from zo_eval.examples_trace import trace_from_llm_response
 from zo_eval.predict import extract_answer, parse_anomaly, parse_pipe_list, vocab
-from zo_eval.rules_context import build_messages
+from zo_eval.rules_context import build_messages as build_zeroshot_messages
 from zo_eval.submission import AnomalyInput, ValidInput
+from zo_train.prompts import build_messages as build_sft_messages
 
 
 def _unique_vocab_ranked(raw: str, vocabulary: set[str], *, limit: int = 5) -> list[str]:
@@ -151,13 +152,25 @@ class ServedLLMPredictor:
             **kw,
         )
 
+    def _ask_task(self, task: str, item: ValidInput | AnomalyInput, max_tokens: int, **kw) -> dict:
+        return self._chat(
+            build_sft_messages(task, item),
+            model=self.model,
+            base_url=self.base_url,
+            temperature=self.temp,
+            max_tokens=max_tokens,
+            **kw,
+        )
+
     def next_step(self, item: ValidInput) -> list[str]:
         ranks, _ = self.next_step_with_trace(item)
         return ranks
 
     def next_step_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
-        prompt = _ns_prompt_base(item) if self.style == "base" else _ns_prompt(item)
-        resp = self._ask(prompt, 64 if self.style == "base" else 24)
+        if self.style == "base":
+            resp = self._ask(_ns_prompt_base(item), 64)
+        else:
+            resp = self._ask_task("nextstep", item, 24)
         raw = content(resp)
         ranked = parse_pipe_list(raw, self.vocab, strict=True)
         out: list[str] = []
@@ -172,7 +185,10 @@ class ServedLLMPredictor:
         return steps
 
     def complete_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
-        resp = self._ask(_cp_prompt_base(item) if self.style == "base" else _cp_prompt(item), 1024)
+        if self.style == "base":
+            resp = self._ask(_cp_prompt_base(item), 1024)
+        else:
+            resp = self._ask_task("completion", item, 1024)
         raw = content(resp)
         txt = extract_answer(raw)
         steps = parse_pipe_list(txt, self.vocab, strict=True)
@@ -183,8 +199,10 @@ class ServedLLMPredictor:
         return result
 
     def anomaly_with_trace(self, item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
-        prompt = _an_prompt_base(item) if self.style == "base" else _an_prompt(item)
-        resp = self._ask(prompt, 64, logprobs=True, top_logprobs=5)
+        if self.style == "base":
+            resp = self._ask(_an_prompt_base(item), 64, logprobs=True, top_logprobs=5)
+        else:
+            resp = self._ask_task("anomaly", item, 64, logprobs=True, top_logprobs=5)
         raw = content(resp)
         is_valid, rule = parse_anomaly(raw)
         lp_score = _valid_prob(resp)
@@ -233,7 +251,7 @@ class RulesContextLLMPredictor:
             self._chat = chat_fn or _default_chat
 
     def _ask(self, task: str, item: ValidInput | AnomalyInput, max_tokens: int, **kw) -> dict | str:
-        messages = build_messages(task, item)
+        messages = build_zeroshot_messages(task, item)
         if self.backend == "hf":
             assert self._hf is not None
             return self._hf.chat(messages, max_new_tokens=max_tokens, temperature=self.temp, **kw)
@@ -255,8 +273,8 @@ class RulesContextLLMPredictor:
         return ranks
 
     def next_step_with_trace(self, item: ValidInput) -> tuple[list[str], dict]:
-        raw = self._content(self._ask("nextstep", item, 64))
-        out = _unique_vocab_ranked(raw, self.vocab)
+        raw = self._content(self._ask("nextstep", item, 256))
+        out = _unique_vocab_ranked(extract_answer(raw), self.vocab)
         trace = {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend}
         return out, trace
 
@@ -264,16 +282,16 @@ class RulesContextLLMPredictor:
         if self.backend != "hf":
             return [self.next_step_with_trace(item) for item in items]
         assert self._hf is not None
-        messages = [build_messages("nextstep", item) for item in items]
+        messages = [build_zeroshot_messages("nextstep", item) for item in items]
         raws = self._hf.chat_batch(
             messages,
-            max_new_tokens=64,
+            max_new_tokens=256,
             temperature=self.temp,
             batch_size=self.batch_size,
         )
         return [
             (
-                _unique_vocab_ranked(raw, self.vocab),
+                _unique_vocab_ranked(extract_answer(raw), self.vocab),
                 {**trace_from_llm_response(raw), "model": self.model, "backend": self.backend, "batched": True},
             )
             for raw in raws
@@ -293,7 +311,7 @@ class RulesContextLLMPredictor:
         if self.backend != "hf":
             return [self.complete_with_trace(item) for item in items]
         assert self._hf is not None
-        messages = [build_messages("completion", item) for item in items]
+        messages = [build_zeroshot_messages("completion", item) for item in items]
         raws = self._hf.chat_batch(
             messages,
             max_new_tokens=1024,
@@ -315,7 +333,7 @@ class RulesContextLLMPredictor:
     def anomaly_with_trace(self, item: AnomalyInput) -> tuple[tuple[int, float, str | None], dict]:
         resp = self._ask("anomaly", item, 64, logprobs=True, top_logprobs=5)
         raw = self._content(resp)
-        is_valid, rule = parse_anomaly(raw)
+        is_valid, rule = parse_anomaly(extract_answer(raw))
         lp_score = _valid_prob(resp) if isinstance(resp, dict) else None
         score = lp_score if lp_score is not None else (0.9 if is_valid else 0.1)
         trace = {
@@ -330,7 +348,7 @@ class RulesContextLLMPredictor:
         if self.backend != "hf":
             return [self.anomaly_with_trace(item) for item in items]
         assert self._hf is not None
-        messages = [build_messages("anomaly", item) for item in items]
+        messages = [build_zeroshot_messages("anomaly", item) for item in items]
         raws = self._hf.chat_batch(
             messages,
             max_new_tokens=64,
@@ -339,7 +357,7 @@ class RulesContextLLMPredictor:
         )
         out: list[tuple[tuple[int, float, str | None], dict]] = []
         for raw in raws:
-            is_valid, rule = parse_anomaly(raw)
+            is_valid, rule = parse_anomaly(extract_answer(raw))
             result = (is_valid, 0.9 if is_valid else 0.1, rule)
             trace = {
                 **trace_from_llm_response(raw),
@@ -365,55 +383,57 @@ class HFGeneratePredictor:
         self.style = style
         self.name = "base-hf" if style == "base" else "hf"
 
+    def _chat_task(self, task: str, item: ValidInput | AnomalyInput, max_new_tokens: int) -> str:
+        return self._client.chat(build_sft_messages(task, item), max_new_tokens=max_new_tokens)
+
     def _gen(self, prompt: str, max_new_tokens: int | None = None) -> str:
         return self._client.generate(prompt, max_new_tokens=max_new_tokens or self._client.max_new_tokens)
 
     def next_step(self, item: ValidInput) -> list[str]:
-        prompt = _ns_prompt_base(item) if self.style == "base" else _ns_prompt(item)
         max_tok = 64 if self.style == "base" else 24
-        return _unique_vocab_ranked(self._gen(prompt, max_tok), self.vocab)
+        if self.style == "base":
+            raw = self._gen(_ns_prompt_base(item), max_tok)
+        else:
+            raw = self._chat_task("nextstep", item, max_tok)
+        return _unique_vocab_ranked(raw, self.vocab)
 
     def next_step_batch(self, items: list[ValidInput]) -> list[list[str]]:
         max_tok = 64 if self.style == "base" else 24
-        prompts = [
-            [{"role": "user", "content": _ns_prompt_base(it) if self.style == "base" else _ns_prompt(it)}]
-            for it in items
-        ]
+        if self.style == "base":
+            prompts = [[{"role": "user", "content": _ns_prompt_base(it)}] for it in items]
+        else:
+            prompts = [build_sft_messages("nextstep", it) for it in items]
         raws = self._client.chat_batch(prompts, max_new_tokens=max_tok)
         return [_unique_vocab_ranked(raw, self.vocab) for raw in raws]
 
     def complete(self, item: ValidInput) -> list[str]:
-        prompt = _cp_prompt_base(item) if self.style == "base" else _cp_prompt(item)
-        return parse_pipe_list(extract_answer(self._gen(prompt, 1024)), self.vocab, strict=True)
+        if self.style == "base":
+            raw = self._gen(_cp_prompt_base(item), 1024)
+        else:
+            raw = self._chat_task("completion", item, 1024)
+        return parse_pipe_list(extract_answer(raw), self.vocab, strict=True)
 
     def complete_batch(self, items: list[ValidInput]) -> list[list[str]]:
-        prompts = [
-            [
-                {
-                    "role": "user",
-                    "content": _cp_prompt_base(it) if self.style == "base" else _cp_prompt(it),
-                }
-            ]
-            for it in items
-        ]
+        if self.style == "base":
+            prompts = [[{"role": "user", "content": _cp_prompt_base(it)}] for it in items]
+        else:
+            prompts = [build_sft_messages("completion", it) for it in items]
         raws = self._client.chat_batch(prompts, max_new_tokens=1024)
         return [parse_pipe_list(extract_answer(raw), self.vocab, strict=True) for raw in raws]
 
     def anomaly(self, item: AnomalyInput) -> tuple[int, float, str | None]:
-        prompt = _an_prompt_base(item) if self.style == "base" else _an_prompt(item)
-        is_valid, rule = parse_anomaly(self._gen(prompt, 64))
+        if self.style == "base":
+            raw = self._gen(_an_prompt_base(item), 64)
+        else:
+            raw = self._chat_task("anomaly", item, 64)
+        is_valid, rule = parse_anomaly(raw)
         return (is_valid, 0.9 if is_valid else 0.1, rule)
 
     def anomaly_batch(self, items: list[AnomalyInput]) -> list[tuple[int, float, str | None]]:
-        prompts = [
-            [
-                {
-                    "role": "user",
-                    "content": _an_prompt_base(it) if self.style == "base" else _an_prompt(it),
-                }
-            ]
-            for it in items
-        ]
+        if self.style == "base":
+            prompts = [[{"role": "user", "content": _an_prompt_base(it)}] for it in items]
+        else:
+            prompts = [build_sft_messages("anomaly", it) for it in items]
         raws = self._client.chat_batch(prompts, max_new_tokens=64)
         out = []
         for raw in raws:
@@ -424,6 +444,7 @@ class HFGeneratePredictor:
 
 def _smoke() -> None:  # pragma: no cover - manual (no server/GPU needed)
     def fake_chat(messages, **kw):
+        assert messages[0]["role"] == "system"
         prompt = messages[-1]["content"]
         if "Next process step" in prompt:
             c = "DEPOSIT BARRIER METAL | CLEAN AFTER VIA ETCH | DEVELOP PHOTORESIST | OXIDE ETCH | SHIP LOT"
@@ -448,10 +469,10 @@ def _smoke_zeroshot() -> None:  # pragma: no cover - manual
     def fake_chat(messages, **kw):
         user = messages[-1]["content"]
         assert messages[0]["role"] == "system"
-        assert "RULE_DEP_NO_CLEAN" in messages[0]["content"]
-        if "next process step" in user.lower():
+        assert "Process grammar reference" in messages[0]["content"]
+        if "next allowed step" in user.lower():
             c = "DEPOSIT BARRIER METAL | CLEAN AFTER VIA ETCH | DEVELOP PHOTORESIST"
-        elif "Complete the remaining" in user:
+        elif "Complete the route" in user:
             c = "DEPOSIT METAL 1 | ANNEAL METAL 1 | SHIP LOT"
         else:
             c = "INVALID. RULE_SHIP_BEFORE_TEST"
