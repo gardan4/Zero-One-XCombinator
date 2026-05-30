@@ -28,15 +28,16 @@ non-obvious. `/log-learning` does the append in one step.
   (track docs at root + `training_data/` subfolder with CSVs/grammar/`generate_sequences.py`),
   and `docs/submission/` (`REPORT_TEMPLATE.md`, `SUBMISSION.md`). Refresh from upstream:
   `git clone --depth 1 --filter=blob:none --sparse <repo> /tmp/up && cd /tmp/up && git sparse-checkout set tracks/industrial-infineon submission`
-  then copy the two folders. (`eval_metrics.py` is organizer-only — teams submit CSVs; self-eval =
-  `track_metrics.py`. `judging/rubrics.md` not published — criteria in brief + SUBMISSION + §5.)
+  then copy the two folders. Kickoff **`eval_input_*.csv`** + **`eval_metrics.py`** are also vendored at
+  `data/industrial-infineon/eval/` (May 2026 organizer drop). `judging/rubrics.md` not published —
+  criteria in brief + SUBMISSION + §5.
 - **HPC onboarding kit:** https://ai-at.eu/hpc-onboarding/ (Ch. 5 first steps, Ch. 6 software).
 - **Team vs upstream:** search `XCombinator-TEAM-START` or [docs/XCOMBINATOR-TEAM-ADDITIONS.md](../../docs/XCOMBINATOR-TEAM-ADDITIONS.md).
 - **Local `docs/`:** `Track One Assignment.txt` (EN track brief) · `Z10_compressed.pdf` (event +
   Leonardo onboarding deck; cluster info pp. 80–96 — incl. the proxy password on p. 95, **do not
   commit it**).
-- **Eval input files** (`eval_input_valid.csv`, `eval_input_anomaly.csv`) are **distributed by
-  organizers at kickoff** — not in the public repo.
+- **Eval input files** — kickoff CSVs + `eval_metrics.py` in **`data/industrial-infineon/eval/`**
+  (organizer-distributed May 2026). Local labeled proxy: **`extras/eval_local/`** via `just local-eval`.
 
 ## Open questions to resolve on-site
 Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Remaining:
@@ -49,6 +50,7 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 ## Learnings log
 Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
+- 2026-05-30 — **Eval + HF artifact guide:** `docs/eval-and-artifacts.md`; kickoff eval drop; eval final plumbing (suites, promote, self-check, tagging, `training_manifest.json` on HF). Branch `feature/eval-final-plumbing`. — (eval, training)
 - 2026-05-30 — **Leonardo finetune pipeline (adapted from the `leonardo-finetune-reference` branch):** prestage→offline-GPU→live-W&B(proxy)→HF-upload scripts + `train.sbatch.j2`/`submit.py`/`sft.py` (offline `local_files_only` + `_supported_kwargs` trl-drift guard) + a `wandb-smoke` CLI. **Pinned transformers<5 / trl<1**, dropped vLLM/bitsandbytes from the gpu extra (re-locked: transformers 4.57, trl 0.29). Configs `leonardo_smoke_{hf,fab}.yaml`. Verified locally (parse/dry-run/sbatch-render/lint/30 tests); real GPU run on Leonardo still pending. — (cluster, training)
 - 2026-05-30 — **All 4 streams built by parallel worktree subagents + integrated to `main` (30 tests green):** S1 SFT spine (Qwen-1.5B configs + LOFO + multi-file loader), S2 RLVR (`rewards.py` verifier reward + GRPO wiring + tests), S3 copilot (validate/explain/repair tools + `validates` judge + scripted loop + 8 scenarios), S4 anomaly detector + recharts `/compare` dashboard (reproduced anomaly AUC 0.9999 ID→0.50 OOD). Fixed a stray `lib/` gitignore rule that swallowed `apps/frontend/lib/`. Remaining = real GPU SFT/GRPO on Leonardo + the CoT-SFT/trl prereq. — (eval, training, agents)
 - 2026-05-30 — **Team vs upstream markers:** `XCombinator-TEAM-START` / `TEAM-END` in vendored briefs; index `docs/XCOMBINATOR-TEAM-ADDITIONS.md`; original `eval_metrics.py` wording preserved below markers. — (track-industrial-ai)

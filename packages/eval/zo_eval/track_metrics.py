@@ -1,12 +1,12 @@
-"""Self-eval scorer for the 3 Industrial AI track tasks (organizers use their own script on our CSVs).
+"""Self-eval scorer for the 3 Industrial AI track tasks.
 
-Teams do **not** receive ``eval_metrics.py``. Organizers score submitted ``nextstep.csv`` /
-``completion.csv`` / ``anomaly.csv`` privately. This module implements the **documented** metric set
-from ``generation_rules.md`` §5.2 so we can measure on hold-out / local proxy data before submit.
+Organizers score submitted ``nextstep.csv`` / ``completion.csv`` / ``anomaly.csv`` with the vendored
+``data/industrial-infineon/eval/eval_metrics.py`` (requires their ground-truth CSVs). This module
+implements the **same** metric definitions for local hold-out / ``gold.json`` scoring via
+``zo-track predict``.
 
-> Submission **column names** are authoritative — wrong format → zero on their side. NED / token /
-> block accuracy use documented stand-in definitions here (see ``score_completion``); top-k, MRR,
-> P/R/F1, ROC-AUC, and rule-attribution follow the spec directly.
+> Submission **column names** are authoritative — wrong format → zero on their side. For exact parity
+> with organizer reports when you have labels, use ``zo-track score-official`` (wraps ``eval_metrics.py``).
 
 Conventions:
 - **Anomaly = positive class is INVALID** (we are detecting violations). So precision/recall/F1
@@ -96,14 +96,62 @@ def score_nextstep(preds: dict[str, list[str]], gold: dict[str, str]) -> dict:
     }
 
 
-# --------------------------------------------------------------------------- Task 2
+# --------------------------------------------------------------------------- Task 2 (matches eval_metrics.py)
 
 
-def score_completion(
-    preds: dict[str, list[str]], gold: dict[str, list[str]], block: int = 5
-) -> dict:
-    """``preds[ex]``/``gold[ex]`` = the predicted/true steps AFTER the cut.
-    Exact-Match, Normalized Edit Distance (lower better), Token Acc, Block Acc (stand-in defs)."""
+def _major_block(step: str) -> str:
+    """Map a process step to a coarse major process block (organizer block-level metric)."""
+    s = step.upper()
+    if "LITHO" in s or s.startswith("SPIN COAT PHOTORESIST") or "MASK LEVEL" in s:
+        return "LITHO"
+    if "ETCH" in s or s.startswith("OPEN PAD WINDOW"):
+        return "ETCH"
+    if "IMPLANT" in s or "ANNEAL" in s or "DIFFUSION" in s:
+        return "DOPING_THERMAL"
+    if s.startswith("DEPOSIT") or "OXIDATION" in s or "GROWTH" in s:
+        return "DEPOSITION"
+    if s.startswith("CMP") or "PLANAR" in s:
+        return "PLANARIZATION"
+    if "VIA" in s:
+        return "VIA"
+    if "PASSIVATION" in s:
+        return "PASSIVATION"
+    if "BACKSIDE" in s or "GRIND" in s:
+        return "BACKSIDE"
+    if "TEST" in s or "MEASURE" in s or "INSPECT" in s or "ANALYSIS" in s:
+        return "METROLOGY_TEST"
+    if "LOT" in s or "RELEASE" in s or "SHIP" in s:
+        return "LOGISTICS"
+    return "OTHER"
+
+
+def _block_signature(seq: list[str]) -> list[str]:
+    """Collapse a token sequence to de-duplicated major-process blocks."""
+    sig: list[str] = []
+    prev: str | None = None
+    for step in seq:
+        b = _major_block(step)
+        if b != prev:
+            sig.append(b)
+            prev = b
+    return sig
+
+
+def token_accuracy(pred: list[str], ref: list[str]) -> float:
+    """Position-aligned token matches up to min length (organizer definition)."""
+    n = min(len(pred), len(ref))
+    if n == 0:
+        return 0.0
+    return sum(p == r for p, r in zip(pred, ref, strict=False)) / n
+
+
+def block_level_accuracy(pred: list[str], ref: list[str]) -> float:
+    """Accuracy over collapsed major-process block signatures."""
+    return token_accuracy(_block_signature(pred), _block_signature(ref))
+
+
+def score_completion(preds: dict[str, list[str]], gold: dict[str, list[str]]) -> dict:
+    """``preds[ex]``/``gold[ex]`` = the predicted/true steps AFTER the cut."""
     n = len(gold)
     em = 0
     ned_sum = tok_sum = blk_sum = 0.0
@@ -113,12 +161,8 @@ def score_completion(
             em += 1
         denom = max(len(p), len(g)) or 1
         ned_sum += _levenshtein(p, g) / denom
-        # Token accuracy: position-aligned matches / reference length.
-        tok_sum += _safe_div(sum(1 for i in range(min(len(p), len(g))) if p[i] == g[i]), len(g) or 1)
-        # Block accuracy: fraction of fixed-size reference blocks reproduced exactly in place.
-        nblocks = (len(g) + block - 1) // block or 1
-        ok = sum(1 for s in range(0, len(g), block) if p[s : s + block] == g[s : s + block])
-        blk_sum += ok / nblocks
+        tok_sum += token_accuracy(p, g)
+        blk_sum += block_level_accuracy(p, g)
     return {
         "n": n,
         "exact_match": _safe_div(em, n),
@@ -162,6 +206,20 @@ def score_anomaly(
             labels.append(int(g["is_valid"]))
     precision = _safe_div(tp, tp + fp)
     recall = _safe_div(tp, tp + fn)
+    per_rule: dict[str, dict] = {}
+    for ex, g in gold.items():
+        if g.get("is_valid") != 0:
+            continue
+        rule = g.get("rule") or "UNKNOWN"
+        p = preds.get(ex, {})
+        detected = p.get("is_valid", 1) == 0
+        bucket = per_rule.setdefault(rule, {"detected": 0, "total": 0})
+        bucket["total"] += 1
+        if detected:
+            bucket["detected"] += 1
+    per_rule_rate = {
+        rule: _safe_div(v["detected"], v["total"]) for rule, v in sorted(per_rule.items())
+    }
     return {
         "n": len(gold),
         "binary_acc": _safe_div(tp + tn, tp + fp + tn + fn),
@@ -171,6 +229,7 @@ def score_anomaly(
         "confusion": {"tp": tp, "fp": fp, "tn": tn, "fn": fn},
         "roc_auc": roc_auc(scores, labels) if len(scores) == len(gold) and scores else None,
         "rule_attribution_acc": (_safe_div(attr_ok, attr_total) if attr_total else None),
+        "per_rule_detection": per_rule_rate,
     }
 
 
@@ -319,6 +378,10 @@ def format_report_markdown(report: dict) -> str:
         if scores.get("confusion"):
             c = scores["confusion"]
             parts.append(f"confusion=tp{c['tp']}/fp{c['fp']}/tn{c['tn']}/fn{c['fn']}")
+        pr = scores.get("per_rule_detection")
+        if pr:
+            top = ", ".join(f"{k}={round(v, 3)}" for k, v in list(pr.items())[:5])
+            parts.append(f"per_rule=[{top}]")
         return [f"- **{label}:** " + ", ".join(parts)] if parts else []
 
     for task, data in (report.get("tasks") or {}).items():

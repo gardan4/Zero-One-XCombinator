@@ -3,9 +3,10 @@
 Code: `packages/eval/zo_eval/` (`tasks.py`, `harness.py`, `cli.py`). Tasks: `packages/eval/tasks/*.yaml`.
 
 > **Track reality ([track-industrial-ai.md](track-industrial-ai.md)):** submit 3 CSVs; organizers score
-> with **their** script (we do **not** get `eval_metrics.py`). Self-eval: **`track_metrics.py`** implements
-> the metrics in `generation_rules.md` §5 on `extras/eval_local/` + `gold.json`. No `rubrics.md` — criteria
-> in SUBMISSION + track brief + §5. See [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
+> with vendored **`data/industrial-infineon/eval/eval_metrics.py`** (kickoff labels held by organizers).
+> Self-eval: **`track_metrics.py`** on `extras/eval_local/` + `gold.json`, or **`zo-track score-official`**
+> when ground-truth CSVs exist. Kickoff inputs: **`data/industrial-infineon/eval/`**. See
+> [docs/track-industrial-sources.md](../../docs/track-industrial-sources.md).
 > Checkpoints: HF **`XCombinator`**; logs: W&B **`XCombinator/XCombinator`**. Not the OpenAI harness below.
 
 ## How it works
@@ -34,10 +35,17 @@ Drop a new YAML in `packages/eval/tasks/`. Example: `tasks/example.yaml` = `arit
   `write_anomaly` (the 3 submission files → `extras/results/`), and `make_local_eval_set(valid_seqs,
   negatives, out)` which synthesizes organizer-format eval inputs + `gold.json` from held-out data so
   the full input→predict→write→score path runs **before kickoff** (e.g. on a LOFO test family).
-- **`track_metrics.py`** = our self-eval scorer for every documented metric (Top-1/3/5+MRR; ExactMatch/
-  NormEditDist/TokenAcc/BlockAcc; BinAcc/P/R/F1/confusion/ROC-AUC/RuleAttribution). Organizers use their
-  own script on submitted CSVs. `per_family` / `per_cut_fraction` for report breakdowns.
+- **`track_metrics.py`** = self-eval scorer aligned with vendored `eval_metrics.py` (Top-1/3/5+MRR;
+  ExactMatch/NormEditDist/TokenAcc/BlockAcc via major-process blocks; BinAcc/P/R/F1/confusion/
+  ROC-AUC/RuleAttribution). `per_family` / `per_cut_fraction` for report breakdowns.
+- **`official_metrics.py`** + `zo-track score-official` = subprocess wrapper around vendored organizer script.
+- **`zo-track validate`** = grammar-check kickoff completions (`validate_sequence` proxy).
 - Verified end-to-end: perfect preds → top1/EM/F1/AUC = 1.0 (`python -m zo_eval.submission`).
+
+### Kickoff eval files (2026-05-30)
+- Organizer inputs + `eval_metrics.py` vendored at **`data/industrial-infineon/eval/`** (600 valid + 987 anomaly).
+- `zo-track predict --eval-set kickoff` defaults to those paths; no public `gold.json` for kickoff IDs.
+- Development proxies: `extras/eval_local/` (labeled hold-out), `zo-track validate` (grammar validity).
 
 ### Inference/predict core (2026-05-30) — `predict.py` + `baselines.py` + `track.py`/`track_cli.py`
 The shared, model-agnostic path every stream uses (there was NO inference code before this).

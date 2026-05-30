@@ -47,6 +47,31 @@ families is our only OOD proxy — the hidden 4th family (Task 4) can't be rehea
 | Training metrics | W&B project **`XCombinator/XCombinator`** (`WANDB_ENTITY` / `WANDB_PROJECT`) |
 | SLURM-local checkpoint | `experiments/<run_id>/artifacts/` before upload |
 
+### Hugging Face model cards (tags + training params)
+
+Every upload (in-training `push_to_hub: true` or post-job `leonardo_upload_artifact.sh`) writes
+into the artifact folder **before** push:
+
+| File | What it is |
+|------|------------|
+| `training_manifest.json` | Run id, git SHA, **all tags**, full YAML config, notes |
+| `README.md` | HF model card — YAML frontmatter **tags** (searchable on HF) + hyperparam table |
+
+**Manual tags / notes in config:**
+
+```yaml
+extra:
+  hub_model_id: XCombinator/sft-fab-lofo-mosfet
+  push_to_hub: true
+  tags: [leonardo, sft, full-ft, lofo:mosfet]      # also on registry run
+  hub_tags: [report-final, attempt-3, best-run]     # extra HF-only tags (any strings)
+  hub_notes: "2ep lr1e-5; held-out MOSFET; W&B run xyz"
+```
+
+Regenerate locally (e.g. before re-upload): `uv run zo-runs hub-manifest <run_id> --hub-model-id XCombinator/...`
+
+On Hugging Face: open the model repo → read **README** or download **`training_manifest.json`**.
+
 ## Checkpoint -> submissions (the path)
 
 Training is **not** the submission step. After upload, point eval at the HF repo id. The **shared

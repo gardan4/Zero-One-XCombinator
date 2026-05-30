@@ -115,11 +115,10 @@ Supported families: `mosfet`, `igbt`, `ic`
 > **========== XCombinator-TEAM-START ==========**  
 > *(not in original Lumos `tracks/industrial-infineon/README.md`)*
 >
-> We do **not** receive `eval_metrics.py` (organizers score our output CSVs) or `judging/rubrics.md`
-> (criteria: this README + `generation_rules.md` §5 + `SUBMISSION.md`). Self-eval:
-> `packages/eval/zo_eval/track_metrics.py` via `zo-track predict`.
-> See **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)** and
-> **[docs/XCOMBINATOR-TEAM-ADDITIONS.md](../../docs/XCOMBINATOR-TEAM-ADDITIONS.md)**.
+> Kickoff eval inputs + **`eval_metrics.py`** are in **`eval/`** (May 2026 organizer drop).
+> Organizers hold kickoff labels. Self-eval: `track_metrics.py` + `extras/eval_local/gold.json`, or
+> `zo-track score-official` / `zo-track validate`. See
+> **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**.
 >
 > **========== XCombinator-TEAM-END ==========**  
 > *(original README continues below)*
@@ -145,9 +144,10 @@ The organizers distribute two eval input files at the start of the hackathon:
 ### Self-Evaluation
 
 > **========== XCombinator-TEAM-START ==========**  
-> Our self-eval (organizers still score submitted CSVs with their own script):
+> Kickoff inputs in **`../eval/`**; local labeled proxy:
 >
 > ```bash
+> uv run zo-track predict -p ngram -V baseline-v1 --eval-set kickoff
 > uv run zo-track predict -p ngram -V baseline-v1 \
 >   --valid extras/eval_local/eval_input_valid.csv \
 >   --anomaly extras/eval_local/eval_input_anomaly.csv \
@@ -156,7 +156,7 @@ The organizers distribute two eval input files at the start of the hackathon:
 >
 > **========== XCombinator-TEAM-END ==========**
 
-*Original upstream text (organizer brief — we do not receive this script as teams):*
+*Original upstream text (organizer brief):*
 
 The scoring script `eval_metrics.py` (provided by organizers) requires no external dependencies:
 

@@ -1,0 +1,39 @@
+# Tagged eval matrix — baseline vs finetuned on local labeled proxy.
+# Usage: uv run zo-track suite packages/eval/eval_suites/local_compare.yaml
+# Override HF model: --model XCombinator/sft-fab-all
+
+defaults:
+  valid_csv: extras/eval_local/eval_input_valid.csv
+  anomaly_csv: extras/eval_local/eval_input_anomaly.csv
+  gold: extras/eval_local/gold.json
+  eval_set: local
+  self_check: true
+  run_proxy: false
+  tags:
+    - split:id
+    - role:compare-suite
+
+runs:
+  - name: ngram-baseline
+    predictor: ngram
+    version: ngram-baseline-v1
+    tags: [role:baseline]
+
+  - name: freq-baseline
+    predictor: freq
+    version: freq-baseline-v1
+    tags: [role:baseline]
+
+  - name: oracle-anomaly-ceiling
+    predictor: oracle
+    version: oracle-ceiling-v1
+    tasks: [anomaly]
+    tags: [role:oracle]
+
+  # Uncomment and set model for finetuned comparison:
+  # - name: hf-finetuned
+  #   predictor: hf
+  #   model: XCombinator/sft-fab-all
+  #   model_ref: XCombinator/sft-fab-all
+  #   version: sft-all-v1
+  #   tags: [role:finetuned]

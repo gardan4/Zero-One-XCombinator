@@ -20,30 +20,43 @@ Team **source of truth** for what is in the repo, how judging works, and where c
 
 ## Scoring: what we submit vs what we run locally
 
-**We do not receive `eval_metrics.py`.** The organizers score our three output CSVs with **their own** script after submission. Our job is to produce correctly formatted files:
+**Kickoff eval inputs** (600 + 987 rows) and the official **`eval_metrics.py`** are in
+[`data/industrial-infineon/eval/`](../data/industrial-infineon/eval/). Organizers hold **ground-truth
+labels** for those IDs and score our three output CSVs after submission:
 
 - `nextstep.csv` — `EXAMPLE_ID,RANK_1..RANK_5`
 - `completion.csv` — `EXAMPLE_ID,PREDICTED_SEQUENCE`
 - `anomaly.csv` — `EXAMPLE_ID,IS_VALID,SCORE,PREDICTED_RULE`
 
-**Self-evaluation** on data we hold (training hold-outs or a local proxy set) uses our implementation of the **same documented metrics** in `packages/eval/zo_eval/track_metrics.py`, driven by `zo-track predict` → `metrics_report.json` / `metrics_report.md`. Wrong CSV columns still score zero on their side; our stand-in does not change that.
+**Self-evaluation** options — full guide: **[eval-and-artifacts.md](eval-and-artifacts.md)**
+
+| Scenario | Command |
+|----------|---------|
+| Baseline vs model matrix (labeled) | `just eval-suite packages/eval/eval_suites/local_compare.yaml --model XCombinator/...` |
+| Kickoff submission + auto-promote | `just eval-suite packages/eval/eval_suites/kickoff_submit.yaml --model XCombinator/...` |
+| Single run + promote | `just track "-p hf --model … -V final --eval-set kickoff --promote kickoff-final"` |
+| Re-score CSVs only | `just rescore --results experiments/…/results --gold extras/eval_local/gold.json --self-check` |
+| Promote after the fact | `just promote kickoff-final <run_id>` |
+| HF training params on model repo | `just hub-manifest <run_id> --hub-model-id XCombinator/...` |
+| Compare index | `extras/results/INDEX.json` |
+
+Wrong CSV columns still score zero on their side.
 
 ```bash
+# Kickoff predict (defaults to data/industrial-infineon/eval/*.csv)
+uv run zo-track predict -p ngram -V ngram-v1 --eval-set kickoff --tags split:id
+
+# Local labeled proxy
 uv run zo-track predict -p ngram -V ngram-v1 \
   --valid extras/eval_local/eval_input_valid.csv \
   --anomaly extras/eval_local/eval_input_anomaly.csv \
   --gold extras/eval_local/gold.json \
   --tags split:id,eval-set:local
-# → experiments/<run>/results/metrics_report.md
 ```
-
-Regenerate local organizer-format inputs: `just local-eval MOSFET` → `extras/eval_local/`.
-
-If organizers distribute a **fixed kickoff eval set** (`eval_input_valid.csv`, `eval_input_anomaly.csv`), use those paths for final predictions; we still self-score only where we have labels (`gold.json` from hold-out synthesis or labels they provide).
 
 ## Documented metrics (Tasks 1–3)
 
-From `generation_rules.md` §5.2 — implemented in `track_metrics.py`:
+From `generation_rules.md` §5.2 — implemented in `track_metrics.py` (aligned with vendored `eval_metrics.py`):
 
 | Task | Metrics |
 |------|---------|
@@ -55,15 +68,15 @@ Registry keys and per-family / per-cut (`_frac60`, `_frac80`) breakdowns: see `.
 
 **Task 4 (OOD):** organizers only — hidden 4th family, ID→OOD drop. We report a **LOFO proxy** (`split:ood,family:<held-out>`).
 
-## What is in the repo vs optional at kickoff
+## What is in the repo
 
-| Item | In public repo? | Our approach |
-|------|-----------------|--------------|
-| Training data + grammar | Yes — `data/industrial-infineon/` | |
-| Eval protocol (formats + metric names) | Yes — `generation_rules.md` §5 | |
-| **`eval_metrics.py`** | **No — not given to teams** | `track_metrics.py` for self-eval |
-| **`judging/rubrics.md`** | **No** | Criteria in table above |
-| Fixed kickoff `eval_input_*.csv` | Often distributed at event | `extras/eval_local/` until then |
+| Item | Location |
+|------|----------|
+| Training data + grammar | `data/industrial-infineon/training_data/` |
+| Kickoff eval inputs + official scorer | `data/industrial-infineon/eval/` |
+| Local labeled proxy (regenerate) | `extras/eval_local/` via `just local-eval <FAMILY>` |
+| Self-eval implementation | `packages/eval/zo_eval/track_metrics.py` |
+| **`judging/rubrics.md`** | **Not published** — criteria in table above |
 
 ## Trained artifacts (not in git)
 

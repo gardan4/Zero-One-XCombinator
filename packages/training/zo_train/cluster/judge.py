@@ -163,11 +163,19 @@ def stage_model(
     typer.secho(f"Staged at {dest}\nAdd to .env:  ZO_INFER_MODEL_PATH={dest}", fg="green")
 
 
+def _eval_dir_for(eval_set: str, eval_dir: str | None) -> Path:
+    if eval_dir:
+        return Path(eval_dir)
+    if eval_set == "kickoff":
+        return Path("data/industrial-infineon/eval")
+    return Path(cluster_env("ZO_JUDGE_EVAL_DIR", "extras/eval_local") or "extras/eval_local")
+
+
 def judge_eval(
     model: str = typer.Option(None, "--model", "-m", help="HF repo or local checkpoint path."),
     predictor: str = typer.Option("hf", help="hf (batch transformers) | llm (needs vLLM)."),
     version: str = typer.Option(None, help="Repro version tag (default: infer model slug)."),
-    eval_dir: str = typer.Option(None, help="Dir with eval_input_*.csv + gold.json."),
+    eval_dir: str = typer.Option(None, help="Dir with eval_input_*.csv (+ gold.json for labeled)."),
     eval_set: str = typer.Option("local", help="eval-set tag: local|kickoff"),
     tasks: str = typer.Option("nextstep,completion,anomaly", help="Task subset."),
     tags: str = typer.Option("judge,repro,split:id", help="Comma-separated run tags."),
@@ -175,20 +183,28 @@ def judge_eval(
     dry_run: bool = typer.Option(False, "--dry-run", help="Render sbatch only."),
     local: bool = typer.Option(False, "--local", help="sbatch on this login node."),
     stage: bool = typer.Option(True, "--stage/--no-stage", help="Auto-download HF weights if missing."),
+    self_check: bool = typer.Option(False, "--self-check", help="Run official eval_metrics.py (needs gold)."),
+    promote: str = typer.Option(None, "--promote", help="Copy results to extras/results/<slug>/ on compute node."),
 ) -> None:
     """Submit a GPU batch job that runs track eval and writes scored results."""
     ensure_cluster_env()
-    eval_path = Path(eval_dir or _eval_dir())
+    eval_path = _eval_dir_for(eval_set, eval_dir)
     valid = eval_path / "eval_input_valid.csv"
     anomaly = eval_path / "eval_input_anomaly.csv"
     gold = eval_path / "gold.json"
-    for p in (valid, anomaly, gold):
+    for p in (valid, anomaly):
         if not p.exists():
-            typer.secho(
-                f"Missing {p}. Run `just judge-setup` first (or point --eval-dir at your inputs).",
-                fg="red",
-            )
+            typer.secho(f"Missing {p}. Run `just judge-setup` or use --eval-set kickoff.", fg="red")
             raise typer.Exit(1)
+    if eval_set != "kickoff" and not gold.exists():
+        typer.secho(
+            f"Missing {gold} for labeled eval. Run `just judge-setup` or `just local-eval FAMILY`.",
+            fg="red",
+        )
+        raise typer.Exit(1)
+    if self_check and not gold.exists():
+        typer.secho("--self-check requires gold.json in the eval dir.", fg="red")
+        raise typer.Exit(1)
 
     hf_raw = (model or cluster_env("ZO_INFER_MODEL") or "").strip()
     if stage and not dry_run and hf_raw and is_hf_repo_id(hf_raw):
@@ -235,7 +251,7 @@ def judge_eval(
         model_path=model_path,
         valid_csv=_cluster_path(valid),
         anomaly_csv=_cluster_path(anomaly),
-        gold_json=_cluster_path(gold),
+        gold_json=_cluster_path(gold) if gold.exists() else "",
         tasks=tasks,
         tags=",".join(tag_list),
         version=ver,
@@ -243,6 +259,9 @@ def judge_eval(
         eval_set=eval_set,
         out_dir=_cluster_path(out_dir),
         run_id=run.id,
+        self_check=self_check,
+        promote=promote or "",
+        run_proxy=eval_set == "kickoff",
     )
     sbatch = render_template("infer.sbatch.j2", **ctx)
     sbatch_path = run_dir(run.id) / "infer.sbatch"

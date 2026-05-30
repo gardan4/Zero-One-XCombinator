@@ -32,11 +32,10 @@ Sanity-checked on load: MOSFET/IGBT/IC = 1,000 seqs each, lengths ~125/148/115, 
 `RECEIVE WAFER LOT` / end `SHIP LOT`, all pass `validate_sequence`. To refresh from upstream:
 sparse-clone the repo and copy those two folders (see INDEX "Sources").
 
-> **Scoring:** We do **not** receive **`eval_metrics.py`** — organizers score our three output CSVs
-> with their script. Self-eval: **`zo_eval/track_metrics.py`** (metrics from `generation_rules.md` §5).
-> **`judging/rubrics.md`** is not published; criteria live in SUBMISSION.md + track brief + §5.
-> Optional kickoff **`eval_input_*.csv`** may be distributed for prediction inputs. Team notes:
-> **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**.
+> **Scoring:** Kickoff inputs + vendored **`eval_metrics.py`** in **`data/industrial-infineon/eval/`**
+> (organizers hold kickoff labels). Self-eval: **`track_metrics.py`** + `gold.json`, or
+> **`zo-track score-official`** when ground-truth CSVs exist. **`judging/rubrics.md`** not published.
+> See **[docs/track-industrial-sources.md](../../docs/track-industrial-sources.md)**.
 
 ### Artifact locations (not in git)
 - **Checkpoints:** Hugging Face org **`XCombinator`** (e.g. `XCombinator/sft-fab-all`, LOFO variants).
@@ -107,11 +106,10 @@ step is in-vocab. Implemented in `validate_sequence()`:
 10. **RULE_BACKSIDE_BEFORE_PASSIVATION** — DEPOSIT BACKSIDE METAL must come after CURE PASSIVATION.
 
 ## Evaluation — 3 submitted tasks + 1 organizer-only
-Organizers distribute two **fixed eval input files** at kickoff (NOT in the public repo):
-- `eval_input_valid.csv` — 600 partial sequences (`EXAMPLE_ID, FAMILY, COMPLETION_FRACTION,
-  PARTIAL_SEQUENCE`; pipe-separated steps; cut at 60% or 80%). Feeds Tasks 1 & 2.
-- `eval_input_anomaly.csv` — 987 unlabeled full sequences (`EXAMPLE_ID, FAMILY, SEQUENCE`); ~387
-  with injected rule violations + 600 valid, shuffled. Feeds Task 3.
+Kickoff eval inputs + vendored **`eval_metrics.py`**: **`data/industrial-infineon/eval/`**
+- `eval_input_valid.csv` — 600 partial sequences (Tasks 1 & 2)
+- `eval_input_anomaly.csv` — 987 unlabeled full sequences (Task 3)
+Organizers hold **labels** for these IDs; we generate predictions with `zo-track predict --eval-set kickoff`.
 
 | # | Task | Metrics | Submit file |
 |---|---|---|---|
@@ -125,9 +123,9 @@ Task 3 columns: `IS_VALID` 1/0 (required), `SCORE`∈[0,1] valid-prob (optional,
 family** after submission and report the ID→OOD performance drop. We don't submit anything for it,
 but our model must be runnable on an unseen family.
 
-**Self-scoring:** `zo-track predict` + `track_metrics.py` on hold-out / `extras/eval_local/` + `gold.json`
-→ `metrics_report.md` (per-family + per-cut). Validate generated sequences with
-`generate_sequences.py --validate <csv>` (same 10 rules as Task 3).
+**Self-scoring:** labeled proxy via `just local-eval <FAMILY>` + `zo-track predict --gold …`;
+kickoff grammar proxy via `zo-track validate`; exact organizer script via `zo-track score-official`
+(when ground-truth CSVs exist). In-repo metrics: `track_metrics.py` → `metrics_report.md`.
 
 ## Track-specific repo deliverables (from SUBMISSION.md + REPORT_TEMPLATE.md)
 Beyond the general submission (see hackathon.md), the **Industrial AI** repo must contain:

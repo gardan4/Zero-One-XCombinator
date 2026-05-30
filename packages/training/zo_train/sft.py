@@ -113,7 +113,6 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
     )
 
     trainer = SFTTrainer(**_supported_kwargs(SFTTrainer.__init__, trainer_kwargs))
-    hub_base = str(cfg.extra.get("base_model_hub_id") or "Qwen/Qwen2.5-0.5B-Instruct")
 
     def _wandb_fail(exc: BaseException) -> None:
         if os.environ.get("WANDB_MODE") == "disabled":
@@ -137,25 +136,35 @@ def run_sft(cfg: ExperimentConfig, run_id: str, dry_run: bool = False) -> None:
 
     trainer.save_model(out_dir)
     tok.save_pretrained(out_dir)
-    readme = Path(out_dir) / "README.md"
-    if readme.exists():
-        text = readme.read_text()
-        if cfg.model.startswith("/"):
-            text = text.replace(cfg.model, hub_base)
-        readme.write_text(text)
+
+    hub_model_id = cfg.extra.get("hub_model_id")
+    from zo_common.hub_metadata import write_hub_artifact_metadata
+
+    write_hub_artifact_metadata(
+        out_dir,
+        run_id,
+        cfg,
+        hub_model_id=str(hub_model_id) if hub_model_id else None,
+        notes=str(cfg.extra.get("hub_notes") or ""),
+    )
 
     metrics = {"output_dir": out_dir}
-    hub_model_id = cfg.extra.get("hub_model_id")
     if hub_model_id and _truthy(cfg.extra.get("push_to_hub", False)):
-        trainer.model.push_to_hub(
-            str(hub_model_id),
+        from huggingface_hub import HfApi
+
+        api = HfApi(token=os.environ.get("HF_TOKEN"))
+        repo_id = str(hub_model_id)
+        api.create_repo(
+            repo_id=repo_id,
+            repo_type="model",
             private=bool(cfg.extra.get("hub_private", True)),
-            token=os.environ.get("HF_TOKEN"),
+            exist_ok=True,
         )
-        tok.push_to_hub(
-            str(hub_model_id),
-            private=bool(cfg.extra.get("hub_private", True)),
-            token=os.environ.get("HF_TOKEN"),
+        api.upload_folder(
+            repo_id=repo_id,
+            repo_type="model",
+            folder_path=out_dir,
+            commit_message=f"Training run {run_id}",
         )
         metrics["hub_model_id"] = hub_model_id
 

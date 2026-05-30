@@ -36,8 +36,11 @@ uv run zo-track predict \
   {% endif %}--eval-set "{{ eval_set }}" \
   --valid "{{ valid_csv }}" \
   --anomaly "{{ anomaly_csv }}" \
-  --gold "{{ gold_json }}" \
-  --tasks "{{ tasks }}" \
+{% if gold_json %}  --gold "{{ gold_json }}" \
+{% endif %}{% if self_check %}  --self-check \
+{% endif %}{% if run_proxy is defined and not run_proxy %}  --no-proxy \
+{% endif %}{% if promote %}  --promote "{{ promote }}" \
+{% endif %}  --tasks "{{ tasks }}" \
   --out "{{ out_dir }}" \
   --tags "{{ tags }}" \
   --run-id "{{ run_id }}"

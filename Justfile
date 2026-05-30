@@ -78,13 +78,45 @@ eval task model:
     uv run zo-eval run --task {{task}} --model {{model}}
 
 # Track eval: predict → 3 CSVs + metrics_report.md + version-tagged registry run.
-# e.g. `just track "-p ngram -V ngram-v1 --valid extras/eval_local/eval_input_valid.csv --gold extras/eval_local/gold.json --tags split:id"`
 track *args:
     uv run zo-track predict {{args}}
+
+# Re-score existing CSVs against gold (no re-inference).
+rescore *args:
+    uv run zo-track rescore {{args}}
+
+# Copy run results to extras/results/<slug>/ for submission.
+# Usage: just promote kickoff-final 20260530_123456_eval_abc
+promote slug run_id:
+    uv run zo-track promote {{run_id}} --slug {{slug}}
+
+# Run tagged eval matrix from YAML (packages/eval/eval_suites/).
+eval-suite config *args:
+    uv run zo-track suite {{config}} {{args}}
+
+# Official scorer self-check on labeled proxy set.
+self-check *args:
+    uv run zo-track self-check {{args}}
+
+# Export gold.json → organizer GT CSVs.
+export-gt *args:
+    uv run zo-track export-gt {{args}}
 
 # Synthesize an organizer-format local eval set (+ gold.json) from a family's held-out test split.
 local-eval family *args:
     uv run zo-track make-local-eval --family {{family}} {{args}}
+
+# Run predict on organizer kickoff eval inputs (data/industrial-infineon/eval/).
+kickoff-predict *args:
+    uv run zo-track predict --eval-set kickoff {{args}}
+
+# Grammar-check completion CSV against kickoff partials (validate_sequence proxy).
+validate-completion completion *args:
+    uv run zo-track validate --completion {{completion}} {{args}}
+
+# Exact organizer scoring when ground-truth CSVs are available.
+score-official *args:
+    uv run zo-track score-official {{args}}
 
 agent scenario model:
     uv run zo-agent run --scenario {{scenario}} --model {{model}}
@@ -95,9 +127,17 @@ serve model port="8001":
 
 # --- experiments / worktrees -------------------------------------------------
 
-# List all experiment runs.
-runs:
-    uv run zo-runs ls
+# List all experiment runs (tags column; filter with --tag).
+runs *args:
+    uv run zo-runs ls {{args}}
+
+# Find runs by tag substring.
+runs-tag query:
+    uv run zo-runs tag {{query}}
+
+# Write HF training_manifest.json + README for a run's artifacts folder.
+hub-manifest run_id *args:
+    uv run zo-runs hub-manifest {{run_id}} {{args}}
 
 # Create an isolated git worktree + branch for a parallel experiment.
 wt name:

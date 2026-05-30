@@ -67,19 +67,18 @@ and eval different ideas at once without stepping on each other. See [`CLAUDE.md
 ## Track eval, artifacts, and known gaps
 
 Industrial AI (Infineon): submit three CSVs (`nextstep`, `completion`, `anomaly`); organizers score
-them with their script (we do **not** get `eval_metrics.py`). Self-eval on hold-out data:
-`zo_eval/track_metrics.py` via `zo-track predict`. Judging criteria are in the track brief +
-`generation_rules.md` §5 (no separate `rubrics.md`). See
-**[docs/track-industrial-sources.md](docs/track-industrial-sources.md)**. Vendored briefs: search
-`XCombinator-TEAM-START` for our notes vs [upstream text](docs/XCOMBINATOR-TEAM-ADDITIONS.md).
+them with vendored `data/industrial-infineon/eval/eval_metrics.py` (they hold kickoff labels).
+Self-eval, tagging, and HF model cards: **[docs/eval-and-artifacts.md](docs/eval-and-artifacts.md)**.
+See also [docs/track-industrial-sources.md](docs/track-industrial-sources.md).
 
 | Where | What |
 |-------|------|
-| Hugging Face **`XCombinator`** | Fine-tuned checkpoints (not committed to git) |
+| Hugging Face **`XCombinator`** | Fine-tuned checkpoints — each repo has `README.md` + `training_manifest.json` (tags + full config). See [docs/eval-and-artifacts.md](../../docs/eval-and-artifacts.md) |
 | W&B **`XCombinator/XCombinator`** | Training logs and loss curves (`WANDB_ENTITY` / `WANDB_PROJECT` in `.env`) |
 | `experiments/<run_id>/` | Registry runs, metrics, `results/*.csv`, `metrics_report.md` |
 
-Repro eval: `just track "-p hf --model XCombinator/<repo> --version <tag> …"` (see `docs/leonardo-eval.md`).
+Repro eval: `just kickoff-predict "-p hf --model XCombinator/<repo> -V <tag> …"` or local proxy via
+`just local-eval MOSFET` (see `docs/leonardo-eval.md`).
 
 ## Leonardo inference & eval
 
