@@ -68,6 +68,8 @@ and eval different ideas at once without stepping on each other. See [`CLAUDE.md
 
 End-to-end: sync repo → prestage on login → SLURM LoRA train → optional HF upload.
 
+**Judges:** see **[docs/judge-quickstart.md](docs/judge-quickstart.md)** — Python + pip only; uv is optional.
+
 ```bash
 cp .env.example .env   # ZO_CLUSTER_USER, HF_TOKEN, ZO_CLUSTER_* paths
 python -m pip install -r requirements-orchestrator.txt
@@ -76,5 +78,8 @@ python scripts/leonardo_smoke.py             # full pipeline over SSH
 python scripts/leonardo_smoke.py --wait-upload
 ```
 
-Same via `uv run zo-cluster leonardo-smoke` if you use uv. Legacy wrappers: `scripts/leonardo_smoke_hf.ps1` (Windows),
-`scripts/leonardo_smoke_hf.sh` (macOS/Linux with rsync). Config: `packages/training/configs/leonardo_smoke_hf.yaml`.
+**Optional (if you have [uv](https://docs.astral.sh/uv/) installed):**  
+`uv run python scripts/leonardo_smoke.py …` or `uv run zo-cluster leonardo-smoke …` or `just leonardo-smoke`.
+
+Legacy wrappers (also use plain `python` for submit): `scripts/leonardo_smoke_hf.ps1`, `scripts/leonardo_smoke_hf.sh`.  
+Config: `packages/training/configs/leonardo_smoke_hf.yaml`.

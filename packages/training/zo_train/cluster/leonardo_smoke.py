@@ -34,6 +34,7 @@ def run_leonardo_smoke(
     dry_run: bool = False,
     skip_sync: bool = False,
     skip_prestage: bool = False,
+    submit_only: bool = False,
     wait_upload: bool = False,
 ) -> None:
     load_dotenv()
@@ -49,6 +50,13 @@ def run_leonardo_smoke(
     if dry_run:
         typer.secho("Dry-run — skipping sync/prestage; rendering sbatch only.", fg="yellow")
         _submit(config, dry_run=True)
+        return
+
+    if submit_only:
+        typer.secho("==> Submit Leonardo smoke finetune", fg="cyan")
+        run_id, job_id = _submit(config, dry_run=False)
+        if wait_upload and run_id:
+            _wait_and_upload(target, remote_repo, run_id, job_id)
         return
 
     if not skip_sync:

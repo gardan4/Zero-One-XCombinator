@@ -85,6 +85,11 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-sync", action="store_true")
     parser.add_argument("--skip-prestage", action="store_true")
+    parser.add_argument(
+        "--submit-only",
+        action="store_true",
+        help="Skip sync/prestage; submit SLURM job only (after manual sync/prestage).",
+    )
     parser.add_argument("--wait-upload", action="store_true")
     args = parser.parse_args()
 
@@ -95,6 +100,7 @@ def main() -> int:
         dry_run=args.dry_run,
         skip_sync=args.skip_sync,
         skip_prestage=args.skip_prestage,
+        submit_only=args.submit_only,
         wait_upload=args.wait_upload,
     )
     return 0

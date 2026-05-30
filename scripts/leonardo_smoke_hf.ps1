@@ -113,17 +113,12 @@ Write-Host "==> Pre-stage GPU environment and base model on the login node"
 Invoke-Remote "bash '$remoteRepo/scripts/leonardo_remote_prestage.sh'"
 
 Write-Host "==> Submit short Leonardo smoke finetune"
-$submitOut = uv run zo-cluster submit --config $Config 2>&1 | Out-String
-Write-Host $submitOut
-if ($LASTEXITCODE -ne 0) { throw "zo-cluster submit failed" }
-
-$runId = if ($submitOut -match "run (\d{8}_\d{6}_\S+)") { $Matches[1] } else { $null }
-$jobId = if ($submitOut -match "submitted SLURM job (\d+)") { $Matches[1] } else { $null }
-if (-not $runId) { throw "Could not parse run id from submit output" }
-
+$smokeArgs = @("--submit-only", "--config", $Config)
 if ($WaitAndUpload) {
     if (-not $env:ZO_CLUSTER_PROXY) {
         Write-Warning 'ZO_CLUSTER_PROXY is empty - GPU live wandb needs proxy (deck p.95).'
     }
-    & (Join-Path $PSScriptRoot "leonardo_wait_upload.ps1") -RunId $runId -JobId $jobId
+    $smokeArgs += "--wait-upload"
 }
+python (Join-Path $PSScriptRoot "leonardo_smoke.py") @smokeArgs
+if ($LASTEXITCODE -ne 0) { throw "leonardo_smoke submit failed" }

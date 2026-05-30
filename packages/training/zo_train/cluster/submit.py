@@ -148,6 +148,7 @@ def leonardo_smoke_cmd(
     dry_run: bool = typer.Option(False, "--dry-run", help="Render sbatch only; skip sync/prestage."),
     skip_sync: bool = typer.Option(False, help="Skip repo sync (already on cluster)."),
     skip_prestage: bool = typer.Option(False, help="Skip login-node prestage."),
+    submit_only: bool = typer.Option(False, help="Skip sync/prestage; submit SLURM job only."),
     wait_upload: bool = typer.Option(False, "--wait-upload", help="Poll job and upload to HF."),
 ) -> None:
     """Full Leonardo smoke pipeline from Windows, macOS, or Linux (Python + ssh only)."""
@@ -158,6 +159,7 @@ def leonardo_smoke_cmd(
         dry_run=dry_run,
         skip_sync=skip_sync,
         skip_prestage=skip_prestage,
+        submit_only=submit_only,
         wait_upload=wait_upload,
     )
 

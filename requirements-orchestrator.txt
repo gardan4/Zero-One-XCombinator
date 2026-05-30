@@ -1,8 +1,10 @@
 # Laptop orchestrator for Leonardo smoke finetune (scripts/leonardo_smoke.py).
-# No uv, no GPU stack — training runs on Leonardo.
+# Judges: pip only — uv is NOT required. Training runs on Leonardo.
 #
 #   python -m pip install -r requirements-orchestrator.txt
 #   python scripts/leonardo_smoke.py --dry-run
+#
+# Optional: uv run python scripts/leonardo_smoke.py  (if uv is installed)
 
 pydantic>=2.7
 pyyaml>=6
