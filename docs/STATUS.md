@@ -42,7 +42,8 @@ generalization result.
   threading, intermediate checkpoint saving, `judge-eval` run‑id threading, backend `.env` loading,
   and a new `zo-cluster pull <run_id>` to bring cluster results local. (10 issues + tests.)
 
-**Dashboard (Stream 4 + new)** — `apps/frontend` (Next.js) + `apps/backend` (FastAPI), `just dev`:
+**Dashboard (Stream 4 + new)** — `apps/frontend` (Next.js) + `apps/backend` (FastAPI),
+`uv run python scripts/dev.py` (or optional `just dev`):
 - **Runs** list + **Run detail** (loss / token‑accuracy curves, config, metrics).
 - **Compare**: run‑comparison metric matrix (ID vs OOD across tasks), anomaly ID‑vs‑OOD bars,
   baseline‑vs‑trained, confusion matrix, loss overlay.
@@ -101,7 +102,8 @@ generalization result.
 
 ## How to see it / key locations
 
-- **Dashboard:** `just dev` → http://localhost:3000 (backend on :8000). Try `/copilot`.
+- **Dashboard:** `uv run python scripts/dev.py` → http://localhost:3000 (backend on :8000).
+  Optional shortcut: `just dev`. Try `/copilot` and `/inference`.
 - **W&B:** https://wandb.ai/XCombinator/zero-one-philyr (the 4 training runs).
 - **Checkpoints (cluster):** `$SCRATCH/zo-experiments/<run_id>/artifacts/` on Leonardo.
 - **Configs:** `packages/training/configs/leonardo_sft_fab*.yaml`.

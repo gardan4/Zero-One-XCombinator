@@ -47,6 +47,31 @@ just eval-suite packages/eval/eval_suites/kickoff_submit.yaml --model XCombinato
 
 Suite summary: `extras/results/suite_<name>/suite_summary.json`
 
+### Dashboard inference (upload CSV or manual example)
+
+From the Next.js app at **`/inference`** (backend must be running):
+
+1. Choose predictor (`ngram`, `freq`, `oracle` by default; `hf` / `llm` / `classifier` need
+   `ZO_ALLOW_DASHBOARD_INFERENCE=1` on the backend).
+2. **Upload** organizer-format `eval_input_valid.csv` and/or `eval_input_anomaly.csv`, **or** enter a
+   single manual example (next-step, completion, or anomaly).
+3. Submit — the API creates a registry run and runs `run_track()` in a background thread.
+
+API:
+
+```bash
+# Multipart job (manual JSON in form field manual_json)
+curl -X POST http://localhost:8000/api/inference/jobs \
+  -F predictor=ngram -F version=dashboard-v1 -F tasks=nextstep \
+  -F 'manual_json={"task":"nextstep","family":"MOSFET","completion_fraction":0.6,"partial_sequence":"STEP A|STEP B"}'
+
+# Validate inputs only
+curl -X POST http://localhost:8000/api/inference/preview -F predictor=ngram -F valid_csv=@path/to/eval_input_valid.csv
+```
+
+Outputs match CLI track runs: `experiments/<run_id>/results/{nextstep,completion,anomaly}.csv`,
+`examples.jsonl`, `proxy_report.json`, and the same `/api/runs`, `/api/compare/report` surfaces.
+
 ### Validate without organizer labels
 
 ```bash

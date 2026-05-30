@@ -19,17 +19,30 @@ packages/
   agent/        zo_agent  — agent rollout harness (tools, scenarios, task success)
 experiments/    per-run outputs (meta.json, metrics.jsonl, artifacts/) — gitignored
 .claude/        team Claude config: settings, slash commands, subagents, knowledge base
-scripts/        wt.sh (worktree-per-experiment), dev.sh
+scripts/        dev.py, setup.py (cross-platform), wt.sh (worktrees)
 ```
 
 ## Quickstart
 
+**Full first-time guide:** **[docs/setup.md](docs/setup.md)** (Windows, macOS, Linux).
+
 ```bash
-mise install          # python 3.12, node 20, uv, just  (or install these yourself)
-cp .env.example .env  # fill in cluster user, HF_TOKEN, wandb (all optional to start)
-just setup            # uv sync (light, no GPU deps) + npm install
-just dev              # backend :8000 + frontend :3000
+git clone <repo-url> && cd Zero-One-XCombinator
+uv run python scripts/setup.py   # uv sync (light, no GPU) + frontend npm install
+uv run python scripts/dev.py     # backend :8000 + frontend :3000
 ```
+
+Requirements: **Python 3.11+**, **uv**, and **Node.js/npm 20+**. No bash, WSL, `just`, `mise`, global
+`next`, or GPU libraries are required for the dashboard smoke path.
+
+Install `uv`: [official guide](https://docs.astral.sh/uv/getting-started/installation/)  
+(`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` on Windows,
+`curl -LsSf https://astral.sh/uv/install.sh | sh` on macOS/Linux).
+
+Optional teammate shortcuts: `mise trust && mise install`, then `just setup` and `just dev`.
+
+Copy `.env.example` to `.env` only if you need private Hugging Face models, cluster submission,
+custom paths, or `ZO_ALLOW_DASHBOARD_INFERENCE=1` for HF/LLM predictors.
 
 Heavy ML deps (torch/trl/transformers/vllm) are an optional extra and install **on the
 cluster**, not your laptop:

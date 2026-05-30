@@ -134,4 +134,4 @@ uv run zo-cluster pull-run <run_id>
 - `tests/test_cluster_training.py::test_submit_uses_kind_from_yaml`
 - `tests/test_cluster_judge.py` — `--run-id` in infer sbatch
 
-Run: `just test`.
+Run: `uv run pytest` (or optional shortcut: `just test`).

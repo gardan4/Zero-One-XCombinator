@@ -9,7 +9,9 @@ from pathlib import Path
 import typer
 from zo_common.env import load_dotenv
 
+from zo_eval.inference_jobs import resolve_eval_paths as _resolve_eval_paths_impl
 from zo_eval.official_metrics import KICKOFF_ANOMALY, KICKOFF_VALID
+from zo_eval.predictors import PredictorBuildError, build_predictor
 
 load_dotenv()
 
@@ -28,40 +30,16 @@ def _build_predictor(
     model: str,
     base_url: str | None,
 ):
-    tf = [f.strip().upper() for f in train_families.split(",")] if train_families else None
-    if kind == "ngram":
-        from zo_eval.baselines import NGramPredictor
-
-        return NGramPredictor(train_families=tf, order=order)
-    if kind == "oracle":
-        from zo_eval.baselines import OraclePredictor
-
-        return OraclePredictor()
-    if kind == "freq":
-        from zo_eval.baselines import FreqPredictor
-
-        return FreqPredictor(train_families=tf)
-    if kind in ("llm", "hf"):
-        from zo_eval.predict_llm import HFGeneratePredictor, ServedLLMPredictor
-
-        return ServedLLMPredictor(model=model, base_url=base_url) if kind == "llm" else HFGeneratePredictor(model=model)
-    if kind == "likelihood-ngram":
-        from zo_eval.anomaly_detect import LikelihoodDetector
-        from zo_eval.baselines import NGramPredictor
-
-        ng = NGramPredictor(train_families=tf, order=order)
-
-        def _score(item):
-            return ng.pooled.mean_logprob(item.sequence)
-
-        return LikelihoodDetector(_score, name="likelihood-ngram")
-    if kind == "classifier":
-        from zo_eval.anomaly_detect import ClassifierDetector
-
-        if model == "default":
-            raise typer.BadParameter("classifier predictor needs --model (served name or HF id)")
-        return ClassifierDetector(model=model, base_url=base_url)
-    raise typer.BadParameter(f"unknown predictor {kind!r}; use: {PREDICTOR_HELP}")
+    try:
+        return build_predictor(
+            kind,
+            train_families=train_families,
+            order=order,
+            model=model,
+            base_url=base_url,
+        )
+    except PredictorBuildError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _parse_tags(tags: str, extra: list[str]) -> list[str]:
@@ -73,10 +51,7 @@ def _parse_tags(tags: str, extra: list[str]) -> list[str]:
 
 
 def _resolve_eval_paths(eval_set: str, valid: str | None, anomaly: str | None) -> tuple[str | None, str | None]:
-    if eval_set == "kickoff":
-        valid = valid or str(KICKOFF_VALID)
-        anomaly = anomaly or str(KICKOFF_ANOMALY)
-    return valid, anomaly
+    return _resolve_eval_paths_impl(eval_set, valid, anomaly)
 
 
 @app.command()

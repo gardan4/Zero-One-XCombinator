@@ -5,7 +5,9 @@ description = "FastAPI control plane — serves the run registry to the dashboar
 requires-python = ">=3.11"
 dependencies = [
     "zo-common",
+    "zo-eval",
     "fastapi>=0.115",
+    "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.30",
     "pydantic-settings>=2.4",
 ]
@@ -19,3 +21,4 @@ packages = ["zo_backend"]
 
 [tool.uv.sources]
 zo-common = { workspace = true }
+zo-eval = { workspace = true }

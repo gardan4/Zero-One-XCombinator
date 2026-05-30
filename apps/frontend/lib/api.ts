@@ -285,3 +285,75 @@ export async function getExamples(family: string): Promise<Examples | null> {
     return null;
   }
 }
+
+export type InferenceJobResponse = {
+  run_id: string;
+  status: string;
+  input_summary: Record<string, unknown>;
+  links: { run: string; examples: string; compare_report: string };
+};
+
+export type InferencePreviewResponse = {
+  ok: boolean;
+  predictor: string;
+  tasks: string[];
+  input_summary: Record<string, unknown>;
+  valid_csv: string | null;
+  anomaly_csv: string | null;
+};
+
+type ApiError = { detail: string };
+
+async function parseInferenceResponse<T>(r: Response): Promise<T | ApiError | null> {
+  if (!r.ok) {
+    try {
+      const body = await r.json();
+      const detail = typeof body?.detail === "string" ? body.detail : JSON.stringify(body?.detail ?? body);
+      return { detail };
+    } catch {
+      return { detail: r.statusText || `HTTP ${r.status}` };
+    }
+  }
+  return r.json();
+}
+
+export async function startInferenceJob(
+  formData: FormData,
+): Promise<InferenceJobResponse | ApiError | null> {
+  try {
+    const r = await fetch(`${BASE}/api/inference/jobs`, {
+      method: "POST",
+      body: formData,
+      cache: "no-store",
+    });
+    return parseInferenceResponse<InferenceJobResponse>(r);
+  } catch {
+    return null;
+  }
+}
+
+export async function previewInferenceJob(
+  formData: FormData,
+): Promise<InferencePreviewResponse | ApiError | null> {
+  try {
+    const r = await fetch(`${BASE}/api/inference/preview`, {
+      method: "POST",
+      body: formData,
+      cache: "no-store",
+    });
+    return parseInferenceResponse<InferencePreviewResponse>(r);
+  } catch {
+    return null;
+  }
+}
+
+export async function getInferenceJob(
+  runId: string,
+): Promise<{ run_id: string; status: string; links: InferenceJobResponse["links"] } | null> {
+  try {
+    const r = await fetch(`${BASE}/api/inference/jobs/${runId}`, { cache: "no-store" });
+    return r.ok ? r.json() : null;
+  } catch {
+    return null;
+  }
+}

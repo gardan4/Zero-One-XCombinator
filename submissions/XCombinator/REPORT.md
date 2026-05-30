@@ -57,8 +57,8 @@ families and testing on the held-out one (a proxy for the hidden 4th family in T
 See [`README.md`](../../README.md) and [`docs/STATUS.md`](../../docs/STATUS.md). In short:
 
 ```bash
-just setup                                   # light deps
-just dev                                     # dashboard at http://localhost:3000
+uv run python scripts/setup.py               # light deps + frontend deps
+uv run python scripts/dev.py                 # dashboard at http://localhost:3000
 # cluster (Leonardo):
 uv run zo-cluster submit -c packages/training/configs/leonardo_sft_fab.yaml
 uv run zo-cluster pull <run_id>              # bring metrics/checkpoint refs local

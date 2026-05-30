@@ -11,6 +11,7 @@ non-obvious. `/log-learning` does the append in one step.
 - Fix or replace stale notes rather than piling on. A wrong note costs more than a missing one.
 
 ## Topics
+- [../../docs/setup.md](../../docs/setup.md) — **first-time local setup** (Windows/macOS/Linux, mise, `just setup`, `just dev`)
 - [stack.md](stack.md) — monorepo layout, uv workspace, tooling, dep split, recommended Claude settings
 - [cluster.md](cluster.md) — **Leonardo (CINECA)**: SSH login (no 2FA), SLURM + reservation `s_tra_ncc`, Pixi, Singularity, storage, no-compute-internet + proxy
 - [track-industrial-ai.md](track-industrial-ai.md) — **our track (Infineon)**: data, grammar, 10 rules, 3 eval tasks + metrics, deliverables, how the scaffold maps
@@ -52,6 +53,7 @@ Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
 - 2026-05-30 — **Eval + HF artifact guide:** `docs/eval-and-artifacts.md`; kickoff eval drop; eval final plumbing (suites, promote, self-check, tagging, `training_manifest.json` on HF). Branch `feature/eval-final-plumbing`. — (eval, training)
 - 2026-05-30 — **Leonardo finetune pipeline (adapted from the `leonardo-finetune-reference` branch):** prestage→offline-GPU→live-W&B(proxy)→HF-upload scripts + `train.sbatch.j2`/`submit.py`/`sft.py` (offline `local_files_only` + `_supported_kwargs` trl-drift guard) + a `wandb-smoke` CLI. **Pinned transformers<5 / trl<1**, dropped vLLM/bitsandbytes from the gpu extra (re-locked: transformers 4.57, trl 0.29). Configs `leonardo_smoke_{hf,fab}.yaml`. Verified locally (parse/dry-run/sbatch-render/lint/30 tests); real GPU run on Leonardo still pending. — (cluster, training)
+- 2026-05-30 — **Cross-platform local dev:** `docs/setup.md`; `scripts/setup.py` + `scripts/dev.py` (no bash on Windows); `just dev`/`just setup` call them; default `pytest` skips `@pytest.mark.integration`. — (stack)
 - 2026-05-30 — **All 4 streams built by parallel worktree subagents + integrated to `main` (30 tests green):** S1 SFT spine (Qwen-1.5B configs + LOFO + multi-file loader), S2 RLVR (`rewards.py` verifier reward + GRPO wiring + tests), S3 copilot (validate/explain/repair tools + `validates` judge + scripted loop + 8 scenarios), S4 anomaly detector + recharts `/compare` dashboard (reproduced anomaly AUC 0.9999 ID→0.50 OOD). Fixed a stray `lib/` gitignore rule that swallowed `apps/frontend/lib/`. Remaining = real GPU SFT/GRPO on Leonardo + the CoT-SFT/trl prereq. — (eval, training, agents)
 - 2026-05-30 — **Team vs upstream markers:** `XCombinator-TEAM-START` / `TEAM-END` in vendored briefs; index `docs/XCOMBINATOR-TEAM-ADDITIONS.md`; original `eval_metrics.py` wording preserved below markers. — (track-industrial-ai)
 - 2026-05-30 — **Eval docs clarified:** teams do not get `eval_metrics.py` (organizers score our 3 CSVs); `track_metrics.py` = self-eval on documented metrics; no `rubrics.md` (criteria in existing brief/SUBMISSION/§5). — (eval, track-industrial-ai)

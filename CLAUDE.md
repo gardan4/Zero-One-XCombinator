@@ -43,7 +43,7 @@ packages/
 experiments/  one dir per run (gitignored): meta.json, metrics.jsonl, config.yaml, logs/, artifacts/
 data/         industrial-infineon/: vendored track data + grammar + generate_sequences.py (our track)
 docs/         track briefing, Leonardo deck (Z10_compressed.pdf), submission/ (REPORT_TEMPLATE, SUBMISSION)
-scripts/      wt.sh (worktree-per-experiment), dev.sh
+scripts/      dev.py, setup.py (cross-platform), wt.sh (worktrees)
 .claude/      this folder: CLAUDE.md, knowledge base, slash commands, subagents
 ```
 
@@ -55,9 +55,9 @@ It's a **uv workspace**: one virtual root `pyproject.toml`, one lockfile, member
 
 | Command | What it does |
 |---|---|
-| `just setup` | First-time: `uv sync` (light deps) + `npm install` in the frontend |
+| `just setup` | First-time: `uv sync` + frontend deps — see [docs/setup.md](docs/setup.md) |
 | `just gpu-sync` | Install the heavy ML stack (`torch/trl/transformers/vllm`) — **run on a GPU box / the cluster** |
-| `just dev` | Backend + frontend together (Ctrl-C stops both) |
+| `just dev` | Backend + frontend together (Ctrl-C stops both); uses `scripts/dev.py` (no bash) |
 | `just train <config>` | Local SFT from a YAML config. Add `--dry-run` to skip torch entirely |
 | `just grpo <config>` | Local GRPO / RL run |
 | `just submit <config>` | Render + submit a training job to Leonardo SLURM over SSH |
@@ -67,7 +67,7 @@ It's a **uv workspace**: one virtual root `pyproject.toml`, one lockfile, member
 | `just serve <model>` | Start a vLLM OpenAI-compatible server (default port 8001) |
 | `just runs` | List all experiment runs |
 | `just wt <name>` | New git worktree + branch for parallel work |
-| `just lint` / `just fmt` / `just test` | ruff check / ruff format / pytest |
+| `just lint` / `just fmt` / `just test` | ruff check / ruff format / pytest (unit only; `pytest -m integration` for live HF) |
 
 CLIs also run directly: `uv run zo-train sft -c <config> --dry-run`, `uv run zo-runs show <id>`, etc.
 

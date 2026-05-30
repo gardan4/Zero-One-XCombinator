@@ -8,10 +8,11 @@
 - Non-code dirs (not workspace members): `data/industrial-infineon/` (vendored track data + grammar +
   `generate_sequences.py`, ~21 MB of CSV — tracked, not gitignored) and `docs/` (track briefing,
   Leonardo deck, `submission/` templates). See [track-industrial-ai.md](track-industrial-ai.md).
-- Tooling pinned by **mise** (`mise.toml`: python 3.12, node 20, uv, just). Tasks run via **just**
-  (`Justfile`). First-time per machine: **`mise trust`** (mise refuses to provide `node`/`uv` until
-  the repo's `mise.toml` is trusted — `npm`/`uv` error otherwise), then `mise install`, then
-  `just setup`.
+- Minimum local dashboard setup is **Python 3.11+ + uv + Node/npm 20+**. See
+  **[docs/setup.md](../../docs/setup.md)**. **No bash/WSL, `just`, `mise`, global `next`, or GPU
+  stack required.** Run `uv run python scripts/setup.py`, then `uv run python scripts/dev.py`.
+- Optional teammate tooling is pinned by **mise** (`mise.toml`: python 3.12, node 20, uv, just).
+  `just setup` and `just dev` are shortcuts for the Python scripts.
 - The root `pyproject.toml` **depends on every member** so a plain `uv sync` installs the whole
   workspace; the `gpu` extra is re-exposed at the root (`gpu = ["zo-train[gpu]"]`) so
   `uv sync --extra gpu` works from the repo root.

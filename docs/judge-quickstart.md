@@ -1,7 +1,12 @@
-# Judge quickstart — no uv required
+# Judge quickstart — choose the smallest path
 
-Judges only need **Python 3.11+** and **`pip`** on a laptop (Windows or macOS).  
-**`uv`**, **`just`**, and **bash** are optional — developers on the team may prefer them.
+There are two common judge paths:
+
+- **Dashboard/local smoke:** needs **Python 3.11+**, **uv**, and **Node.js/npm 20+**. See
+  [setup.md](setup.md).
+- **Leonardo-only CLI flows:** need only **Python 3.11+**, **pip**, and SSH tooling on the laptop.
+
+**`uv`**, **`just`**, **`mise`**, and bash are optional for the Leonardo-only path.
 
 ---
 
@@ -9,7 +14,7 @@ Judges only need **Python 3.11+** and **`pip`** on a laptop (Windows or macOS).
 
 Train a smoke LoRA on Leonardo and upload to Hugging Face.
 
-### Laptop (Windows / macOS) — pip only
+### Laptop (Windows / macOS) — pip only, no dashboard
 
 ```bash
 git clone <repo> && cd Zero-One-Philyr
@@ -41,7 +46,7 @@ with their script. Self-eval: [track-industrial-sources.md](track-industrial-sou
 Team checkpoints: Hugging Face **`XCombinator`**; training logs: W&B **`XCombinator/XCombinator`**.
 Every `zo-track predict` run requires `--version` and writes `metrics_report.md` under the run results dir.
 
-### Laptop — pip only (local inference)
+### Laptop — pip only (local HF inference, no dashboard)
 
 ```bash
 python -m pip install -r requirements-inference.txt

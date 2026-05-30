@@ -1,5 +1,7 @@
 # Zero One Philyr task runner. Run `just` to list recipes.
+# Unix/macOS: bash for legacy shell recipes. Windows: PowerShell for those; dev/setup use Python.
 set shell := ["bash", "-uc"]
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
 
 default:
     @just --list
@@ -7,9 +9,10 @@ default:
 # --- setup -------------------------------------------------------------------
 
 # Install local deps (no GPU/ML deps — those install on the cluster via `just gpu-sync`).
+# See docs/setup.md for first-time install on Windows/macOS/Linux.
 setup:
     uv sync
-    cd apps/frontend && npm install
+    uv run python scripts/setup.py --npm-only
 
 # Install the heavy ML stack (torch/trl/transformers/vllm). Run this on the cluster node.
 gpu-sync:
@@ -17,15 +20,15 @@ gpu-sync:
 
 # --- run the stack -----------------------------------------------------------
 
-# Backend + frontend together (Ctrl-C stops both).
+# Backend + frontend together (Ctrl-C stops both). Cross-platform — no bash required.
 dev:
-    ./scripts/dev.sh
+    uv run python scripts/dev.py
 
 backend:
-    uv run uvicorn zo_backend.main:app --reload --port "${ZO_API_PORT:-8000}"
+    uv run uvicorn zo_backend.main:app --reload --port {{env_var_or_default('ZO_API_PORT', '8000')}}
 
 frontend:
-    cd apps/frontend && npm run dev
+    uv run python scripts/frontend.py dev
 
 # --- training / RL -----------------------------------------------------------
 
