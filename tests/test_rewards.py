@@ -18,7 +18,9 @@ from zo_train.fab import read_sequences
 from zo_train.grammar import validate_sequence
 from zo_train.rewards import (
     MIN_STEPS,
+    SHIP_BONUS,
     reward_format,
+    reward_process,
     reward_validate,
     select_rewards,
 )
@@ -157,3 +159,67 @@ def test_batch_length_matches():
     scores = reward_validate(batch)
     assert len(scores) == len(batch)
     assert all(isinstance(s, float) for s in scores)
+
+
+# --------------------------------------------------------------------------- process reward
+
+
+def test_process_reward_registry():
+    """The process reward resolves from the config string (the {process} ablation axis)."""
+    assert select_rewards("process") == [reward_process]
+    assert select_rewards("process+format") == [reward_process, reward_format]
+
+
+def test_process_valid_full_scores_above_one():
+    """A fully-valid route → longest_valid_prefix == n → 1.0 base + the SHIP LOT tail bonus."""
+    _, valid_text = _valid_completion()
+    (score,) = reward_process([valid_text])
+    assert score > 1.0, score
+
+
+def test_process_tracks_first_violation_index():
+    """Core formula: reward == first_violation_index / n (+ the small tail-bonus band).
+
+    This is exactly what separates it from ``reward_validate`` (``1 - n_viol/n``): the process
+    reward depends on *where* the first break is, not on *how many* breaks there are.
+    """
+    seqs = read_sequences("MOSFET")
+    for seed in range(8):
+        r = random.Random(seed)
+        neg = None
+        while neg is None:
+            neg = make_negative(r.choice(seqs), r)
+        steps = neg["steps"]
+        first = min(v.step_index for v in validate_sequence(steps))
+        (score,) = reward_process([SEP.join(steps)])
+        base = first / len(steps)
+        assert base - 1e-9 <= score <= base + SHIP_BONUS + 1e-9, (first, len(steps), score)
+
+
+def test_process_floors_degenerate():
+    """Anti-hack: empty / short stubs are floored below any real route (as with reward_validate)."""
+    steps, valid_text = _valid_completion()
+    (valid_score,) = reward_process([valid_text])
+    empty_scores = reward_process(["", "   "])
+    (one_step,) = reward_process(["RECEIVE WAFER LOT"])
+    (short,) = reward_process([SEP.join(steps[: MIN_STEPS - 1])])
+    assert all(s <= -1.0 for s in empty_scores), empty_scores
+    assert one_step <= -0.9 and short <= -0.9
+    assert one_step < valid_score and short < valid_score
+
+
+def test_process_and_outcome_rewards_are_distinct():
+    """{process, outcome} must be genuinely different functions on clustered violations."""
+    seqs = read_sequences("MOSFET")
+    diffs = 0
+    for seed in range(10):
+        r = random.Random(seed)
+        neg = None
+        while neg is None:
+            neg = make_negative(r.choice(seqs), r)
+        text = SEP.join(neg["steps"])
+        (p,) = reward_process([text])
+        (v,) = reward_validate([text])
+        if abs(p - v) > 1e-6:
+            diffs += 1
+    assert diffs > 0, "process and outcome rewards should differ when violations are not uniform"

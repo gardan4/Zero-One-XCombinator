@@ -8,7 +8,6 @@ from pathlib import Path
 
 from jinja2 import Template
 from zo_common.env import load_dotenv
-from zo_common.paths import repo_root
 
 from zo_train.cluster._platform import local_model_cache_dir, posix_path
 
@@ -29,7 +28,9 @@ def slurm_context(**overrides: object) -> dict:
 
     load_dotenv()
     repo_dir = cluster_repo_dir()
-    gpus = int(cluster_env("ZO_SLURM_GPUS_PER_NODE", "1"))
+    # GPU count: an explicit per-run override (e.g. a 4-GPU FSDP job via extra.gpus_per_node) wins
+    # over the .env default, and mem/cpus scale with it unless pinned via ZO_SLURM_MEM/ZO_SLURM_CPUS.
+    gpus = int(overrides.pop("gpus_per_node", None) or cluster_env("ZO_SLURM_GPUS_PER_NODE", "1"))
     mem = cluster_env("ZO_SLURM_MEM") or f"{120 * gpus}GB"
     cpus = int(cluster_env("ZO_SLURM_CPUS") or str(8 * gpus))
     experiments = expand_cluster_path(
@@ -51,6 +52,10 @@ def slurm_context(**overrides: object) -> dict:
         experiments_dir=experiments,
         hf_home=expand_cluster_path(cluster_env("HF_HOME") or f"{repo_dir}/hf_cache"),
         proxy=cluster_env("ZO_CLUSTER_PROXY", ""),
+        accelerate_config=cluster_env(
+            "ZO_ACCELERATE_CONFIG",
+            "packages/training/zo_train/cluster/accelerate/fsdp_a100.yaml",
+        ),
     )
     ctx.update(overrides)
     return ctx
@@ -86,7 +91,9 @@ def staged_model_path(hf_repo: str) -> str:
 
 def resolve_infer_model(model: str | None = None) -> str:
     """Return a path or HF id suitable for ``--model`` on the compute node."""
-    raw = (model or cluster_env("ZO_INFER_MODEL") or cluster_env("ZO_INFER_MODEL_PATH") or "").strip()
+    raw = (
+        model or cluster_env("ZO_INFER_MODEL") or cluster_env("ZO_INFER_MODEL_PATH") or ""
+    ).strip()
     if not raw:
         raise ValueError(
             "Set ZO_INFER_MODEL (HF repo id, e.g. XCombinator/sft-fab-all) or ZO_INFER_MODEL_PATH "

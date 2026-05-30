@@ -1,0 +1,22 @@
+# GRPO cross-product — PROCESS reward × NEXT-STEP task × all families.
+# Validates the new process reward (longest-valid-prefix / n) on the cheap next-step task before
+# spending the longer completion runs. Starts FROM the instruction-tuned SFT checkpoint:
+#   set ZO_SFT_CHECKPOINT_DIR in .env to the instruct-all artifacts dir on scratch.
+name: grpo-proc-nextstep-all
+kind: grpo
+model: ${ZO_SFT_CHECKPOINT_DIR}
+dataset: data/generated/MOSFET_eval_nextstep.jsonl,data/generated/IGBT_eval_nextstep.jsonl,data/generated/IC_eval_nextstep.jsonl
+learning_rate: 1.0e-6
+batch_size: 8
+grad_accum: 1
+epochs: 1
+max_seq_len: 1024
+lora: true
+bf16: true
+extra:
+  num_generations: 8
+  max_completion_length: 64
+  reward: process              # PROCESS: longest_valid_prefix / n_steps
+  local_files_only: true
+  # max_steps: 50
+  tags: [leonardo, grpo, rlvr, "reward:process", "task:nextstep", all-families, "stream:2"]

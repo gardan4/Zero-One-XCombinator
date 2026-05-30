@@ -1,0 +1,28 @@
+# FSDP "hero" — Qwen2.5-7B-Instruct FULL fine-tune, sharded across one node's 4× A100-64GB (NVLinked).
+# 7B full-FT needs ~112GB; FULL_SHARD across 256GB makes it fit. Run ONLY after leonardo_smoke_fsdp
+# is green. Prestage the base first on a login node:
+#   ZO_PRESTAGE_MODEL=Qwen/Qwen2.5-7B-Instruct  ->  $SCRATCH/hf-local/Qwen2.5-7B-Instruct
+name: leonardo-sft-fab-fsdp7b-all
+kind: sft
+model: $SCRATCH/hf-local/Qwen2.5-7B-Instruct
+dataset: data/generated/instruct_all.jsonl
+text_field: ""
+lora: false
+bf16: true
+max_seq_len: 1024
+learning_rate: 8.0e-6          # a touch lower than the 1.5B (bigger model)
+warmup_ratio: 0.05
+epochs: 2
+batch_size: 1                  # per-GPU; x4 GPUs x grad_accum 8 = effective 32
+grad_accum: 8
+seed: 42
+extra:
+  gpus_per_node: 4             # -> FSDP accelerate launch across the node
+  slurm_cpus: 32
+  slurm_time: "08:00:00"
+  local_files_only: true
+  completion_only_loss: true
+  gradient_checkpointing: false  # 256GB sharded fits 7B full-FT; avoids the FSDP x grad-ckpt edge
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-7B-Instruct
+  tags: [leonardo, sft, fab, instruct, fsdp, 7b, full-ft, hero, all-families, "stream:1"]

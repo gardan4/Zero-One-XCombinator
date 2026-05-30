@@ -38,7 +38,9 @@ class SubmitResult:
 
 
 def _cluster_experiments_dir(repo_dir: str) -> str:
-    value = env("ZO_CLUSTER_EXPERIMENTS_DIR", f"{repo_dir}/experiments") or f"{repo_dir}/experiments"
+    value = (
+        env("ZO_CLUSTER_EXPERIMENTS_DIR", f"{repo_dir}/experiments") or f"{repo_dir}/experiments"
+    )
     return expand_cluster_path(value)
 
 
@@ -57,7 +59,36 @@ def _effective_kind(cfg: ExperimentConfig, kind: str | None) -> str:
     return kind or cfg.kind
 
 
-def _render_train(subcommand: str, run_id: str, cluster_config_path: str) -> str:
+def _slurm_overrides_from_cfg(cfg: ExperimentConfig) -> dict:
+    """Per-run SLURM overrides declared in a config's ``extra`` block (e.g. a multi-GPU FSDP job).
+
+    ``gpus_per_node`` switches the sbatch to ``accelerate launch`` and auto-rescales mem/cpus; the
+    ``slurm_*`` keys pin individual SLURM directives (time/cpus/mem/nodes) for that run, overriding
+    the .env defaults — e.g. the FSDP 7B hero wants more cpus and a longer wall-clock than the
+    single-GPU default.
+    """
+    ov: dict = {}
+    gpn = cfg.extra.get("gpus_per_node")
+    if gpn:
+        ov["gpus_per_node"] = int(gpn)
+    acc = cfg.extra.get("accelerate_config")
+    if acc:
+        ov["accelerate_config"] = str(acc)
+    for extra_key, ctx_key in (
+        ("slurm_time", "time"),
+        ("slurm_cpus", "cpus"),
+        ("slurm_mem", "mem"),
+        ("slurm_nodes", "nodes"),
+    ):
+        val = cfg.extra.get(extra_key)
+        if val:
+            ov[ctx_key] = val
+    return ov
+
+
+def _render_train(
+    subcommand: str, run_id: str, cluster_config_path: str, **slurm_overrides: object
+) -> str:
     repo_dir = cluster_repo_dir()
     ctx = slurm_context(
         job_name=run_id,
@@ -67,6 +98,7 @@ def _render_train(subcommand: str, run_id: str, cluster_config_path: str) -> str
         subcommand=subcommand,
         config_path=cluster_config_path,
         run_id=run_id,
+        **slurm_overrides,
     )
     return render_template("train.sbatch.j2", **ctx)
 
@@ -121,13 +153,17 @@ def submit_run(
     cfg.to_yaml(local_dir / "config.yaml")
 
     remote_dir = f"{experiments_dir}/{run.id}"
-    sbatch = _render_train(effective_kind, run.id, f"{remote_dir}/config.yaml")
+    sbatch = _render_train(
+        effective_kind, run.id, f"{remote_dir}/config.yaml", **_slurm_overrides_from_cfg(cfg)
+    )
     sbatch_path = local_dir / "job.sbatch"
     write_sbatch(sbatch_path, sbatch)
 
     cluster_note = f"cluster run dir: {remote_dir} (pull with `just cluster-pull-run {run.id}`)"
     if dry_run or not (host and user):
-        update_run(run.id, status="created", notes=f"rendered sbatch, not submitted. {cluster_note}")
+        update_run(
+            run.id, status="created", notes=f"rendered sbatch, not submitted. {cluster_note}"
+        )
         return SubmitResult(run_id=run.id, sbatch_path=sbatch_path, rendered_only=True)
 
     target = f"{user}@{host}"
@@ -185,7 +221,9 @@ def leonardo_smoke_cmd(
         "--config",
         "-c",
     ),
-    dry_run: bool = typer.Option(False, "--dry-run", help="Render sbatch only; skip sync/prestage."),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Render sbatch only; skip sync/prestage."
+    ),
     skip_sync: bool = typer.Option(False, help="Skip repo sync (already on cluster)."),
     skip_prestage: bool = typer.Option(False, help="Skip login-node prestage."),
     submit_only: bool = typer.Option(False, help="Skip sync/prestage; submit SLURM job only."),
