@@ -156,10 +156,10 @@ export default function App() {
 
             <FullRouteRail
               roadmap={roadmap}
+              phases={phases}
               headPhaseIndex={headPhaseIndex}
               expectedTotal={total}
               currentCount={steps.length}
-              currentPhaseDone={headPhase?.steps.length ?? 0}
             />
           </div>
 
