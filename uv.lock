@@ -5182,6 +5182,8 @@ dependencies = [
     { name = "rich" },
     { name = "typer" },
     { name = "zo-common" },
+    { name = "zo-eval" },
+    { name = "zo-train" },
 ]
 
 [package.metadata]
@@ -5190,6 +5192,8 @@ requires-dist = [
     { name = "rich", specifier = ">=13" },
     { name = "typer", specifier = ">=0.12" },
     { name = "zo-common", editable = "packages/common" },
+    { name = "zo-eval", editable = "packages/eval" },
+    { name = "zo-train", editable = "packages/training" },
 ]
 
 [[package]]

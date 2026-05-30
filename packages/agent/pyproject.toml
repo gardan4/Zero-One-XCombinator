@@ -5,6 +5,8 @@ description = "Agent rollout harness for Zero One — tools, scenarios, task-suc
 requires-python = ">=3.11"
 dependencies = [
     "zo-common",
+    "zo-train",  # grammar (validate_sequence) + datagen (explain_violation) for the repair tools
+    "zo-eval",   # predict.parse_pipe_list/vocab + predict_llm.ServedLLMPredictor for repair
     "typer>=0.12",
     "pyyaml>=6",
     "rich>=13",
@@ -22,3 +24,5 @@ packages = ["zo_agent"]
 
 [tool.uv.sources]
 zo-common = { workspace = true }
+zo-train = { workspace = true }
+zo-eval = { workspace = true }
