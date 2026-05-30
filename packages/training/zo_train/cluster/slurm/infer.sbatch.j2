@@ -1,0 +1,43 @@
+#!/bin/bash
+#SBATCH --job-name={{ job_name }}
+{% if account %}#SBATCH --account={{ account }}
+{% endif %}#SBATCH --partition={{ partition }}
+{% if reservation %}#SBATCH --reservation={{ reservation }}
+{% endif %}{% if qos %}#SBATCH --qos={{ qos }}
+{% endif %}#SBATCH --nodes={{ nodes }}
+#SBATCH --ntasks-per-node=1
+#SBATCH --gpus-per-task={{ gpus_per_node }}
+#SBATCH --mem={{ mem }}
+#SBATCH --cpus-per-task={{ cpus }}
+#SBATCH --time={{ time }}
+#SBATCH --output={{ repo_dir }}/slurm_logs/%x-%j.out
+#SBATCH --error={{ repo_dir }}/slurm_logs/%x-%j.out
+
+set -euo pipefail
+cd "{{ repo_dir }}"
+mkdir -p slurm_logs "{{ out_dir }}"
+
+export ZO_EXPERIMENTS_DIR="{{ experiments_dir }}"
+export HF_HOME="{{ hf_home }}"
+{% if proxy %}
+export HTTP_PROXY="{{ proxy }}"; export HTTPS_PROXY="$HTTP_PROXY"
+export http_proxy="$HTTP_PROXY"; export https_proxy="$HTTP_PROXY"
+{% endif %}
+
+# GPU stack must be pre-staged on a login node:  cd {{ repo_dir }} && uv sync --extra gpu
+uv sync --extra gpu --offline
+
+# Batch inference on a fine-tuned checkpoint (no vLLM server required).
+uv run zo-track predict \
+  --predictor {{ predictor }} \
+  --model "{{ model_path }}" \
+  --valid "{{ valid_csv }}" \
+  --anomaly "{{ anomaly_csv }}" \
+  --gold "{{ gold_json }}" \
+  --tasks "{{ tasks }}" \
+  --out "{{ out_dir }}" \
+  --tags "{{ tags }}"
+
+echo "=== judge eval complete ==="
+echo "Results: {{ out_dir }}"
+ls -la "{{ out_dir }}"

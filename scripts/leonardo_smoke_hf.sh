@@ -49,4 +49,4 @@ echo "==> Pre-stage GPU environment and base model on the login node"
 ssh "${SSH_OPTS[@]}" "$TARGET" "bash '$ZO_CLUSTER_REPO_DIR/scripts/leonardo_remote_prestage.sh'"
 
 echo "==> Submit short Leonardo smoke finetune"
-uv run zo-cluster submit --config "$CONFIG"
+python "$ROOT/scripts/leonardo_smoke.py" --submit-only --config "$CONFIG"

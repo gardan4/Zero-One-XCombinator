@@ -63,3 +63,48 @@ just wt grpo-reward-v2   # new git worktree + branch ../zo-grpo-reward-v2, isola
 
 Each worktree is an independent checkout, so teammates (or parallel Claude sessions) can train
 and eval different ideas at once without stepping on each other. See [`CLAUDE.md`](CLAUDE.md).
+
+## Leonardo inference & eval
+
+**Judges:** see **[docs/judge-quickstart.md](docs/judge-quickstart.md)** — Python + pip only; **uv is optional**.
+
+Full guide: **[docs/leonardo-eval.md](docs/leonardo-eval.md)**.
+
+**Local smoke test (Windows/macOS — pip only, no uv):**
+
+```bash
+python -m pip install -r requirements-inference.txt
+python scripts/hub_infer.py --prompt "Say hello"
+```
+
+**Dry-run batch eval sbatch from laptop (pip only):**
+
+```bash
+python -m pip install -r requirements-orchestrator.txt
+python scripts/zo_cluster.py judge-eval --dry-run --no-stage --eval-dir extras/eval_local
+```
+
+**Optional (if you have [uv](https://docs.astral.sh/uv/) installed):**  
+`uv run python scripts/hub_infer.py …` · `uv run zo-cluster judge-eval --dry-run …` · `just judge-eval --dry-run --local`
+
+Quick path on a Leonardo login node:
+
+```bash
+cp .env.example .env   # ZO_CLUSTER_USER, HF_TOKEN, ZO_INFER_MODEL, ZO_CLUSTER_ON_LOGIN=1
+just judge-setup && just judge-stage && just judge-eval --local
+```
+
+## Leonardo smoke finetune (Windows / macOS / Linux)
+
+End-to-end: sync repo → prestage on login → SLURM LoRA train → optional HF upload.
+
+```bash
+cp .env.example .env
+python -m pip install -r requirements-orchestrator.txt
+python scripts/leonardo_smoke.py --dry-run
+python scripts/leonardo_smoke.py
+python scripts/leonardo_smoke.py --wait-upload
+```
+
+**Optional (uv):** `uv run zo-cluster leonardo-smoke …` or `just leonardo-smoke`.  
+Configs: `packages/training/configs/leonardo_smoke_hf.yaml`, `leonardo_sft_fab*.yaml`.

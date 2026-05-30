@@ -46,6 +46,28 @@ submit config:
 cluster-watch:
     uv run zo-cluster watch
 
+# Leonardo smoke finetune (cross-platform — or: python scripts/leonardo_smoke.py).
+leonardo-smoke *args:
+    uv run zo-cluster leonardo-smoke {{args}}
+
+# --- judge / repro eval (Leonardo login node — see docs/leonardo-eval.md) ------------
+
+# One-time: GPU deps + deterministic local eval set under extras/eval_local/.
+judge-setup:
+    uv run zo-cluster judge-setup
+
+# Download ZO_INFER_MODEL from Hugging Face to $SCRATCH (login node only).
+judge-stage *args:
+    uv run zo-cluster stage-model {{args}}
+
+# Submit batch inference + track scoring (default: -p hf, all 3 tasks).
+judge-eval *args:
+    uv run zo-cluster judge-eval {{args}}
+
+# Optional live demo: vLLM on a GPU node (SSH tunnel — secondary).
+judge-serve *args:
+    uv run zo-cluster judge-serve {{args}}
+
 # --- eval / agent ------------------------------------------------------------
 
 eval task model:

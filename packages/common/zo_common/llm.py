@@ -60,6 +60,17 @@ def content(resp: dict[str, Any]) -> str:
     return resp["choices"][0]["message"].get("content") or ""
 
 
+def message_text(resp: dict[str, Any], *, include_reasoning: bool = True) -> str:
+    """Assistant text from a chat completion; falls back to ``reasoning`` for thinking models."""
+    msg = resp["choices"][0]["message"]
+    text = (msg.get("content") or "").strip()
+    if text:
+        return text
+    if include_reasoning:
+        return (msg.get("reasoning") or "").strip()
+    return ""
+
+
 def token_logprobs(resp: dict[str, Any]) -> list[dict[str, Any]]:
     """Per-token logprobs from an OpenAI/vLLM chat response (``choices[0].logprobs.content``).
 
