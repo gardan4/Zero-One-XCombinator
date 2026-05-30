@@ -1,0 +1,26 @@
+# End-to-end Leonardo smoke finetune: tiny LoRA SFT. The GPU job writes artifacts to scratch;
+# upload the adapter to Hugging Face from the login node afterward.
+# Submit with: ./scripts/leonardo_smoke_hf.sh
+name: leonardo-smoke-hf
+kind: sft
+model: /leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-0.5B-Instruct
+dataset: null            # null -> built-in toy SFT dataset in zo_train.data
+text_field: text
+epochs: 1
+batch_size: 2
+grad_accum: 1
+learning_rate: 2.0e-4
+max_seq_len: 512
+lora: true
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+bf16: false
+extra:
+  max_steps: 10
+  local_files_only: true
+  push_to_hub: false
+  hub_model_id: XCombinator/leonardo-smoke-qwen-0.5b-lora
+  base_model_hub_id: Qwen/Qwen2.5-0.5B-Instruct
+  hub_private: true
+  tags: [leonardo, smoke, hf-upload]

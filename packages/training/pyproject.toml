@@ -13,17 +13,22 @@ dependencies = [
 
 # Heavy ML stack — installs on the cluster via `uv sync --extra gpu`, NOT on laptops.
 [project.optional-dependencies]
+# Training stack. Pinned to the versions the Leonardo reference verified: transformers<5 / trl<1
+# (the modern 5.x/1.x line shifts SFTConfig/SFTTrainer kwargs — sft.py's _supported_kwargs guards it,
+# but these pins are what actually resolved + trained on the cluster). vLLM/bitsandbytes moved to
+# the `serve` extra so the training env stays slim and resolves under the 50 GB $HOME quota.
 gpu = [
-    "torch>=2.3",
-    "transformers>=4.44",
-    "trl>=0.12",
+    "torch>=2.5,<2.8",
+    "transformers>=4.44,<5",
+    "trl>=0.12,<1",
     "peft>=0.12",
     "accelerate>=0.34",
     "datasets>=2.20",
     "wandb>=0.17",
-    "bitsandbytes>=0.43; platform_system=='Linux'",
-    "vllm>=0.6; platform_system=='Linux'",
 ]
+# NOTE: vLLM + bitsandbytes were dropped from the training stack (they pull a conflicting torch
+# and bloat the env past the 50 GB $HOME quota — the Leonardo reference removed them). Serving is a
+# later phase: install vLLM ad-hoc then (`uv run --with vllm ...` or a dedicated serve extra).
 
 [project.scripts]
 zo-train = "zo_train.cli:app"

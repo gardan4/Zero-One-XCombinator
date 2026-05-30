@@ -1,0 +1,29 @@
+# Basic Leonardo smoke on OUR fab data: tiny LoRA SFT of a pre-staged Qwen-0.5B on MOSFET sequences.
+# Proves the train -> live-W&B loop with OUR data before the full Qwen-1.5B LOFO runs.
+#
+# Run (from a machine with .env cluster creds):
+#   ./scripts/leonardo_smoke_hf.sh packages/training/configs/leonardo_smoke_fab.yaml
+# That rsyncs the repo (incl. data/generated), pre-stages the model on a login node, then submits.
+name: leonardo-smoke-fab
+kind: sft
+# Pre-staged model dir on scratch. Configs don't expand $SCRATCH — set this to your absolute
+# ZO_SMOKE_BASE_MODEL_DIR (e.g. /leonardo_scratch/large/<YOUR_USER>/hf-local/Qwen2.5-0.5B-Instruct).
+model: /leonardo_scratch/large/REPLACE_WITH_YOUR_USER/hf-local/Qwen2.5-0.5B-Instruct
+dataset: data/generated/MOSFET_sft_lm.jsonl   # synced by the orchestrator; rebuild with `just data`
+text_field: text
+epochs: 1
+batch_size: 2
+grad_accum: 1
+learning_rate: 2.0e-4
+max_seq_len: 1024
+lora: true
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.05
+bf16: true
+extra:
+  max_steps: 20
+  local_files_only: true
+  push_to_hub: false
+  base_model_hub_id: Qwen/Qwen2.5-0.5B-Instruct
+  tags: [leonardo, smoke, fab, "stream:1"]

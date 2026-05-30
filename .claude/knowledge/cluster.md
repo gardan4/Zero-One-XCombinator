@@ -143,4 +143,22 @@ srun --overlap --pty --jobid=<id> bash  # shell into a running job's node
    survive and the backend (run on a login node) can read them.
 
 ## Append below as you learn the real cluster
-- (fill in actual account name, observed queue times, what env recipe worked, once on Leonardo)
+
+### Leonardo finetune recipe (2026-05-30) — adapted from the `leonardo-finetune-reference` branch
+End-to-end flow: `scripts/leonardo_smoke_hf.sh [config]` (default = the toy smoke; pass
+`packages/training/configs/leonardo_smoke_fab.yaml` for OUR data):
+1. **rsync** repo → login node (excludes .git/.env/.venv/node_modules/experiments/caches; writes a
+   cluster `.env` from local env, stripping the SSH password).
+2. **Pre-stage on the login node** (`scripts/leonardo_remote_prestage.sh`, has internet):
+   `uv sync --extra gpu`, warm imports, `snapshot_download` the base model → `$ZO_SMOKE_BASE_MODEL_DIR`,
+   a `zo-train wandb-smoke` connectivity check.
+3. **SLURM GPU job** (`zo-cluster submit`): `uv sync --extra gpu --offline` (reuses the staged venv),
+   `TRANSFORMERS_OFFLINE=1`/`HF_HUB_OFFLINE=1`, model loaded with `local_files_only` (config `model:`
+   = the scratch dir), **live W&B via the proxy** (XCombinator/XCombinator) + GPU sanity checks.
+4. **After the job**: `scripts/leonardo_upload_artifact.sh` pushes the adapter to HF Hub from login.
+- **Env pins that resolve/train on Leonardo:** `transformers>=4.44,<5`, `trl>=0.12,<1`, `torch<2.8`;
+  **vLLM + bitsandbytes dropped** from the gpu extra (conflicting torch + 50 GB $HOME bloat). `sft.py`
+  uses `_supported_kwargs()` to stay robust to SFTConfig/SFTTrainer kwarg drift. Serving installs vLLM
+  separately later.
+- Set each Leonardo config's `model:` to your absolute `$ZO_SMOKE_BASE_MODEL_DIR` (configs don't expand
+  `$SCRATCH`). `uv run zo-cluster submit -c <cfg> --dry-run` renders the sbatch locally (no SSH) to check it.
