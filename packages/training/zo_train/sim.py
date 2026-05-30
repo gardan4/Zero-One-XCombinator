@@ -20,7 +20,8 @@ def _maybe_wandb(run_id: str):
     except ImportError:
         return None
     wandb.init(
-        project=os.environ.get("WANDB_PROJECT", "zero-one-philyr"),
+        entity=os.environ.get("WANDB_ENTITY") or None,
+        project=os.environ.get("WANDB_PROJECT", "XCombinator"),
         name=run_id,
         id=run_id,
         resume="allow",
