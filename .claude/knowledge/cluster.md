@@ -124,8 +124,12 @@ srun --overlap --pty --jobid=<id> bash  # shell into a running job's node
   > The exact `<PROXY_PASSWORD>` is printed on `docs/Z10_compressed.pdf` p. 95. **Do not commit the
   > literal credential** — this knowledge base ships in our public+MIT repo at submission and the
   > jury checks for "no secrets in git." Keep the password in your local `.env` / shell only.
-  - The proxy restarts every ~10 min (login-node CPU limit) → TCP connections drop briefly.
-  - **Only use the proxy for low-bandwidth traffic.** Big files → always from a login node.
+  - The proxy restarts every ~10 min (login-node CPU limit) → TCP connections drop briefly; in-flight
+    TCP connections may drop — retry W&B / small API calls if a step hangs.
+  - **Only use the proxy for low-bandwidth traffic** (W&B metrics, small Hub API). Always download
+    models, wheels, and datasets on a **login node**; our sbatch uses `uv sync --offline` + pre-staged
+    weights for that reason.
+  - Set `ZO_CLUSTER_PROXY` in local `.env` (same URL); `zo-cluster submit` injects it into sbatch.
 
 ## How this maps to our scaffold
 `zo-cluster submit` renders `slurm/train.sbatch.j2` from `.env`. Status of the known gaps:
@@ -143,4 +147,6 @@ srun --overlap --pty --jobid=<id> bash  # shell into a running job's node
    survive and the backend (run on a login node) can read them.
 
 ## Append below as you learn the real cluster
-- (fill in actual account name, observed queue times, what env recipe worked, once on Leonardo)
+- 2026-05-30 — For Leonardo user `a08trd0f`, reservation `s_tra_ncc` is active on `boost_usr_prod`
+  and is bound to account `euhpc_d30_031`; the default `tra24_ppgpu` account submits with
+  "invalid account or expired budget." Use `ZO_SLURM_ACCOUNT=euhpc_d30_031`.

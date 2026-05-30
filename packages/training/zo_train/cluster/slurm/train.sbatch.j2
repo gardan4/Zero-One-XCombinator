@@ -16,26 +16,88 @@
 set -euo pipefail
 cd "{{ repo_dir }}"
 mkdir -p slurm_logs
+if [[ -f .env ]]; then
+  set -a
+  source .env
+  set +a
+fi
 
 # --- Leonardo environment ----------------------------------------------------
 # Adjust to the allocation's module stack (confirm names with the organizers):
 # module load profile/deeplrn
-# module load cuda/12.1
+module load cuda/12.2
+
+echo "=== SLURM / GPU (verify job landed on GPUs) ==="
+echo "SLURM_JOB_ID=${SLURM_JOB_ID:-}  SLURM_NODELIST=${SLURM_NODELIST:-}"
+echo "CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}"
+nvidia-smi -L || true
+nvidia-smi || true
 
 export ZO_EXPERIMENTS_DIR="{{ experiments_dir }}"
 export HF_HOME="{{ hf_home }}"
-export WANDB_MODE="${WANDB_MODE:-offline}"   # offline on compute nodes; sync later from login node
+export TRANSFORMERS_OFFLINE=1
+export HF_HUB_OFFLINE=1
+# Live metrics + stdout/stderr on GPU (low bandwidth via proxy only — see prestage on login).
+export WANDB_MODE="${WANDB_MODE:-online}"
+export WANDB_DIR="${ZO_EXPERIMENTS_DIR}/{{ run_id }}/wandb"
+export WANDB_ENTITY="${WANDB_ENTITY:-XCombinator}"
+export WANDB_PROJECT="${WANDB_PROJECT:-XCombinator}"
+export WANDB_NAME="{{ run_id }}"
+export WANDB_RUN_GROUP="${WANDB_RUN_GROUP:-leonardo-smoke}"
+export WANDB_INIT_TIMEOUT="${WANDB_INIT_TIMEOUT:-120}"
+export WANDB_CONSOLE="${WANDB_CONSOLE:-wrap}"
+mkdir -p "$WANDB_DIR"
 {% if proxy %}
 # Compute nodes have NO internet. Route ONLY low-bandwidth traffic via the proxy (the proxy
 # restarts every ~10 min). Big downloads (models, wheels, containers) must be done on a login node.
 export HTTP_PROXY="{{ proxy }}"; export HTTPS_PROXY="$HTTP_PROXY"
 export http_proxy="$HTTP_PROXY"; export https_proxy="$HTTP_PROXY"
+export NO_PROXY="localhost,127.0.0.1"; export no_proxy="$NO_PROXY"
 {% endif %}
+if [[ "${WANDB_MODE:-offline}" == "online" && -z "${HTTP_PROXY:-}" ]]; then
+  echo "ERROR: WANDB_MODE=online but HTTP_PROXY unset. Set ZO_CLUSTER_PROXY in .env." >&2
+  exit 1
+fi
 # GPU stack: pre-stage ON A LOGIN NODE (which has internet) before submitting:
 #     cd {{ repo_dir }} && uv sync --extra gpu      # populates ./.venv on shared storage
 # The compute node then reuses that venv. `--offline` => no network here: it succeeds if already
 # staged, and fails loudly (instead of hanging on the dead network) if you forgot the login-node step.
+export PATH="$HOME/.local/bin:$PATH"
 uv sync --extra gpu --offline
+
+uv run python - <<'PY'
+import os
+import sys
+
+import torch
+
+print(f"torch={torch.__version__} cuda_available={torch.cuda.is_available()}")
+if not torch.cuda.is_available():
+    sys.exit("ERROR: torch.cuda.is_available() is False — not on a GPU node?")
+for i in range(torch.cuda.device_count()):
+    print(f"  device {i}: {torch.cuda.get_device_name(i)}")
+if os.environ.get("WANDB_MODE") == "online" and os.environ.get("WANDB_API_KEY") and (
+    os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+):
+    import urllib.request
+
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY")
+    handlers = [urllib.request.ProxyHandler({"http": proxy, "https": proxy})] if proxy else []
+    import urllib.error
+
+    opener = urllib.request.build_opener(*handlers)
+    try:
+        opener.open("https://api.wandb.ai", timeout=30)
+        print("wandb api reachable (proxy ok)")
+    except urllib.error.HTTPError as exc:
+        # HEAD/GET on api root often returns 404; still proves TCP+proxy works.
+        if exc.code in {401, 403, 404, 405}:
+            print(f"wandb api reachable via proxy (HTTP {exc.code})")
+        else:
+            sys.exit(f"ERROR: api.wandb.ai returned HTTP {exc.code}")
+    except OSError as exc:
+        sys.exit(f"ERROR: cannot reach api.wandb.ai from compute ({exc})")
+PY
 
 # --- launch ------------------------------------------------------------------
 # Single process (LoRA on one GPU, or device_map across the node's GPUs).

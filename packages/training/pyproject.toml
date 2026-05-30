@@ -14,15 +14,13 @@ dependencies = [
 # Heavy ML stack — installs on the cluster via `uv sync --extra gpu`, NOT on laptops.
 [project.optional-dependencies]
 gpu = [
-    "torch>=2.3",
-    "transformers>=4.44",
-    "trl>=0.12",
+    "torch>=2.5,<2.8",
+    "transformers>=4.44,<5",
+    "trl>=0.12,<1",
     "peft>=0.12",
     "accelerate>=0.34",
     "datasets>=2.20",
     "wandb>=0.17",
-    "bitsandbytes>=0.43; platform_system=='Linux'",
-    "vllm>=0.6; platform_system=='Linux'",
 ]
 
 [project.scripts]

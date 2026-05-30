@@ -48,6 +48,8 @@ Mostly answered now (track chosen = Industrial AI; Leonardo facts captured). Rem
 ## Learnings log
 Newest first. Format: `YYYY-MM-DD — one line — (topic file)`
 
+- 2026-05-30 — Leonardo account for `a08trd0f`: reservation `s_tra_ncc` requires
+  `ZO_SLURM_ACCOUNT=euhpc_d30_031`; default `tra24_ppgpu` has expired/invalid budget. — (cluster)
 - 2026-05-29 — Made `data/industrial-infineon/` a **byte-faithful 1:1 mirror** of upstream `tracks/industrial-infineon/`: moved the CSVs/grammar/`generate_sequences.py` into a `training_data/` subfolder (git renames) and added the 3 track-level docs (`README.md`, `Track_industrial{,_en}.md`). `diff -r` clean; 1000 seqs/family intact. No code referenced the old flat paths. Staged, not committed. — (track-industrial-ai)
 - 2026-05-29 — **Resource budget (team lead):** 4 GPUs/node (A100 **64 GB VRAM** each), up to **512 GB RAM/node**, and the reservation `s_tra_ncc` covers **up to 4 nodes** → max **16 GPUs**. (Corrects an earlier misread of deck slide 92 — the reservation is NOT single-node.) — (cluster)
 - 2026-05-29 — Reviewed the official Leonardo onboarding deck (pp. 80–96); cluster.md matches. **Wired the cluster plumbing**: `submit.py`/`train.sbatch.j2` now emit `--reservation` (any node count), `--gpus-per-task=N`, fair-share `--mem=120×N`/`--cpus=8×N` (auto-derived), proxy export, and `uv sync --extra gpu --offline` (pre-stage on a login node first). Verified by dry-run. — (cluster)

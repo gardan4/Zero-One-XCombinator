@@ -21,6 +21,28 @@ def _prepare(config: str, kind: str, run_id: str | None):
 
 
 @app.command()
+def wandb_smoke(
+    run_id: str = typer.Option("wandb-smoke", "--run-id", help="Name for the W&B smoke run."),
+) -> None:
+    """Log one tiny W&B run from the current environment."""
+    import os
+
+    import wandb
+
+    mode = os.environ.get("WANDB_MODE", "online")
+    run = wandb.init(
+        entity=os.environ.get("WANDB_ENTITY", "XCombinator"),
+        project=os.environ.get("WANDB_PROJECT", "XCombinator"),
+        name=run_id,
+        mode=mode,
+        settings=wandb.Settings(init_timeout=int(os.environ.get("WANDB_INIT_TIMEOUT", "120"))),
+    )
+    run.log({"smoke/ok": 1, "smoke/step": 1})
+    run.finish()
+    typer.secho(f"logged W&B smoke run {run_id} in {mode} mode", fg="green")
+
+
+@app.command()
 def sft(
     config: str = typer.Option(..., "--config", "-c", help="Path to an experiment YAML."),
     run_id: str = typer.Option(None, "--run-id", help="Attach to an existing run (cluster jobs)."),
