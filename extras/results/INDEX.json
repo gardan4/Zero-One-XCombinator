@@ -535,5 +535,39 @@
       "examples.jsonl"
     ],
     "promoted_at": "2026-05-31T07:24:28.225971+00:00"
+  },
+  "deepseek-zeroshot-local-n25": {
+    "path": "extras/results/deepseek-zeroshot-local-n25",
+    "run_id": "20260531_072040_eval_track-llm-zeroshot-zeroshot-deepseek-loc_bace45",
+    "version": "zeroshot-deepseek-local-n25-v1",
+    "predictor": "llm-zeroshot",
+    "model_ref": "deepseek-ai/DeepSeek-V4-Flash",
+    "eval_set": "local",
+    "tags": [
+      "version:zeroshot-deepseek-local-n25-v1",
+      "predictor:llm-zeroshot",
+      "model-ref:deepseek-ai--DeepSeek-V4-Flash",
+      "eval-set:local",
+      "split:id",
+      "role:baseline",
+      "method:rules-in-context",
+      "baseline:zeroshot",
+      "provider:featherless",
+      "reportable"
+    ],
+    "train_run_id": null,
+    "notes": "Gold local n=25 subset (50/task), fair vs finetuned",
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "official_scores.txt",
+      "manifest.json",
+      "examples.jsonl",
+      "ground_truth/"
+    ],
+    "promoted_at": "2026-05-31T07:47:04.990634+00:00"
   }
 }
