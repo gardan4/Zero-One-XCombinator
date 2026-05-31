@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fab Process-Logic — Model Comparison Story</title>
+<style>
+  :root{
+    --bg:#0b0f17; --panel:#131a26; --panel2:#0f1620; --ink:#e8eef7; --muted:#8aa0bd;
+    --base:#f4a259; --best:#4ad7c7; --grid:#26334a; --accent:#7aa2ff; --good:#3ad29f; --bad:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16213a 0%,var(--bg) 55%);
+    color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:40px 24px 80px}
+  .eyebrow{color:var(--accent);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:12px}
+  h1{font-size:34px;line-height:1.15;margin:8px 0 6px;font-weight:800}
+  h1 em{font-style:normal;color:var(--best)}
+  .lede{color:var(--muted);max-width:680px}
+  h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:44px 0 14px;font-weight:700}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #1e2940;
+    border-radius:14px;padding:18px}
+  .card .t{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+  .card .metric{font-size:12px;color:var(--muted);margin-top:2px}
+  .bar{height:9px;border-radius:6px;background:#1b2436;margin:8px 0 2px;overflow:hidden;position:relative}
+  .bar > i{display:block;height:100%;border-radius:6px}
+  .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-top:8px}
+  .pill{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:700}
+  .pill.win{background:rgba(58,210,159,.15);color:var(--good)}
+  .pill.lose{background:rgba(255,107,107,.15);color:var(--bad)}
+  .legend{display:flex;gap:18px;align-items:center;color:var(--muted);font-size:12px;margin:6px 0 0}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:middle}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid #1e2940;border-radius:14px;padding:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  ul.take{margin:0;padding-left:18px;color:#cdd9ec} ul.take li{margin:7px 0}
+  .src{color:#5c7193;font-size:12px;margin-top:36px}
+  text{fill:var(--muted);font-size:11px}
+  @media(max-width:860px){.cards,.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">loading…</div>
+<script type="module">
+import { RESULTS as R } from './results.js';
+
+const pct = (x)=> x==null ? "—" : (x*100).toFixed(1)+"%";
+const el = (t,a={},...kids)=>{const n=document.createElement(t);for(const[k,v]of Object.entries(a)){
+  if(k==="class")n.className=v; else if(k==="html")n.innerHTML=v; else n.setAttribute(k,v);}
+  for(const c of kids) n.append(c.nodeType?c:document.createTextNode(c)); return n;};
+
+// metric card: baseline vs best with bars
+function card(title, metric, base, best, higherBetter=true){
+  const win = best!=null && base!=null && (higherBetter? best>=base : best<=base);
+  const bw = Math.max(2, Math.min(100, (base||0)*100)), fw = Math.max(2, Math.min(100,(best||0)*100));
+  return el("div",{class:"card"},
+    el("div",{class:"t"},title), el("div",{class:"metric"},metric),
+    el("div",{class:"row"}, el("span",{},"Baseline (n-gram)"), el("b",{},pct(base))),
+    el("div",{class:"bar"}, el("i",{style:`width:${bw}%;background:var(--base)`})),
+    el("div",{class:"row"}, el("span",{},"Best (fine-tuned)"),
+      el("span",{}, el("b",{},pct(best)), " ",
+        el("span",{class:"pill "+(win?"win":"lose")}, win?"win":"trails"))),
+    el("div",{class:"bar"}, el("i",{style:`width:${fw}%;background:var(--best)`})),
+  );
+}
+
+// simple multi-series line chart over categorical x labels
+function lineChart(labels, series){ // series: [{name,color,vals:[0..1|null]}]
+  const W=460,H=210,padL=38,padR=14,padT=14,padB=34, iw=W-padL-padR, ih=H-padT-padB;
+  const x=i=> labels.length<2?padL+iw/2 : padL + iw*i/(labels.length-1);
+  const y=v=> padT + ih*(1-Math.max(0,Math.min(1,v)));
+  const svg=(t,a={},...k)=>{const n=document.createElementNS("http://www.w3.org/2000/svg",t);
+    for(const[kk,vv]of Object.entries(a))n.setAttribute(kk,vv); for(const c of k)n.append(c); return n;};
+  const g=svg("svg",{viewBox:`0 0 ${W} ${H}`,width:"100%"});
+  for(let gy=0;gy<=1.0001;gy+=0.25){ g.append(svg("line",{x1:padL,x2:W-padR,y1:y(gy),y2:y(gy),stroke:"var(--grid)","stroke-width":1}));
+    g.append(Object.assign(svg("text",{x:6,y:y(gy)+3}),{textContent:Math.round(gy*100)+"%"})); }
+  labels.forEach((l,i)=> g.append(Object.assign(svg("text",{x:x(i),y:H-12,"text-anchor":"middle"}),{textContent:l})));
+  for(const s of series){
+    const pts=s.vals.map((v,i)=> v==null?null:[x(i),y(v)]).filter(Boolean);
+    if(pts.length>1) g.append(svg("polyline",{points:pts.map(p=>p.join(",")).join(" "),fill:"none",stroke:s.color,"stroke-width":2.5}));
+    pts.forEach(p=> g.append(svg("circle",{cx:p[0],cy:p[1],r:3.5,fill:s.color})));
+  }
+  return g;
+}
+function legend(series){ return el("div",{class:"legend"}, ...series.map(s=>
+  el("span",{}, el("span",{class:"dot",style:`background:${s.color}`}), s.name))); }
+
+function chartPanel(title, sub, labels, series){
+  return el("div",{class:"panel"}, el("h2",{style:"margin-top:0"},title),
+    el("div",{class:"lede",style:"margin-bottom:8px"},sub), lineChart(labels,series), legend(series));
+}
+
+function render(){
+  const app=document.getElementById("app"); app.innerHTML="";
+  const c=R.copy||{};
+  const ns=R.nextstep.overall, cp=R.completion.overall, an=R.anomaly.overall;
+  app.append(
+    el("div",{class:"eyebrow"}, c.heroEyebrow||"Infineon Industrial-AI"),
+    el("h1",{html:`Teaching a model fab <em>process logic</em>`}),
+    el("p",{class:"lede"}, c.heroLede||"Base vs fine-tuned on next-step prediction, sequence completion, and anomaly detection — plus how it scales with data and model size."),
+
+    el("h2",{},"The headline — base vs best (MOSFET, n=200)"),
+    el("div",{class:"cards"},
+      card("Next-step","Top-1 accuracy", ns.baseline.top1, ns.finetuned.top1),
+      card("Completion","Block accuracy", cp.baseline.blockAcc, cp.finetuned.blockAcc),
+      card("Anomaly","F1 (rule violation)", an.baseline.f1, an.finetuned.f1)),
+
+    el("h2",{},"Does more training data help? (1-epoch data-scaling)"),
+    chartPanel("Accuracy vs # training sequences / family",
+      "Each point is a fine-tune on N routes/family at a fixed 1-epoch budget.",
+      (R.scaling||[]).map(p=>String(p.size)),
+      [{name:"Next-step top-1",color:"var(--best)",vals:(R.scaling||[]).map(p=>p.nextstepTop1)},
+       {name:"Completion block-acc",color:"var(--accent)",vals:(R.scaling||[]).map(p=>p.completionBlockAcc)}]),
+
+    el("h2",{},"Does model size help? (0.5B → 3B, full data)"),
+    chartPanel("Accuracy vs base-model parameters",
+      "Same JSON corpus + 3 epochs; only the base model size changes.",
+      (R.modelSize||[]).map(p=>p.label||(p.params+"B")),
+      [{name:"Next-step top-1",color:"var(--best)",vals:(R.modelSize||[]).map(p=>p.nextstepTop1)},
+       {name:"Completion block-acc",color:"var(--accent)",vals:(R.modelSize||[]).map(p=>p.completionBlockAcc)},
+       {name:"Anomaly F1",color:"var(--base)",vals:(R.modelSize||[]).map(p=>p.anomalyF1)}]),
+
+    el("h2",{},"Takeaways"),
+    el("div",{class:"panel"}, el("ul",{class:"take"},
+      el("li",{},"The model learns valid fab grammar from a small vocabulary — predictions are real process steps, in order, not prose."),
+      el("li",{},"More training data lifts next-step and completion accuracy (clear upward scaling trend)."),
+      el("li",{},"The n-gram is a surprisingly strong classical baseline on this structured task — fine-tuning's edge is long-sequence coherence and being one promptable model across all three tasks."),
+      el("li",{},"Everything here is generated from real eval metrics in extras/results — no placeholder numbers."))),
+
+    el("p",{class:"src"}, `Generated ${(R._generated||{}).at||""} · best=${(R._generated||{}).finetuned_slug||"—"} · baseline=${(R._generated||{}).baseline_slug||"—"} · source: extras/results/INDEX.json`)
+  );
+}
+render();
+</script>
+</body>
+</html>
