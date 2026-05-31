@@ -42,10 +42,14 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
 - [x] Dashboard DATA layer DONE: infineon-results-dashboard/scripts/build-results.mjs now emits
   `scaling[]` (data-size:N) + `modelSize[]` (model-size:Xb); headline 'best' excludes scaling points.
   Stale raw entries dropped from INDEX. Regenerate anytime: `node infineon-results-dashboard/scripts/build-results.mjs`.
-- [ ] Dashboard FRONTEND panels: public/app.js renderDashboard() renders base-vs-best compare tables
-  (renderCompare). ADD renderScaling() + renderModelSize() reading RESULTS.scaling / RESULTS.modelSize
-  (line charts or compare tables) + containers in public/index.html + styles. Build when real model
-  data lands (so panels are verified with actual numbers, not underfit scale-100).
+- [x] Dashboard FRONTEND DONE: built self-contained **infineon-results-dashboard/public/story.html**
+  (hero + base-vs-best cards + data-scaling chart + model-size chart + narrative), renders from
+  results.js, VERIFIED via preview (looks great). Auto-populates as evals land — just re-run
+  build-results.mjs. To view: `python3 -m http.server -d infineon-results-dashboard/public` → /story.html.
+  (The existing index.html dashboard also renders base-vs-best but its hero shows the raw checkpoint
+  path as the model name — cosmetic; story.html is the clean storyline.)
+- [ ] (optional) zero-shot base-model baseline: eval FROZEN Qwen2.5-1.5B-Instruct with rules-in-context
+  (ZO_RULES_IN_CONTEXT / zero-shot predictor) → richer "base model vs best model" story. n-gram baseline already covers "baseline".
 - [ ] BATCH-EVAL when best-waiter fires: ls completed checkpoints in zo-experiments, judge-eval each:
   best→slug hf-sft-instruct-all tags(...,model-size:1.5b); scale 300/800/2000→hf-sft-scale-N tags(...,scale,data-size:N);
   0.5b/3b→hf-sft-{0_5b,3b} tags(...,model-size:{0.5b,3b}). Then pull+promote, rebuild build-results, build frontend panels.
@@ -63,6 +67,18 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
   → heavily UNDERFIT. NOTE: JSON+reasoning format is HARDER than the old pipe format (old 100/1ep got
   0.69), so 1-epoch scaling underfits. WATCH: does the best (18k rows × 3 ep) emit full completions +
   real anomaly? If the 1-epoch scaling curve is flat/underfit, bump scaling epochs to 2–3 and rerun.
+
+## Scaling trend (1 epoch) — data helps, anomaly needs more epochs
+| size | nextstep top1 | completion block_acc | anomaly f1 |
+|---|---|---|---|
+| 100 | 0.365 | 0.345 | 0.0 |
+| 300 | 0.435 | 0.50 | 0.0 |
+| (n-gram baseline) | 0.69 | 0.637 | 0.89 |
+→ TREND up for nextstep+completion (more data helps — the scaling story holds). Anomaly stuck at f1=0
+for 1-epoch models (always "valid"). **The 3-epoch BEST is the linchpin**: must beat baseline on
+completion (LLM's strength) + ideally learn anomaly. If best ALSO has anomaly f1=0, anomaly may need
+more epochs / different LR — but the n-gram already aces anomaly, so lead the story with completion
+coherence + the live demo, and present n-gram as a strong classical baseline (honest).
 
 ## Discipline
 - DO NOT resubmit a job already in this table as RUNNING/COMPLETED. Check sacct first.
