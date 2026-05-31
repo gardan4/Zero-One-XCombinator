@@ -1,13 +1,185 @@
 {
   "baselineName": "baseline-ngram",
   "bestName": "best fine-tuned (per task)",
+  "finetuned": {
+    "name": "SFT instruct-all · Qwen2.5-1.5B",
+    "evalNote": "eval_local gold · n=200/task",
+    "slug": "sft-instruct-all-local",
+    "label": "sft-instruct-all-local-v1",
+    "runId": "20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+    "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+    "nNextstep": 200,
+    "nAnomaly": 200,
+    "nextstepTop1": 0.475,
+    "completionBlockAcc": 0.565,
+    "completionTokenAcc": 0.415,
+    "anomalyF1": 0.5665236051502146,
+    "anomalyRecall": 0.66,
+    "notes": "Full labeled local eval (extras/eval_local gold, n=200/task)"
+  },
+  "deepseek": {
+    "name": "DeepSeek-V4-Flash (zero-shot)",
+    "evalNote": "mosfet40 · n=80/task",
+    "slug": "deepseek-zeroshot-mosfet40",
+    "label": "zeroshot-deepseek-v4-flash-mosfet40-v1",
+    "runId": "20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+    "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+    "nNextstep": 80,
+    "nAnomaly": 80,
+    "nextstepTop1": 0.2375,
+    "completionBlockAcc": 0.1767506149270182,
+    "completionTokenAcc": 0.04449089599800709,
+    "anomalyF1": 0.13636363636363635,
+    "anomalyRecall": 0.075,
+    "notes": "Featherless zero-shot; labeled mosfet40 proxy (n=80/task)"
+  },
+  "ngram": {
+    "name": "n-gram baseline",
+    "evalNote": "eval_local gold · n=200/task",
+    "slug": "baseline-ngram",
+    "label": "ngram-baseline-v1",
+    "runId": "20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d",
+    "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260530_160614_eval_track-ngram-ngram-baseline-v1_0f279d",
+    "nNextstep": 200,
+    "nAnomaly": 200,
+    "nextstepTop1": 0.69,
+    "completionBlockAcc": 0.6369030173333577,
+    "completionTokenAcc": 0.39466024683216305,
+    "anomalyF1": 0.888888888888889,
+    "anomalyRecall": 0.8,
+    "notes": null
+  },
+  "featuredModels": [
+    {
+      "name": "SFT · 2000 training routes (best completion)",
+      "evalNote": "eval_local gold · n=200/task · data-size:2000",
+      "highlight": "completion",
+      "slug": "hf-sft-scale-2000",
+      "label": "sft-scale-instruct-2000-local-v3",
+      "runId": "20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "nNextstep": 200,
+      "nAnomaly": 200,
+      "nextstepTop1": 0.525,
+      "completionBlockAcc": 0.735,
+      "completionTokenAcc": 0.46,
+      "anomalyF1": 0.10810810810810809,
+      "anomalyRecall": 0.06,
+      "notes": null
+    }
+  ],
+  "bestByTask": {
+    "nextstep": {
+      "task": "nextstep",
+      "slug": "hf-sft-scale-2000",
+      "name": "SFT · 2000 routes",
+      "value": 0.525,
+      "label": "sft-scale-instruct-2000-local-v3",
+      "runId": "20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "nNextstep": 200,
+      "nAnomaly": 200,
+      "nextstepTop1": 0.525,
+      "completionBlockAcc": 0.735,
+      "completionTokenAcc": 0.46,
+      "anomalyF1": 0.10810810810810809,
+      "anomalyRecall": 0.06,
+      "notes": null
+    },
+    "completion": {
+      "task": "completion",
+      "slug": "hf-sft-scale-2000",
+      "name": "SFT · 2000 routes",
+      "value": 0.735,
+      "label": "sft-scale-instruct-2000-local-v3",
+      "runId": "20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "nNextstep": 200,
+      "nAnomaly": 200,
+      "nextstepTop1": 0.525,
+      "completionBlockAcc": 0.735,
+      "completionTokenAcc": 0.46,
+      "anomalyF1": 0.10810810810810809,
+      "anomalyRecall": 0.06,
+      "notes": null
+    },
+    "anomaly": {
+      "task": "anomaly",
+      "slug": "hf-sft-instruct-all",
+      "name": "SFT instruct-all · 1.5B",
+      "value": 0.5665236051502146,
+      "label": "sft-instruct-all-v2",
+      "runId": "20260531_020616_eval_judge-eval-sft-instruct-all-v2_868822",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_020616_eval_judge-eval-sft-instruct-all-v2_868822",
+      "nNextstep": 200,
+      "nAnomaly": 200,
+      "nextstepTop1": 0.475,
+      "completionBlockAcc": 0.555,
+      "completionTokenAcc": 0.415,
+      "anomalyF1": 0.5665236051502146,
+      "anomalyRecall": 0.66,
+      "notes": null
+    }
+  },
+  "headline": {
+    "baselineName": "DeepSeek-V4-Flash (zero-shot)",
+    "finetunedName": "SFT instruct-all · Qwen2.5-1.5B",
+    "baselineEvalNote": "mosfet40 · n=80/task",
+    "finetunedEvalNote": "eval_local gold · n=200/task",
+    "nextstep": {
+      "baseline": 0.2375,
+      "finetuned": 0.475
+    },
+    "completion": {
+      "baseline": 0.1767506149270182,
+      "finetuned": 0.565
+    },
+    "anomaly": {
+      "baseline": 0.13636363636363635,
+      "finetuned": 0.5665236051502146
+    }
+  },
+  "llmBaselines": [
+    {
+      "slug": "qwen-zeroshot-local200",
+      "label": "zeroshot-qwen-1.5b-local200-v1",
+      "runId": "20260531_064723_eval_judge-eval-zeroshot-qwen-1-5b-local200-v_f228f5",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_064723_eval_judge-eval-zeroshot-qwen-1-5b-local200-v_f228f5",
+      "nNextstep": 200,
+      "nAnomaly": 200,
+      "nextstepTop1": 0,
+      "completionBlockAcc": 0.002,
+      "completionTokenAcc": 0,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": "Frozen Qwen2.5-1.5B-Instruct, llm-zeroshot unified JSON on eval_local/MOSFET gold-200",
+      "name": "Qwen2.5-1.5B Instruct (zero-shot)",
+      "evalNote": "eval_local gold · n=200 · unified JSON"
+    },
+    {
+      "slug": "deepseek-zeroshot-mosfet40",
+      "label": "zeroshot-deepseek-v4-flash-mosfet40-v1",
+      "runId": "20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+      "nNextstep": 80,
+      "nAnomaly": 80,
+      "nextstepTop1": 0.2375,
+      "completionBlockAcc": 0.1767506149270182,
+      "completionTokenAcc": 0.04449089599800709,
+      "anomalyF1": 0.13636363636363635,
+      "anomalyRecall": 0.075,
+      "notes": "Featherless zero-shot; labeled mosfet40 proxy (n=80/task)",
+      "name": "DeepSeek-V4-Flash (zero-shot)",
+      "evalNote": "mosfet40 · n=80/task"
+    }
+  ],
   "nextstep": {
     "baseline": 0.69,
     "finetuned": 0.525
   },
   "completion": {
     "baseline": 0.6369030173333577,
-    "finetuned": 0.745
+    "finetuned": 0.735
   },
   "anomaly": {
     "baseline": 0.888888888888889,
@@ -17,80 +189,198 @@
     {
       "size": 100,
       "slug": "hf-sft-scale-100",
+      "label": "sft-scale-instruct-100-v2",
+      "runId": "20260530_235321_eval_judge-eval-sft-scale-instruct-100-v2_958f26",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260530_235321_eval_judge-eval-sft-scale-instruct-100-v2_958f26",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.365,
       "completionBlockAcc": 0.345,
-      "anomalyF1": 0
+      "completionTokenAcc": 0.145,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": null
     },
     {
       "size": 300,
       "slug": "hf-sft-scale-300",
+      "label": "sft-scale-instruct-300-v2",
+      "runId": "20260531_000646_eval_judge-eval-sft-scale-instruct-300-v2_fa3a59",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_000646_eval_judge-eval-sft-scale-instruct-300-v2_fa3a59",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.435,
       "completionBlockAcc": 0.5,
-      "anomalyF1": 0
+      "completionTokenAcc": 0.36,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": null
     },
     {
       "size": 800,
       "slug": "hf-sft-scale-800",
+      "label": "sft-scale-instruct-800-v2",
+      "runId": "20260531_004248_eval_judge-eval-sft-scale-instruct-800-v2_0f1255",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_004248_eval_judge-eval-sft-scale-instruct-800-v2_0f1255",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.43,
       "completionBlockAcc": 0.66,
-      "anomalyF1": 0
+      "completionTokenAcc": 0.365,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": null
     },
     {
       "size": 2000,
       "slug": "hf-sft-scale-2000",
+      "label": "sft-scale-instruct-2000-local-v3",
+      "runId": "20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.525,
-      "completionBlockAcc": 0.745,
-      "anomalyF1": 0.10810810810810809
+      "completionBlockAcc": 0.735,
+      "completionTokenAcc": 0.46,
+      "anomalyF1": 0.10810810810810809,
+      "anomalyRecall": 0.06,
+      "notes": null
     }
   ],
   "modelSize": [
     {
-      "label": "0.5b",
+      "label": "sft-instruct-0_5b-v2",
       "params": 0.5,
       "slug": "hf-sft-0_5b",
+      "runId": "20260531_010846_eval_judge-eval-sft-instruct-0-5b-v2_9d1dd2",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_010846_eval_judge-eval-sft-instruct-0-5b-v2_9d1dd2",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.45,
       "completionBlockAcc": 0.605,
-      "anomalyF1": 0
+      "completionTokenAcc": 0.415,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": null
     },
     {
-      "label": "1.5b",
+      "label": "sft-instruct-all-v2",
       "params": 1.5,
       "slug": "hf-sft-instruct-all",
+      "runId": "20260531_020616_eval_judge-eval-sft-instruct-all-v2_868822",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_020616_eval_judge-eval-sft-instruct-all-v2_868822",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.475,
       "completionBlockAcc": 0.555,
-      "anomalyF1": 0.5665236051502146
+      "completionTokenAcc": 0.415,
+      "anomalyF1": 0.5665236051502146,
+      "anomalyRecall": 0.66,
+      "notes": null
     },
     {
-      "label": "3b",
+      "label": "sft-instruct-all-local-v1",
+      "params": 1.5,
+      "slug": "sft-instruct-all-local",
+      "runId": "20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+      "nNextstep": 200,
+      "nAnomaly": 200,
+      "nextstepTop1": 0.475,
+      "completionBlockAcc": 0.565,
+      "completionTokenAcc": 0.415,
+      "anomalyF1": 0.5665236051502146,
+      "anomalyRecall": 0.66,
+      "notes": "Full labeled local eval (extras/eval_local gold, n=200/task)"
+    },
+    {
+      "label": "sft-instruct-3b-v2",
       "params": 3,
       "slug": "hf-sft-3b",
+      "runId": "20260531_055512_eval_judge-eval-sft-instruct-3b-v2_ce90d5",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_055512_eval_judge-eval-sft-instruct-3b-v2_ce90d5",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.435,
       "completionBlockAcc": 0.555,
-      "anomalyF1": 0
+      "completionTokenAcc": 0.445,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": null
     }
   ],
   "perFamily": [
     {
       "family": "MOSFET",
-      "slug": "hf-sft-instruct-all",
+      "slug": "sft-instruct-all-local",
+      "label": "sft-instruct-all-local-v1",
+      "runId": "20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.475,
-      "completionBlockAcc": 0.555,
-      "anomalyF1": 0.5665236051502146
+      "completionBlockAcc": 0.565,
+      "completionTokenAcc": 0.415,
+      "anomalyF1": 0.5665236051502146,
+      "anomalyRecall": 0.66,
+      "notes": "Full labeled local eval (extras/eval_local gold, n=200/task)"
     },
     {
       "family": "IGBT",
       "slug": "hf-sft-instruct-all-IGBT",
+      "label": "sft-instruct-all-IGBT-v2",
+      "runId": "20260531_023751_eval_judge-eval-sft-instruct-all-igbt-v2_6d5a7f",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_023751_eval_judge-eval-sft-instruct-all-igbt-v2_6d5a7f",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.315,
       "completionBlockAcc": 0.365,
-      "anomalyF1": 0.5257731958762887
+      "completionTokenAcc": 0.215,
+      "anomalyF1": 0.5257731958762887,
+      "anomalyRecall": 0.51,
+      "notes": null
     },
     {
       "family": "IC",
       "slug": "hf-sft-instruct-all-IC",
+      "label": "sft-instruct-all-IC-v2",
+      "runId": "20260531_023756_eval_judge-eval-sft-instruct-all-ic-v2_10a156",
+      "wandbUrl": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_023756_eval_judge-eval-sft-instruct-all-ic-v2_10a156",
+      "nNextstep": 200,
+      "nAnomaly": 200,
       "nextstepTop1": 0.43,
       "completionBlockAcc": 0.5,
-      "anomalyF1": 0
+      "completionTokenAcc": 0.39,
+      "anomalyF1": 0,
+      "anomalyRecall": 0,
+      "notes": null
     }
   ],
-  "generatedAt": "2026-05-31T06:12:48.421Z"
+  "wandb": {
+    "entity": "XCombinator",
+    "project": "XCombinator",
+    "runs": [
+      {
+        "label": "SFT instruct-all · Qwen2.5-1.5B",
+        "runId": "20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+        "url": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e"
+      },
+      {
+        "label": "SFT · 2000 training routes (best completion)",
+        "runId": "20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+        "url": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9"
+      },
+      {
+        "label": "Qwen2.5-1.5B Instruct (zero-shot)",
+        "runId": "20260531_064723_eval_judge-eval-zeroshot-qwen-1-5b-local200-v_f228f5",
+        "url": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_064723_eval_judge-eval-zeroshot-qwen-1-5b-local200-v_f228f5"
+      },
+      {
+        "label": "DeepSeek-V4-Flash (zero-shot)",
+        "runId": "20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+        "url": "https://wandb.ai/XCombinator/XCombinator/runs/20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869"
+      }
+    ]
+  },
+  "generatedAt": "2026-05-31T07:01:55.527Z"
 }

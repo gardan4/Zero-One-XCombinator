@@ -483,7 +483,11 @@ button { font-family: inherit; }
 .rs-legend span{display:flex;align-items:center;gap:6px}
 .rs-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
 .rs-fam{padding:8px}
-.rs-frow{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;align-items:center;padding:9px 10px;border-bottom:1px solid #f1f5f9;font-size:14px}
+.rs-frow{display:grid;grid-template-columns:1.4fr .6fr 1fr 1fr 1fr;align-items:center;padding:9px 10px;border-bottom:1px solid #f1f5f9;font-size:14px}
+.rs-frow-best{background:rgba(15,157,107,.06)}
+.rs-note{font-style:normal;font-size:11px;color:#94a3b8;margin-left:4px}
+.rs-take a{color:#0f9d6b;font-weight:600;text-decoration:none}
+.rs-take a:hover{text-decoration:underline}
 .rs-frow b{color:#0f9d6b}
 .rs-fhead{color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e2e8f0}
 .rs-take{margin:0;padding-left:18px;color:#334155}.rs-take li{margin:7px 0}
