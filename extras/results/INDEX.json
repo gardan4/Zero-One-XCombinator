@@ -501,5 +501,39 @@
       "manifest.json"
     ],
     "promoted_at": "2026-05-31T08:55:00.000000+00:00"
+  },
+  "kickoff-final": {
+    "path": "extras/results/kickoff-final",
+    "run_id": "20260531_071320_eval_judge-eval-sft-instruct-all-kickoff-v1_4c7b3e",
+    "version": "sft-instruct-all-kickoff-v1",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
+    "eval_set": "kickoff",
+    "tags": [
+      "version:sft-instruct-all-kickoff-v1",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a--artifacts--checkpoint-3050",
+      "eval-set:kickoff",
+      "train-run:20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "role:submission",
+      "split:id",
+      "model-size:1.5b",
+      "method:instruct-sft",
+      "proxy-only"
+    ],
+    "train_run_id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "proxy_report.json",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T07:24:28.225971+00:00"
   }
 }

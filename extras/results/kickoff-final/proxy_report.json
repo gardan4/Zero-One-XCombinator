@@ -1,0 +1,24 @@
+{
+  "completion_grammar": {
+    "n": 600,
+    "grammar_valid_rate": 1.0,
+    "top_violation_rules": {}
+  },
+  "nextstep_vocab": {
+    "n": 600,
+    "rank1_in_vocab": 0.9966666666666667,
+    "any_rank_in_vocab": 0.9966666666666667
+  },
+  "anomaly_vs_oracle": {
+    "n": 987,
+    "oracle_agreement_acc": 0.5602836879432624,
+    "oracle_agreement_precision": 0.4363143631436314,
+    "oracle_agreement_recall": 0.4160206718346253,
+    "confusion_vs_oracle": {
+      "tp": 161,
+      "fp": 208,
+      "tn": 392,
+      "fn": 226
+    }
+  }
+}

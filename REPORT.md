@@ -141,4 +141,4 @@ science, separately from the symbolic oracle (`baseline-oracle-anomaly`, the upp
 
 *Submitted by team XCombinator for Zero One Hack_01, 2026-05.*
 
-*Same report as [`REPORT.md`](../../REPORT.md) at repo root.*
+*Same report as [`submissions/XCombinator/REPORT.md`](submissions/XCombinator/REPORT.md).*

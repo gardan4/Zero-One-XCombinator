@@ -1,0 +1,86 @@
+{
+  "run_id": "20260531_071320_eval_judge-eval-sft-instruct-all-kickoff-v1_4c7b3e",
+  "version": "sft-instruct-all-kickoff-v1",
+  "predictor": "hf",
+  "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
+  "eval_set": "kickoff",
+  "tags": [
+    "version:sft-instruct-all-kickoff-v1",
+    "predictor:hf",
+    "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a--artifacts--checkpoint-3050",
+    "eval-set:kickoff",
+    "train-run:20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "real-run",
+    "reportable",
+    "role:finetuned",
+    "role:submission",
+    "split:id",
+    "model-size:1.5b",
+    "method:instruct-sft",
+    "proxy-only"
+  ],
+  "train_run_id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+  "train_run": {
+    "id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "name": "leonardo-sft-fab-instruct-all",
+    "tags": [
+      "cluster",
+      "leonardo",
+      "sft",
+      "fab",
+      "instruct",
+      "full-ft",
+      "all-families",
+      "stream:1"
+    ],
+    "config": {
+      "name": "leonardo-sft-fab-instruct-all",
+      "kind": "sft",
+      "model": "/leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct",
+      "dataset": "data/generated/instruct_all.jsonl",
+      "dataset_split": "train",
+      "text_field": "messages",
+      "learning_rate": 1e-05,
+      "epochs": 3.0,
+      "batch_size": 4,
+      "grad_accum": 4,
+      "max_seq_len": 1024,
+      "warmup_ratio": 0.05,
+      "lora": false,
+      "lora_r": 16,
+      "lora_alpha": 32,
+      "lora_dropout": 0.05,
+      "bf16": true,
+      "seed": 42,
+      "output_dir": null,
+      "extra": {
+        "local_files_only": true,
+        "gradient_checkpointing": true,
+        "completion_only_loss": true,
+        "push_to_hub": false,
+        "base_model_hub_id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "tags": [
+          "leonardo",
+          "sft",
+          "fab",
+          "instruct",
+          "full-ft",
+          "all-families",
+          "stream:1"
+        ]
+      }
+    }
+  },
+  "notes": null,
+  "valid_csv": "/leonardo/home/usertrain/a08trd0f/Zero-One-XCombinator/data/industrial-infineon/eval/eval_input_valid.csv",
+  "anomaly_csv": "/leonardo/home/usertrain/a08trd0f/Zero-One-XCombinator/data/industrial-infineon/eval/eval_input_anomaly.csv",
+  "gold": null,
+  "artifacts": [
+    "anomaly.csv",
+    "completion.csv",
+    "examples.jsonl",
+    "nextstep.csv",
+    "proxy_report.json"
+  ],
+  "created_at": "2026-05-31T07:19:01.707358+00:00"
+}
