@@ -200,6 +200,14 @@ node infineon-results-dashboard/scripts/build-results.mjs   # -> public/results.
 uv run --no-sync python scripts/serve_copilot_mac.py        # :8001; then the copilot with VITE_MODEL_BASE_URL=:8001/v1
 ```
 
+**Model weights.** The headline checkpoint is on Hugging Face:
+[`XCombinator/sft-fab-instruct-all`](https://huggingface.co/XCombinator/sft-fab-instruct-all) (public,
+loads directly with `AutoModelForCausalLM.from_pretrained`). The other checkpoints (0.5B, 3B,
+scale-100/300/800/2000) live on Leonardo scratch.
+> ⚠️ **Post-deadline note:** this Hugging Face repo was **uploaded *after* the 2026-05-31 10:00 submission
+> deadline**, only to give judges download access. The **weights are the exact pre-deadline checkpoint** —
+> unchanged, not retrained. Only the upload/hosting is post-deadline.
+
 ## Credits
 
 - **Libraries:** torch 2.7, transformers 4.57, trl 0.29, peft, datasets; FastAPI; Vite/React.
@@ -214,6 +222,12 @@ LLM; the LLM does the *predictions* (next step). The learned anomaly detector's 
 science, separately from the symbolic oracle (`baseline-oracle-anomaly`, the upper bound).
 
 **Organizer submission CSVs:** [`extras/results/kickoff-final/`](extras/results/kickoff-final/) (`nextstep.csv`, `completion.csv`, `anomaly.csv`) — SFT instruct-all · Qwen2.5-1.5B on the kickoff test set (600 + 987 rows).
+
+**Post-deadline changes (full disclosure):** everything scored/submitted was produced **before** the
+2026-05-31 10:00 deadline. After the deadline we only (1) **uploaded the existing best checkpoint to
+Hugging Face** ([`XCombinator/sft-fab-instruct-all`](https://huggingface.co/XCombinator/sft-fab-instruct-all))
+so judges can download it — same weights, not retrained — and (2) added a **Live-compare** view to the
+local copilot demo. **No eval numbers or model weights in this report were changed after the deadline.**
 
 ---
 

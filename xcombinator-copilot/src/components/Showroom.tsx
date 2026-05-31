@@ -149,6 +149,7 @@ export default function Showroom({ models }: Props) {
           A random route from the track eval inputs, replayed from the start. At each step every served model predicts
           what comes next; we score each guess against the route’s real next step — green for a hit, red for a miss.
         </p>
+        <p className="sr-postdeadline">⚠ Demo view added after the 2026-05-31 10:00 submission deadline. The models shown are the as-submitted checkpoints — unchanged.</p>
       </div>
 
       <div className="sr-bar">
