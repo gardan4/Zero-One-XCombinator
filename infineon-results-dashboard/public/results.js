@@ -3,10 +3,10 @@ export const RESULTS = {
   "copy": {
     "heroEyebrow": "Infineon Industrial-AI · generated from extras/results",
     "heroTitlePre": "Process-logic eval —",
-    "heroTitleEmph": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe/artifacts",
+    "heroTitleEmph": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
     "heroTitlePost": "vs baseline",
-    "heroLede": "Built from promoted results (hf-sft-0_5b vs baseline-ngram). Not placeholder data.",
-    "modelName": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe/artifacts",
+    "heroLede": "Built from promoted results (hf-sft-instruct-all vs baseline-ngram). Not placeholder data.",
+    "modelName": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
     "modelBlurb": "hf",
     "takeaways": [
       "Metrics sourced from metrics_report.json in extras/results.",
@@ -35,10 +35,10 @@ export const RESULTS = {
         "mrr": 0.8429166666666668
       },
       "finetuned": {
-        "top1": 0.45,
-        "top3": 0.45,
-        "top5": 0.45,
-        "mrr": 0.45
+        "top1": 0.475,
+        "top3": 0.475,
+        "top5": 0.475,
+        "mrr": 0.475
       }
     },
     "perFamily": [
@@ -46,8 +46,8 @@ export const RESULTS = {
         "family": "MOSFET",
         "baselineTop1": 0.69,
         "baselineTop5": 1,
-        "finetunedTop1": 0.45,
-        "finetunedTop5": 0.45
+        "finetunedTop1": 0.475,
+        "finetunedTop5": 0.475
       }
     ]
   },
@@ -61,9 +61,9 @@ export const RESULTS = {
       },
       "finetuned": {
         "exactMatch": 0,
-        "normEditDistance": 0.9888317631624485,
+        "normEditDistance": 0.9880804434037757,
         "tokenAcc": 0.415,
-        "blockAcc": 0.605
+        "blockAcc": 0.555
       }
     }
   },
@@ -84,25 +84,25 @@ export const RESULTS = {
         }
       },
       "finetuned": {
-        "binAcc": 0.5,
-        "precision": 0,
-        "recall": 0,
-        "f1": 0,
-        "rocAuc": 0.5,
+        "binAcc": 0.495,
+        "precision": 0.49624060150375937,
+        "recall": 0.66,
+        "f1": 0.5665236051502146,
+        "rocAuc": 0.495,
         "ruleAttrAcc": 0,
         "confusion": {
-          "tp": 0,
-          "fp": 0,
-          "tn": 100,
-          "fn": 100
+          "tp": 66,
+          "fp": 67,
+          "tn": 33,
+          "fn": 34
         }
       }
     },
     "confusion": {
-      "tp": 0,
-      "fp": 0,
-      "tn": 100,
-      "fn": 100
+      "tp": 66,
+      "fp": 67,
+      "tn": 33,
+      "fn": 34
     },
     "perRule": []
   },
@@ -137,6 +137,14 @@ export const RESULTS = {
       "nextstepTop1": 0.45,
       "completionBlockAcc": 0.605,
       "anomalyF1": 0
+    },
+    {
+      "label": "1.5b",
+      "params": 1.5,
+      "slug": "hf-sft-instruct-all",
+      "nextstepTop1": 0.475,
+      "completionBlockAcc": 0.555,
+      "anomalyF1": 0.5665236051502146
     }
   ],
   "training": {
@@ -154,8 +162,8 @@ export const RESULTS = {
     "oodTop1": null
   },
   "_generated": {
-    "at": "2026-05-31T01:18:52.119Z",
-    "finetuned_slug": "hf-sft-0_5b",
+    "at": "2026-05-31T02:13:55.865Z",
+    "finetuned_slug": "hf-sft-instruct-all",
     "baseline_slug": "baseline-ngram",
     "source": "/Users/marcm/code/Zero One Philyr/.claude/worktrees/bold-banzai-ac0b36/extras/results/INDEX.json"
   }
