@@ -3,10 +3,10 @@ export const RESULTS = {
   "copy": {
     "heroEyebrow": "Infineon Industrial-AI · generated from extras/results",
     "heroTitlePre": "Process-logic eval —",
-    "heroTitleEmph": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8/artifacts",
+    "heroTitleEmph": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe/artifacts",
     "heroTitlePost": "vs baseline",
-    "heroLede": "Built from promoted results (hf-sft-scale-100 vs baseline-ngram). Not placeholder data.",
-    "modelName": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8/artifacts",
+    "heroLede": "Built from promoted results (hf-sft-0_5b vs baseline-ngram). Not placeholder data.",
+    "modelName": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe/artifacts",
     "modelBlurb": "hf",
     "takeaways": [
       "Metrics sourced from metrics_report.json in extras/results.",
@@ -35,10 +35,10 @@ export const RESULTS = {
         "mrr": 0.8429166666666668
       },
       "finetuned": {
-        "top1": 0.365,
-        "top3": 0.365,
-        "top5": 0.365,
-        "mrr": 0.365
+        "top1": 0.45,
+        "top3": 0.45,
+        "top5": 0.45,
+        "mrr": 0.45
       }
     },
     "perFamily": [
@@ -46,8 +46,8 @@ export const RESULTS = {
         "family": "MOSFET",
         "baselineTop1": 0.69,
         "baselineTop5": 1,
-        "finetunedTop1": 0.365,
-        "finetunedTop5": 0.365
+        "finetunedTop1": 0.45,
+        "finetunedTop5": 0.45
       }
     ]
   },
@@ -61,9 +61,9 @@ export const RESULTS = {
       },
       "finetuned": {
         "exactMatch": 0,
-        "normEditDistance": 0.9948806130870338,
-        "tokenAcc": 0.145,
-        "blockAcc": 0.345
+        "normEditDistance": 0.9888317631624485,
+        "tokenAcc": 0.415,
+        "blockAcc": 0.605
       }
     }
   },
@@ -129,7 +129,16 @@ export const RESULTS = {
       "anomalyF1": 0
     }
   ],
-  "modelSize": [],
+  "modelSize": [
+    {
+      "label": "0.5b",
+      "params": 0.5,
+      "slug": "hf-sft-0_5b",
+      "nextstepTop1": 0.45,
+      "completionBlockAcc": 0.605,
+      "anomalyF1": 0
+    }
+  ],
   "training": {
     "params": "—",
     "epochs": 0,
@@ -145,8 +154,8 @@ export const RESULTS = {
     "oodTop1": null
   },
   "_generated": {
-    "at": "2026-05-31T00:49:53.972Z",
-    "finetuned_slug": "hf-sft-scale-100",
+    "at": "2026-05-31T01:18:52.119Z",
+    "finetuned_slug": "hf-sft-0_5b",
     "baseline_slug": "baseline-ngram",
     "source": "/Users/marcm/code/Zero One Philyr/.claude/worktrees/bold-banzai-ac0b36/extras/results/INDEX.json"
   }
