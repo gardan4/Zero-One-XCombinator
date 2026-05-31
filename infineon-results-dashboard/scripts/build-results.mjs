@@ -181,7 +181,7 @@ function main() {
     .map((s) => ({ size: dataSizeOf(index[s]), ...seriesMetrics(s) }))
     .sort((a, b) => a.size - b.size);
   const modelSize = slugs
-    .filter((s) => modelSizeOf(index[s]) != null)
+    .filter((s) => modelSizeOf(index[s]) != null && isFinetuned(s)) // fine-tuned sweep only, not baselines
     .map((s) => ({ ...modelSizeOf(index[s]), ...seriesMetrics(s) }))
     .sort((a, b) => (a.params ?? 0) - (b.params ?? 0));
 
