@@ -81,6 +81,29 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
 ## Timing (contention) — 6 jobs share GPUs → ~2.5x slower than estimated
 best 1.5B ~1063/3375 @ 44min → done ~04:30. scale-800 ~done. scale-2000/0.5b/3b later. Deadline 10:00 — ample buffer.
 
+## RESULTS LANDED (best 1.5B = checkpoint-3050, ~2.7ep; best+2000 hit SLURM TIMEOUT, used intermediate ckpt)
+| model | nextstep top1 | completion block_acc | anomaly f1 |
+|---|---|---|---|
+| **n-gram baseline** | **0.69** | **0.637** | **0.89** |
+| best 1.5B (2.7ep) hf-sft-instruct-all | 0.475 | 0.555 | **0.567** |
+| 0.5B (3ep) | 0.45 | 0.605 | 0.0 |
+| scale 100/300/800 (1ep) | 0.365/0.435/0.43 | 0.345/0.50/0.66 | 0/0/0 |
+| zero-shot base | ~0 | ~0 | 0 |
+
+**Honest story:** the n-gram is a STRONG classical baseline; the fine-tuned LLM trails on raw top-1/block-acc
+BUT (a) **learned anomaly detection** f1 0→0.567 (real "learned process logic" — only the 3-epoch best does it),
+(b) is one promptable+reasoning model across 3 tasks, (c) powers the live copilot. Data-scaling trend is clear.
+**KEY BUG — completion collapses to 1 step**: best outputs `{"steps":["MEASURE VIA CD"]}` (1 step) vs 10-step gold
+→ completion block_acc capped + norm_edit ~0.99. Cause: nextstep examples outnumber completion 2:1 and share the
+`steps` schema, so the model biases short (worsens with epochs: scale-800/1ep cp 0.66 > best/2.7ep 0.55).
+OPTIONAL FIX (if time): rebalance corpus (upsample completion ~2x) + retrain w/ longer wall-time → completion could
+beat baseline. Risky ~2.5h. Lower priority than a COMPLETE honest deliverable (demo + dashboard + report).
+
+**NEXT (priority order):** (1) live demo — pscp best checkpoint-3050 to ~/zo-models/sft-instruct-all, serve, test copilot
+base-vs-best; (2) re-eval 2000 (job 43163766 FAILED fast — retry) + 3b when done; (3) rebuild dashboard + verify story.html;
+(4) write REPORT.md (honest story); (5) IF time: completion-fix retrain.
+SLURM TIMEOUT lesson: training wall-time too short for ~2.5s/step; bump --time for any retrain.
+
 ## Scaling trend (1 epoch) — data helps, anomaly needs more epochs
 | size | nextstep top1 | completion block_acc | anomaly f1 |
 |---|---|---|---|
