@@ -34,6 +34,22 @@ function pickOverall(taskBlock) {
   return taskBlock.by_family.overall;
 }
 
+// --- tag helpers for the storyline series (data-scaling + model-size) ---
+function tagVal(entry, prefix) {
+  const t = (entry.tags || []).find((x) => x.startsWith(prefix));
+  return t ? t.slice(prefix.length) : null;
+}
+function dataSizeOf(entry) {
+  const v = tagVal(entry, "data-size:");
+  return v == null ? null : Number(v);
+}
+function modelSizeOf(entry) {
+  const v = tagVal(entry, "model-size:"); // e.g. "1.5b"
+  if (v == null) return null;
+  const m = String(v).toLowerCase().match(/([\d.]+)\s*b/);
+  return { label: v, params: m ? Number(m[1]) : null };
+}
+
 function mapNextstep(overall) {
   return {
     top1: overall.top1 ?? 0,
@@ -105,8 +121,15 @@ function main() {
   }
   const index = loadJson(indexPath);
   const slugs = Object.keys(index);
+  const isFinetuned = (s) => (index[s].tags || []).some((t) => t.includes("role:finetuned") || t === "finetuned");
+  // Headline "best" = canonical full-data 1.5B, NEVER a scaling point (data-size:N) — those are the
+  // data-scaling study, not the best model.
   const finSlug =
-    finetunedSlug || slugs.find((s) => (index[s].tags || []).some((t) => t.includes("finetuned") || t.includes("role:finetuned"))) || slugs[0];
+    finetunedSlug ||
+    slugs.find((s) => isFinetuned(s) && modelSizeOf(index[s])?.params === 1.5 && dataSizeOf(index[s]) == null) ||
+    slugs.find((s) => isFinetuned(s) && dataSizeOf(index[s]) == null) ||
+    slugs.find(isFinetuned) ||
+    slugs[0];
   const baseSlug =
     baselineSlug || slugs.find((s) => s !== finSlug && (index[s].predictor === "ngram" || (index[s].tags || []).includes("role:baseline")));
 
@@ -141,6 +164,26 @@ function main() {
       finetunedTop5: f.finetunedTop5,
     };
   });
+
+  // --- storyline series: data-scaling (data-size:N) + model-size (model-size:Xb) ---
+  function seriesMetrics(slug) {
+    const { report } = loadSlug(slug);
+    const t = report.tasks || {};
+    return {
+      slug,
+      nextstepTop1: pickOverall(t.nextstep).top1 ?? null,
+      completionBlockAcc: pickOverall(t.completion).block_acc ?? null,
+      anomalyF1: pickOverall(t.anomaly).f1 ?? null,
+    };
+  }
+  const scaling = slugs
+    .filter((s) => dataSizeOf(index[s]) != null)
+    .map((s) => ({ size: dataSizeOf(index[s]), ...seriesMetrics(s) }))
+    .sort((a, b) => a.size - b.size);
+  const modelSize = slugs
+    .filter((s) => modelSizeOf(index[s]) != null)
+    .map((s) => ({ ...modelSizeOf(index[s]), ...seriesMetrics(s) }))
+    .sort((a, b) => (a.params ?? 0) - (b.params ?? 0));
 
   const payload = {
     copy: {
@@ -177,6 +220,8 @@ function main() {
       confusion: finBuilt.anomaly.confusion,
       perRule: [],
     },
+    scaling, // [{size, slug, nextstepTop1, completionBlockAcc, anomalyF1}] — data-scaling study
+    modelSize, // [{label, params, slug, nextstepTop1, completionBlockAcc, anomalyF1}] — model-size sweep
     training: { params: "—", epochs: 0, finalLoss: 0, finalValLoss: 0, steps: [] },
     ood: { heldOutFamily: "—", idF1: null, oodF1: null, idTop1: null, oodTop1: null },
     _generated: {
