@@ -5,7 +5,7 @@ step sequences. **Substrate:** `Qwen/Qwen2.5-1.5B-Instruct`, full fine-tune, uni
 
 ## Team
 
-- **{Name}** — training / cluster · **{Name}** — eval / inference · **{Name}** — frontend / dashboard · **{Name}** — data / infra
+- **XCombinator** — training / cluster · eval / inference · frontend / dashboard · data / infra
 
 ---
 
