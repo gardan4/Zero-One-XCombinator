@@ -53,7 +53,11 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
 - [ ] BATCH-EVAL when best-waiter fires: ls completed checkpoints in zo-experiments, judge-eval each:
   best→slug hf-sft-instruct-all tags(...,model-size:1.5b); scale 300/800/2000→hf-sft-scale-N tags(...,scale,data-size:N);
   0.5b/3b→hf-sft-{0_5b,3b} tags(...,model-size:{0.5b,3b}). Then pull+promote, rebuild build-results, build frontend panels.
-- [ ] Update scripts/serve_copilot_mac.py to JSON framing (build_messages + parse steps[0]); pscp best ckpt to ~/zo-models; verify live demo from Mac.
+- [x] serve_copilot_mac.py JSON framing DONE + **E2E VALIDATED** (started server, curled copilot-format
+  request → reframed → base model generated JSON → parsed steps[0] → 'PREPARE WAFERS' + conf 0.77).
+  Live demo path works. REMAINING: when best lands, pscp ckpt to ~/zo-models/sft-instruct-all, run
+  `ZO_COPILOT_MODELS='{"base-qwen":"Qwen/Qwen2.5-1.5B-Instruct","sft-best":"~/zo-models/sft-instruct-all"}' uv run --no-sync python scripts/serve_copilot_mac.py`,
+  start copilot (cd xcombinator-copilot; set .env.local VITE_MODEL_BASE_URL=http://localhost:8001/v1 + VITE_MODEL_NAME=sft-best; npm run dev), verify base-vs-best in UI.
 
 ## Active background waiters
 - scale-100 completion waiter (fires when 43146520 terminal → run the eval validation above).
