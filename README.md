@@ -1,4 +1,4 @@
-# Zero One Philyr
+# Zero One XCombinator
 
 Monorepo for the **Zero One Hack** (Vienna, May 29–31). Built for one thing: spin up
 **finetuning / RL / eval / agent** experiments fast, run many in parallel, and watch
