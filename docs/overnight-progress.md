@@ -72,6 +72,15 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
   0.69), so 1-epoch scaling underfits. WATCH: does the best (18k rows × 3 ep) emit full completions +
   real anomaly? If the 1-epoch scaling curve is flat/underfit, bump scaling epochs to 2–3 and rerun.
 
+## Baselines evaled
+- **n-gram** (classical): nextstep 0.69, completion block_acc 0.637, anomaly f1 0.89 — strong; the honest headline baseline.
+- **zero-shot base** (frozen Qwen2.5-1.5B, same JSON framing, slug baseline-zeroshot-1_5b): **~0 everywhere**
+  (nextstep 0.0, completion 0.005, anomaly 0.0) — the LLM is clueless about fab logic without training.
+  Clean "fine-tuning is essential" point; explains the rambly base in the live demo.
+
+## Timing (contention) — 6 jobs share GPUs → ~2.5x slower than estimated
+best 1.5B ~1063/3375 @ 44min → done ~04:30. scale-800 ~done. scale-2000/0.5b/3b later. Deadline 10:00 — ample buffer.
+
 ## Scaling trend (1 epoch) — data helps, anomaly needs more epochs
 | size | nextstep top1 | completion block_acc | anomaly f1 |
 |---|---|---|---|

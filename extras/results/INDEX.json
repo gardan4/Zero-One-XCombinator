@@ -94,5 +94,72 @@
       "examples.jsonl"
     ],
     "promoted_at": "2026-05-30T23:56:46.128063+00:00"
+  },
+  "hf-sft-scale-300": {
+    "path": "extras/results/hf-sft-scale-300",
+    "run_id": "20260531_000646_eval_judge-eval-sft-scale-instruct-300-v2_fa3a59",
+    "version": "sft-scale-instruct-300-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234550_sft_leonardo-sft-scale-instruct-300_c72d26/artifacts",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-scale-instruct-300-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234550_sft_leonardo-sft-scale-instruct-300_c72d26--artifacts",
+      "eval-set:local",
+      "train-run:20260530_234550_sft_leonardo-sft-scale-instruct-300_c72d26",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "scale",
+      "data-size:300"
+    ],
+    "train_run_id": "20260530_234550_sft_leonardo-sft-scale-instruct-300_c72d26",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T00:09:55.643379+00:00"
+  },
+  "baseline-zeroshot-1_5b": {
+    "path": "extras/results/baseline-zeroshot-1_5b",
+    "run_id": "20260531_001955_eval_judge-eval-baseline-zeroshot-1-5b-v1_8ab52b",
+    "version": "baseline-zeroshot-1_5b-v1",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct",
+    "eval_set": "local",
+    "tags": [
+      "version:baseline-zeroshot-1_5b-v1",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--hf-local--Qwen2.5-1.5B-Instruct",
+      "eval-set:local",
+      "real-run",
+      "reportable",
+      "role:baseline",
+      "baseline:zeroshot",
+      "split:id",
+      "family:MOSFET",
+      "model-size:1.5b-base"
+    ],
+    "train_run_id": null,
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T00:29:19.901565+00:00"
   }
 }
