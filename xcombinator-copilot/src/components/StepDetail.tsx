@@ -63,8 +63,35 @@ export default function StepDetail({ step, idx, total, category, description, pr
                 {predValid ? '✓ valid next step' : `⚠ would break ${predViolation ? prettyRule(predViolation.rule) : 'a rule'}`}
               </span>
             </span>
-            <span className="pp-pct mono">{Math.round(prediction.confidence * 100)}%</span>
+            <span className="pp-pct mono" title={prediction.confidenceKnown === false ? 'hosted model — no token logprobs' : 'model confidence'}>
+              {prediction.confidenceKnown === false ? '—' : `${Math.round(prediction.confidence * 100)}%`}
+            </span>
           </div>
+
+          {prediction.reasoning ? (
+            <div className="d-think">
+              <div className="d-think-h">
+                <span className="d-think-spark" />
+                Model reasoning
+              </div>
+              <p className="d-think-b">{prediction.reasoning}</p>
+            </div>
+          ) : (
+            prediction.source && (
+              <p className="d-think-note">No chain-of-thought — the fine-tune answers the step directly.</p>
+            )
+          )}
+
+          {prediction.alternates && prediction.alternates.length > 0 && (
+            <div className="d-alts">
+              <span className="d-alts-l">Alternates</span>
+              <span className="d-alts-chips">
+                {prediction.alternates.map((a) => (
+                  <span key={a} className="d-alt mono">{a}</span>
+                ))}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

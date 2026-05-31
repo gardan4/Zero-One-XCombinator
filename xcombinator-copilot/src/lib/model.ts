@@ -16,14 +16,17 @@ import { fab, VOCAB } from './data'
 //
 // ===========================================================================
 
-const BASE = import.meta.env.VITE_MODEL_BASE_URL as string | undefined
+// In dev, default to the local Mac model server (scripts/serve_copilot_mac.py) so the VS Code
+// "Demo: start all" task is self-contained — no env file needed. Production builds (Cloudflare)
+// stay simulator-only unless VITE_MODEL_BASE_URL is set explicitly (there's no localhost there).
+const BASE = (import.meta.env.VITE_MODEL_BASE_URL as string | undefined) || (import.meta.env.DEV ? 'http://localhost:8001/v1' : undefined)
 const MODEL = (import.meta.env.VITE_MODEL_NAME as string) || 'default'
 const API_KEY = (import.meta.env.VITE_MODEL_API_KEY as string) || 'EMPTY'
 
 export const LIVE = Boolean(BASE)
 
-/** Optional default model id (VITE_MODEL_NAME), exposed so the UI can prefer it in the picker. */
-export const DEFAULT_MODEL = (import.meta.env.VITE_MODEL_NAME as string) || ''
+/** Default model id for the picker — opens on our best local fine-tune (works without the network). */
+export const DEFAULT_MODEL = (import.meta.env.VITE_MODEL_NAME as string) || (import.meta.env.DEV ? 'sft-best' : '')
 
 /**
  * List the model ids the local server has loaded (GET /v1/models).
@@ -71,15 +74,26 @@ async function predictLive(family: Family, steps: string[], modelName?: string):
       model: modelName || MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0,
-      max_tokens: 24,
+      max_tokens: 256,
     }),
   })
   const json = await res.json()
+  if (json?.error) throw new Error(json.error?.message || 'model error') // e.g. hosted-model creds missing → fall back
   const raw: string = json?.choices?.[0]?.message?.content ?? ''
-  // The local server returns the model's real per-step confidence (geometric mean of the
-  // greedy tokens' probabilities). Read it; fall back only if an older server omits it.
-  const conf = typeof json?.confidence === 'number' ? Math.max(0.05, Math.min(0.99, json.confidence)) : 0.82
-  return { step: snapToVocab(raw), confidence: conf, source: 'model' }
+  // Local models report a real per-step confidence (geometric mean of the greedy token probs).
+  // Hosted models (DeepSeek via Featherless) can't, so the server sends null and we flag it as unknown
+  // rather than inventing a number.
+  const known = typeof json?.confidence === 'number'
+  const conf = known ? Math.max(0.05, Math.min(0.99, json.confidence)) : 0.85
+  const alternates = Array.isArray(json?.alternates) ? json.alternates.map((s: string) => snapToVocab(String(s))) : []
+  return {
+    step: snapToVocab(raw),
+    confidence: conf,
+    confidenceKnown: known,
+    source: modelName || MODEL,
+    reasoning: typeof json?.reasoning === 'string' ? json.reasoning.trim() : '',
+    alternates,
+  }
 }
 
 function snapToVocab(raw: string): string {

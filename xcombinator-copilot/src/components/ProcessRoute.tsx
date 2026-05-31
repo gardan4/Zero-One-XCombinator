@@ -86,9 +86,9 @@ export default function ProcessRoute({ steps, headIdx, selectedIdx, prediction, 
                       {predValid ? '✓ valid next step' : `⚠ would break ${predViolation ? prettyRule(predViolation.rule) : 'a rule'}`}
                     </span>
                     <span className="r-pconf">
-                      <span className="pc-k">model confidence</span>
-                      <span className="pc-bar"><span className="pc-fill" style={{ width: `${Math.round(prediction.confidence * 100)}%` }} /></span>
-                      <span className="pc-v mono">{Math.round(prediction.confidence * 100)}%</span>
+                      <span className="pc-k">{prediction.confidenceKnown === false ? 'hosted model · no logprobs' : 'model confidence'}</span>
+                      <span className="pc-bar"><span className="pc-fill" style={{ width: prediction.confidenceKnown === false ? '0%' : `${Math.round(prediction.confidence * 100)}%` }} /></span>
+                      <span className="pc-v mono">{prediction.confidenceKnown === false ? '—' : `${Math.round(prediction.confidence * 100)}%`}</span>
                     </span>
                   </div>
                 )}

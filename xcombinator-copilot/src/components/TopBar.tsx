@@ -16,8 +16,9 @@ interface Props {
 /** Map a served model id to a friendly label, falling back to the raw id. */
 export function modelLabel(id: string): string {
   const lc = id.toLowerCase()
-  if (id === 'base-qwen' || lc.includes('base')) return 'Base · Qwen2.5-1.5B'
-  if (id === 'sft-best' || id === 'sft-fab-all' || lc.includes('sft')) return 'Fine-tuned · SFT'
+  if (lc.includes('deepseek')) return 'DeepSeek-V4-Flash · hosted'
+  if (id === 'sft-best' || id === 'sft-fab-all' || lc.includes('sft')) return 'Our best · fine-tuned 1.5B'
+  if (id === 'qwen-base' || id === 'base-qwen' || lc.includes('base') || lc.includes('qwen')) return 'Base · Qwen2.5-1.5B'
   if (lc.includes('grpo')) return 'RL · GRPO'
   if (lc.includes('lofo')) return 'OOD · LOFO'
   return id

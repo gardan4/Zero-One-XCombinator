@@ -100,11 +100,15 @@ tasks**, and **explicit reasoning** — not raw next-step accuracy.
 
 ## Live demo
 
-`infineon-results-dashboard/public/story.html` renders the whole comparison from **real promoted eval
-metrics** (no placeholders). The **Fab Process Copilot** (`xcombinator-copilot`) does live next-step
-prediction against the on-device model — pick a family, build/import a route, and it predicts the next
-step with a confidence bar while `validate_sequence()` flags rule violations in real time. Base-vs-
-fine-tuned is selectable to show the contrast.
+The **Fab Process Copilot** (`xcombinator-copilot`) does live next-step prediction and carries the
+whole comparison story in an in-app **Results** view (rendered from **real promoted eval metrics**, no
+placeholders). Pick a family, build/import a route, and it predicts the next step while
+`validate_sequence()` flags rule violations in real time. The model picker switches between **three**
+backends side by side — **DeepSeek-V4-Flash** (hosted via Featherless, the zero-shot model we
+evaluated), the **frozen Qwen2.5-1.5B** base, and **our best fine-tune** (both local on Apple Silicon /
+MPS) — and shows each model's own **reasoning** next to the predicted step (rich chain-of-thought for
+DeepSeek; the fine-tune answers directly with a real token-probability confidence). One launch task
+(`Demo: start all`) boots the local model server + UI. See `scripts/serve_copilot_mac.py`.
 
 ## Reproduce
 

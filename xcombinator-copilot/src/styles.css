@@ -364,6 +364,18 @@ button { font-family: inherit; }
 .d-pred.breaks .pp-ghost { border-color: var(--amber-line); background: radial-gradient(circle at 50% 40%, var(--amber-soft), transparent 70%); }
 .d-pred.breaks .pp-name, .d-pred.breaks .pp-conf, .d-pred.breaks .pp-pct { color: var(--amber); }
 
+/* Model thoughts — shown next to the prediction (rich for DeepSeek, empty for the fine-tune). */
+.d-think { margin-top: 9px; padding: 10px 12px; border-radius: var(--r-md); background: var(--bg-pill); border: 1px solid var(--hair); }
+.d-think-h { display: flex; align-items: center; gap: 7px; font-size: 9.5px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3); }
+.d-think-spark { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+.d-think-b { margin: 7px 0 0; font-size: 12px; color: var(--ink-1); line-height: 1.55; }
+.d-think-note { margin: 9px 0 0; font-size: 10.5px; color: var(--ink-3); line-height: 1.5; font-style: italic; }
+
+.d-alts { margin-top: 10px; display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.d-alts-l { font-size: 9.5px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3); }
+.d-alts-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.d-alt { font-size: 10.5px; color: var(--ink-2); background: var(--bg-pill); border: 1px solid var(--hair-soft); border-radius: var(--r-pill); padding: 3px 9px; }
+
 .d-rule { display: flex; align-items: flex-start; gap: 10px; }
 .d-rule .rk { width: 15px; height: 15px; border-radius: 50%; flex: 0 0 auto; margin-top: 1px; background: var(--teal-soft); border: 1px solid var(--teal-line); display: inline-flex; align-items: center; justify-content: center; color: var(--teal); }
 .d-rule.is-bad .rk { background: var(--amber-soft); border-color: var(--amber-line); color: var(--amber); }
