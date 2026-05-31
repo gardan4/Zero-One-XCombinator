@@ -60,9 +60,15 @@ baseline (0.637)**:
 | completion block-acc | 0.345 | 0.500 | **0.660** | **0.745** |
 | next-step top-1 | 0.365 | 0.435 | 0.430 | 0.525 |
 
-**Anomaly is learned, not free.** Only the 3-epoch full model reaches F1 0.567; 1-epoch models and the
-frozen base sit at 0 (they answer "valid" to everything). Spotting one rule violation in a ~100-step
-route is the hardest task — it needs balanced data *and* enough epochs.
+**Model size doesn't help — data does.** Across the size sweep (0.5B / 1.5B / 3B, full data, ~3 epochs,
+3B via 4-GPU FSDP), next-step and completion are essentially flat (~0.45 / ~0.56) — the 1.5B is the
+sweet spot and bigger doesn't move the needle. Capacity isn't the bottleneck on this structured task;
+**unique training data is** (the scaling curve above). A clean, slightly counter-intuitive finding.
+
+**Anomaly is learned, not free.** Only the 1.5B model reaches F1 0.567; the 0.5B/3B size points, all
+1-epoch scaling models, and the frozen base sit at 0 (they answer "valid" to everything). Spotting one
+rule violation in a ~100-step route is the hardest task and is sensitive to training dynamics — it needs
+balanced data *and* the right capacity/epochs.
 
 **It generalizes across all three families** (one all-family model, evaled per family) — best 1.5B,
 next-step / completion / anomaly-F1:
