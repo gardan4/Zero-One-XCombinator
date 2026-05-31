@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Full-Route Rail — Filled Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-void: #07090c;
+    --bg-panel: rgba(19,24,30,0.62);
+    --ink-0: #eef2f6;
+    --ink-1: #a7afba;
+    --ink-2: #737c89;
+    --ink-3: #555d69;
+    --ink-4: #3c434e;
+    --hair: rgba(255,255,255,0.088);
+    --hair-soft: rgba(255,255,255,0.05);
+    --teal: #5bd6c0;
+    --teal-soft: rgba(91,214,192,0.16);
+    --teal-line: rgba(91,214,192,0.46);
+    --teal-faint: rgba(91,214,192,0.1);
+    --teal-glow: rgba(91,214,192,0.3);
+    --schematic: rgba(150,166,186,0.2);
+    --r: 11px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg-void);
+    color: var(--ink-0);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.01em;
+  }
+
+  .stage {
+    width: 1440px;
+    margin: 0 auto;
+    padding: 56px 48px 72px;
+    background:
+      radial-gradient(1100px 600px at 24% -10%, #12161b 0%, rgba(18,22,27,0) 60%),
+      radial-gradient(900px 640px at 92% 120%, #0f1318 0%, rgba(15,19,24,0) 55%),
+      linear-gradient(180deg, #090b0e 0%, #07090c 100%);
+    min-height: 100vh;
+  }
+
+  /* ---- state block scaffolding ---- */
+  .state-block { margin-bottom: 64px; }
+  .state-block:last-child { margin-bottom: 0; }
+
+  .state-tag {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 26px;
+    padding-left: 2px;
+  }
+  .state-tag .sk {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--teal);
+  }
+  .state-tag .st {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-1);
+    letter-spacing: -0.005em;
+  }
+  .state-tag .st b { color: var(--ink-0); font-weight: 600; }
+  .state-tag .sd {
+    font-size: 12px;
+    font-weight: 450;
+    color: var(--ink-3);
+  }
+
+  /* ---- the rail panel ---- */
+  .panel {
+    position: relative;
+    background: var(--bg-panel);
+    backdrop-filter: blur(26px) saturate(150%);
+    -webkit-backdrop-filter: blur(26px) saturate(150%);
+    border: 1px solid var(--hair);
+    border-radius: 18px;
+    box-shadow: 0 24px 60px -30px rgba(0,0,0,0.85), 0 4px 18px -10px rgba(0,0,0,0.55);
+    padding: 22px 26px 24px;
+  }
+  .panel::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0) 34%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ---- header row ---- */
+  .rail-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .rail-head .title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    flex: 0 0 auto;
+  }
+  .rail-head .dots {
+    flex: 1 1 auto;
+    height: 1px;
+    background-image: linear-gradient(90deg, var(--hair) 0 2px, transparent 2px 7px);
+    background-size: 7px 1px;
+    opacity: 0.7;
+  }
+  .rail-head .legend {
+    flex: 0 0 auto;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--ink-3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rail-head .legend .arrow { color: var(--ink-2); }
+  .rail-head .legend .sep { color: var(--ink-4); }
+  .rail-head .legend b { color: var(--ink-1); font-weight: 500; }
+
+  /* ---- the rail itself ----
+     two stacked layers: the bubbles row, then a thin ticker gutter beneath
+     for the start/end caps and the moving position marker. */
+  .rail {
+    position: relative;
+    padding-bottom: 30px; /* room for ticker gutter */
+  }
+
+  .bubbles {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+    height: 56px;
+  }
+
+  /* ---- a phase bubble ---- */
+  .bubble {
+    position: relative;
+    height: 56px;
+    border-radius: var(--r);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    min-width: 0; /* allow shrink/ellipsize */
+    /* flex-basis + grow set inline by JS for proportional sizing */
+    transition: flex-grow .45s cubic-bezier(.4,.0,.2,1),
+                flex-basis .45s cubic-bezier(.4,.0,.2,1),
+                min-width .45s cubic-bezier(.4,.0,.2,1);
+  }
+
+  /* the bubble's name label, vertically + horizontally padded, ellipsizes */
+  .bubble .pname {
+    position: relative;
+    z-index: 3;
+    font-size: 11.5px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 12px;
+    width: 100%;
+    pointer-events: none;
+  }
+
+  /* split-cell layer: one cell per step. Built by JS as a flex row of equal cells
+     separated by hairline verticals. We draw the SEAMS as right borders. */
+  .splits {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    pointer-events: none;
+  }
+  .splits .cell {
+    flex: 1 1 0;
+    min-width: 0;
+    border-right: 1px solid var(--schematic);
+  }
+  .splits .cell:last-child { border-right: none; }
+
+  /* ============ PAST (done) bubble: solid calm fill, NO splits ============ */
+  .bubble.done {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--hair-soft);
+  }
+  .bubble.done .pname { color: var(--ink-2); }
+
+  /* ============ FUTURE bubble: dim, no splits ============ */
+  .bubble.future {
+    background: rgba(255,255,255,0.014);
+    border: 1px solid var(--hair-soft);
+  }
+  .bubble.future .pname { color: var(--ink-3); }
+
+  /* ============ CURRENT bubble: progress meter ============
+     Base shell is the teal-tinted active container; on TOP sits a "fill"
+     overlay (done portion) that is solid teal, and the remaining portion shows
+     the faint step-split cells. The boundary between them is the ticker seam. */
+  .bubble.current {
+    background:
+      linear-gradient(180deg, rgba(91,214,192,0.07), rgba(91,214,192,0.02)),
+      rgba(16,28,28,0.7);
+    border: 1px solid var(--teal-line);
+    box-shadow:
+      0 0 0 1px rgba(91,214,192,0.06),
+      0 0 28px -8px var(--teal-glow),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .bubble.current .pname {
+    color: var(--ink-0);
+    font-weight: 600;
+    /* keep the name readable above whatever it overlaps */
+    text-shadow: 0 1px 3px rgba(0,0,0,0.55);
+  }
+
+  /* the solid teal progress fill — width = done fraction, set inline by JS */
+  .bubble.current .fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    z-index: 2;
+    background:
+      linear-gradient(180deg, rgba(91,214,192,0.34), rgba(91,214,192,0.20)),
+      var(--teal-soft);
+    border-right: 1px solid var(--teal);
+    box-shadow: 6px 0 18px -6px var(--teal-glow);
+    transition: width .45s cubic-bezier(.4,.0,.2,1);
+  }
+  /* on the current bubble, the split SEAMS over the FUTURE portion stay visible
+     (faint cells), while done-side seams are covered by the solid fill.
+     The split layer sits below the fill (z1 < z2), so the fill simply masks the
+     done seams — exactly the "done = solid, remaining = split cells" reading. */
+  .bubble.current .splits .cell {
+    border-right-color: rgba(91,214,192,0.22);
+  }
+
+  /* ---------- TICKER GUTTER ---------- */
+  .ticker-gutter {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0;
+    height: 26px;
+  }
+  /* the faint baseline the caps + marker sit on */
+  .ticker-gutter .baseline {
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: var(--hair-soft);
+  }
+
+  /* start / end caps at the far ends */
+  .cap {
+    position: absolute;
+    top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .cap.start { left: 0; align-items: flex-start; }
+  .cap.end { right: 0; align-items: flex-end; }
+  .cap .nub {
+    width: 1px; height: 7px;
+    background: var(--ink-4);
+  }
+  .cap.start .nub { margin-left: 1px; }
+  .cap.end .nub { margin-right: 1px; }
+
+  /* the live position marker — nib + step number in mono */
+  .marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+    transition: left .45s cubic-bezier(.4,.0,.2,1);
+  }
+  .marker .nib {
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 6px solid var(--teal);
+    margin-bottom: 3px;
+    filter: drop-shadow(0 0 6px var(--teal-glow));
+  }
+  .marker .num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--teal);
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 5px;
+    background: rgba(91,214,192,0.1);
+    border: 1px solid rgba(91,214,192,0.28);
+    white-space: nowrap;
+  }
+  .marker .num .of {
+    color: var(--ink-3);
+    font-weight: 400;
+  }
+
+  /* a thin teal seam dropping from the bubble's progress boundary into the gutter,
+     visually tying the bright fill-edge to the ticker number */
+  .seam {
+    position: absolute;
+    top: -8px;
+    width: 1px;
+    height: 8px;
+    background: linear-gradient(180deg, var(--teal), rgba(91,214,192,0.2));
+    z-index: 4;
+    transform: translateX(-0.5px);
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+
+    <!-- ===================== STATE A ===================== -->
+    <section class="state-block">
+      <div class="state-tag">
+        <span class="sk">STATE A</span>
+        <span class="st">Current = <b>Via</b> — fits at proportional width</span>
+        <span class="sd">ticker at step 9 of 12 within Via · phases before done · after future</span>
+      </div>
+
+      <div class="panel">
+        <div class="rail-head">
+          <span class="title">Full Route</span>
+          <span class="dots"></span>
+          <span class="legend">
+            RECEIVE WAFER LOT <span class="arrow">&#8594;</span> SHIP LOT
+            <span class="sep">·</span> <b>~120</b> steps
+          </span>
+        </div>
+        <div class="rail" data-rail data-current="Via" data-done-in-phase="9"></div>
+      </div>
+    </section>
+
+    <!-- ===================== STATE B ===================== -->
+    <section class="state-block">
+      <div class="state-tag">
+        <span class="sk">STATE B</span>
+        <span class="st">Current = <b>Litho Cycles</b> — proportional slot too small, bubble EXPANDS</span>
+        <span class="sd">ticker at step 14 of 40 within Litho Cycles · neighbours shrink &amp; ellipsize, no split overflow</span>
+      </div>
+
+      <div class="panel">
+        <div class="rail-head">
+          <span class="title">Full Route</span>
+          <span class="dots"></span>
+          <span class="legend">
+            RECEIVE WAFER LOT <span class="arrow">&#8594;</span> SHIP LOT
+            <span class="sep">·</span> <b>~120</b> steps
+          </span>
+        </div>
+        <div class="rail" data-rail data-current="Litho Cycles" data-done-in-phase="14"></div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    // ---- the route ----
+    const PHASES = [
+      { name: 'Receive & Inspect', steps: 4 },
+      { name: 'Clean',             steps: 5 },
+      { name: 'Family Prep',       steps: 6 },
+      { name: 'Oxidation',         steps: 2 },
+      { name: 'Litho Cycles',      steps: 40 },
+      { name: 'Dielectric & CMP',  steps: 5 },
+      { name: 'Via',               steps: 12 },
+      { name: 'Metal',             steps: 11 },
+      { name: 'Passivation',       steps: 10 },
+      { name: 'Backside',          steps: 11 },
+      { name: 'Final & Test',      steps: 12 },
+      { name: 'Ship',              steps: 2 },
+    ];
+    const TOTAL = PHASES.reduce((s, p) => s + p.steps, 0); // 120
+    const MIN_PITCH = 7;   // px per step the CURRENT bubble must guarantee for its splits
+    const GAP = 6;         // matches .bubbles gap
+
+    // cumulative start step (1-based) of each phase
+    let acc = 0;
+    PHASES.forEach(p => { p.startStep = acc + 1; acc += p.steps; });
+
+    function buildRail(rail) {
+      const currentName = rail.dataset.current;
+      const doneInPhase = parseInt(rail.dataset.doneInPhase, 10);
+      const curIdx = PHASES.findIndex(p => p.name === currentName);
+      const curPhase = PHASES[curIdx];
+
+      // absolute step number the ticker points at (1-based, within the route)
+      const tickerStep = curPhase.startStep + (doneInPhase - 1);
+
+      // --- bubbles row ---
+      const bubbles = document.createElement('div');
+      bubbles.className = 'bubbles';
+
+      PHASES.forEach((p, i) => {
+        const b = document.createElement('div');
+        b.className = 'bubble ' + (i < curIdx ? 'done' : i === curIdx ? 'current' : 'future');
+
+        // proportional sizing via flex. flex-basis 0 + grow = step count gives
+        // each bubble width ∝ its step count when there's room.
+        b.style.flexGrow = String(p.steps);
+        b.style.flexBasis = '0';
+
+        if (i === curIdx) {
+          // EXPAND-ON-OVERFLOW: guarantee min width = steps * MIN_PITCH so all
+          // split cells render at a legible pitch and never spill the edge.
+          b.style.minWidth = (p.steps * MIN_PITCH) + 'px';
+          b.style.flexShrink = '0';
+        } else {
+          // neighbours yield: allow them to shrink below proportional and ellipsize
+          b.style.flexShrink = '1';
+        }
+
+        // split-cell layer — only on the CURRENT bubble (past=none, future=none)
+        if (i === curIdx) {
+          const splits = document.createElement('div');
+          splits.className = 'splits';
+          for (let s = 0; s < p.steps; s++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            splits.appendChild(cell);
+          }
+          b.appendChild(splits);
+
+          // the solid teal progress fill = done fraction of this bubble's width.
+          // The boundary edge IS the ticker seam. We position by step fraction:
+          // doneInPhase steps completed out of phase steps.
+          const fill = document.createElement('div');
+          fill.className = 'fill';
+          const frac = doneInPhase / p.steps;
+          fill.style.width = (frac * 100) + '%';
+          b.appendChild(fill);
+        }
+
+        const name = document.createElement('span');
+        name.className = 'pname';
+        name.textContent = p.name;
+        b.appendChild(name);
+
+        bubbles.appendChild(b);
+        p._el = b;
+      });
+
+      rail.appendChild(bubbles);
+
+      // --- ticker gutter ---
+      const gutter = document.createElement('div');
+      gutter.className = 'ticker-gutter';
+      gutter.innerHTML =
+        '<div class="baseline"></div>' +
+        '<div class="cap start"><span class="nub"></span>01</div>' +
+        '<div class="cap end"><span class="nub"></span>120</div>';
+
+      const marker = document.createElement('div');
+      marker.className = 'marker';
+      marker.innerHTML =
+        '<span class="nib"></span>' +
+        '<span class="num">' + String(tickerStep).padStart(2, '0') +
+        ' <span class="of">/ 120</span></span>';
+      gutter.appendChild(marker);
+
+      const seam = document.createElement('div');
+      seam.className = 'seam';
+      gutter.appendChild(seam);
+
+      rail.appendChild(gutter);
+
+      // After layout settles, position the marker + seam at the ticker step,
+      // which is the progress boundary WITHIN the current bubble. Reading real
+      // geometry keeps it aligned even when the bubble has expanded.
+      requestAnimationFrame(() => {
+        const railBox = rail.getBoundingClientRect();
+        const curBox = curPhase._el.getBoundingClientRect();
+        const frac = doneInPhase / curPhase.steps; // fill boundary fraction
+        const x = (curBox.left - railBox.left) + frac * curBox.width;
+        marker.style.left = x + 'px';
+        seam.style.left = x + 'px';
+      });
+    }
+
+    document.querySelectorAll('[data-rail]').forEach(buildRail);
+    // reposition markers on resize so geometry-derived alignment holds
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('[data-rail]').forEach(rail => {
+        rail.innerHTML = '';
+        buildRail(rail);
+      });
+    });
+  </script>
+</body>
+</html>

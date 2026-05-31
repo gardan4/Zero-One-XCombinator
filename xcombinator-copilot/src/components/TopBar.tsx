@@ -5,18 +5,17 @@ interface Props {
   family: Family
   onFamily: (f: Family) => void
   onImport: () => void
-  live: boolean
   theme: 'dark' | 'light'
   onToggleTheme: () => void
 }
 
-export default function TopBar({ family, onFamily, onImport, live, theme, onToggleTheme }: Props) {
+export default function TopBar({ family, onFamily, onImport, theme, onToggleTheme }: Props) {
   return (
     <header className="topbar glass">
       <div className="wordmark">
         <span className="mark-dot" />
         <span className="name">XCombinator</span>
-        <span className="tag">Fab Process Copilot</span>
+        <span className="tag">Process Copilot</span>
       </div>
 
       <div className="spacer" />
@@ -61,12 +60,6 @@ export default function TopBar({ family, onFamily, onImport, live, theme, onTogg
           </svg>
         )}
       </button>
-
-      <div className={`status-pill${live ? ' is-live' : ''}`}>
-        <span className="dot" />
-        {live ? 'Live · model' : 'Simulated'}
-        {!live && <span className="future">Live · model</span>}
-      </div>
     </header>
   )
 }

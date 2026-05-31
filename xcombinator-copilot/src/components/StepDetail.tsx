@@ -6,7 +6,6 @@ interface Props {
   step: string
   idx: number
   total: number
-  phaseName: string
   category: Category
   description: string | null
   prediction: Prediction | null
@@ -16,7 +15,7 @@ interface Props {
   complete: boolean
 }
 
-export default function StepDetail({ step, idx, total, phaseName, category, description, prediction, rule, fraction, isHead, complete }: Props) {
+export default function StepDetail({ step, idx, total, category, description, prediction, rule, fraction, isHead, complete }: Props) {
   const pct = Math.round(Math.min(1, fraction) * 100)
   return (
     <aside className="detail glass">
@@ -32,7 +31,7 @@ export default function StepDetail({ step, idx, total, phaseName, category, desc
 
       <div className="d-token mono">{step}</div>
       <div className="d-pos mono">
-        step <b>{idx + 1}</b> / {total} · {phaseName} phase
+        step <b>{idx + 1}</b> / {total} · {category}
       </div>
 
       <div className="divider" />
@@ -43,14 +42,6 @@ export default function StepDetail({ step, idx, total, phaseName, category, desc
           <div className="d-desc">{description}</div>
         </div>
       )}
-
-      <div className="d-row">
-        <div className="d-label">Category</div>
-        <span className="d-cat">
-          <span className="cd" />
-          {category}
-        </span>
-      </div>
 
       {isHead && prediction && !complete && (
         <div className="d-row">

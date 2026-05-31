@@ -258,3 +258,4 @@ id_rsa*
 !.vscode/tasks.json
 !.vscode/extensions.json
 data/generated_scale/
+.gstack/
