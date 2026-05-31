@@ -58,9 +58,12 @@ function main() {
     (s) => s !== finSlug && (index[s].predictor === "ngram" || (index[s].tags || []).includes("role:baseline")),
   );
 
+  // Some promoted slugs (e.g. submission-CSV drops like `kickoff-final`) ship only proxy_report.json
+  // and have no metrics_report.json — tolerate that instead of crashing the whole build.
+  const hasMetrics = (slug) => existsSync(resolve(repoRoot, index[slug].path, "metrics_report.json"));
   const loadSlug = (slug) => {
-    const dir = resolve(repoRoot, index[slug].path);
-    return loadJson(resolve(dir, "metrics_report.json"));
+    const p = resolve(repoRoot, index[slug].path, "metrics_report.json");
+    return existsSync(p) ? loadJson(p) : {};
   };
   const metrics = (slug) => {
     const t = loadSlug(slug).tasks || {};
@@ -84,7 +87,7 @@ function main() {
     };
   };
 
-  const finetunedSlugs = slugs.filter(isFinetuned);
+  const finetunedSlugs = slugs.filter((s) => isFinetuned(s) && hasMetrics(s));
   const bestOver = (task, key) => {
     let m = null;
     for (const s of finetunedSlugs) {
