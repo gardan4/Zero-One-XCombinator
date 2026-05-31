@@ -28,6 +28,8 @@
   --fill-weak: rgba(255, 255, 255, 0.022);
   --fill-faint: rgba(255, 255, 255, 0.014);
   --fill-2: rgba(255, 255, 255, 0.06);
+  --track-empty: rgba(255, 255, 255, 0.08);
+  --cell-line: rgba(255, 255, 255, 0.22);
   --border-hover: rgba(255, 255, 255, 0.16);
 
   --node-ring: rgba(167, 175, 186, 0.5);
@@ -89,6 +91,8 @@
   --fill-weak: rgba(12, 33, 39, 0.03);
   --fill-faint: rgba(12, 33, 39, 0.02);
   --fill-2: rgba(12, 33, 39, 0.08);
+  --track-empty: rgba(12, 33, 39, 0.05);
+  --cell-line: rgba(12, 33, 39, 0.18);
   --border-hover: rgba(12, 33, 39, 0.2);
 
   --node-ring: rgba(70, 92, 104, 0.5);
@@ -232,30 +236,9 @@ button { font-family: inherit; }
 .track-fade.l { left: 0; background: linear-gradient(90deg, var(--bg-panel) 12%, transparent); }
 .track-fade.r { right: 0; background: linear-gradient(270deg, var(--bg-panel) 12%, transparent); }
 
-.r-conn { flex: 0 0 auto; width: 16px; height: 1px; background: var(--schematic); }
-.r-conn.live { width: 22px; background: linear-gradient(90deg, var(--schematic), var(--teal-line)); }
-.r-conn.future { width: 18px; background: var(--schematic-soft); }
-
-.r-anchor { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; padding-right: 2px; }
-.r-anchor .a-cap { font-size: 8.5px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4); }
-.r-anchor .a-step { font-size: 10px; color: var(--ink-3); display: flex; align-items: center; gap: 7px; white-space: nowrap; }
-.r-anchor .a-step::before { content: ''; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ink-4); background: var(--bg-deep); }
-
-.r-chip { flex: 0 0 auto; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; background: var(--bg-pill); border: 1px solid var(--hair); border-radius: var(--r-md); padding: 8px 12px; cursor: pointer; transition: all 0.16s; box-shadow: inset 0 1px 0 var(--hi-top); }
-.r-chip:hover { border-color: var(--border-hover); background: var(--fill-hover); transform: translateY(-1px); }
-.r-chip .pc-name { font-size: 10.5px; font-weight: 500; color: var(--ink-1); white-space: nowrap; }
-.r-chip .pc-meta { font-size: 9px; font-weight: 450; color: var(--ink-3); letter-spacing: 0.04em; }
-.r-chip.current { border-color: var(--teal-line); background: linear-gradient(180deg, var(--teal-soft), var(--teal-faint)); }
-.r-chip.current .pc-name { color: var(--teal); }
-
-.r-expanded { flex: 0 0 auto; position: relative; padding: 28px 14px 10px; margin: 0 2px; }
-.r-expanded::before { content: ''; position: absolute; top: 18px; left: 4px; right: 4px; bottom: 2px; border: 1px solid var(--teal-faint); border-radius: var(--r-lg); background: linear-gradient(180deg, var(--teal-soft), transparent 60%); pointer-events: none; opacity: 0.5; }
-.r-phase-label { position: absolute; top: 4px; left: 18px; font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal); display: flex; align-items: center; gap: 8px; z-index: 1; }
-.r-phase-label .lbl-line { width: 20px; height: 1px; background: var(--teal-line); }
-.r-phase-label .r-trunc { color: var(--ink-3); text-transform: none; letter-spacing: 0.02em; font-size: 9px; padding-left: 8px; border-left: 1px solid var(--hair-soft); }
-
-.r-steps { position: relative; display: flex; align-items: flex-start; padding-top: 26px; }
-.r-steps::before { content: ''; position: absolute; left: 42px; right: 50px; top: 33px; height: 1px; background: var(--schematic); z-index: 0; }
+/* flat step strip: every step as a node on one continuous bus line */
+.r-flat { position: relative; display: flex; align-items: flex-start; padding: 26px 8px 4px; }
+.r-flat::before { content: ''; position: absolute; left: 50px; right: 56px; top: 33px; height: 1px; background: var(--schematic); z-index: 0; }
 
 .r-step { flex: 0 0 84px; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 9px; background: none; border: none; cursor: pointer; padding: 0; position: relative; }
 .r-step .r-node { width: 14px; height: 14px; border-radius: 50%; background: var(--bg-deep); border: 1.5px solid var(--node-ring); box-shadow: inset 0 0 0 2px var(--node-inset); position: relative; z-index: 1; transition: all 0.16s; }
@@ -284,10 +267,6 @@ button { font-family: inherit; }
 .r-plabel { font-size: 8.6px; font-weight: 500; letter-spacing: 0.02em; color: var(--teal); text-align: center; line-height: 1.26; height: 31px; display: flex; align-items: center; justify-content: center; padding: 0 2px; }
 .r-pconf { font-size: 8.5px; font-weight: 450; color: var(--ink-1); background: var(--teal-soft); border: 1px solid var(--teal-line); border-radius: var(--r-pill); padding: 1px 8px; }
 
-.r-future { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding-left: 2px; }
-.r-future-chip { display: inline-flex; align-items: center; gap: 8px; font-size: 10.5px; font-weight: 450; color: var(--ink-3); border: 1px dashed var(--hair-soft); border-radius: var(--r-sm); padding: 7px 11px; opacity: 0.6; white-space: nowrap; }
-.r-future-chip .fc-conn { width: 8px; height: 1px; background: var(--schematic-soft); margin: 0 -2px 0 -10px; }
-
 /* ============================ full-route rail ============================ */
 .flow-rail { flex: 0 0 auto; margin-top: auto; padding-top: 18px; border-top: 1px solid var(--hair-soft); }
 .rail-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
@@ -295,28 +274,13 @@ button { font-family: inherit; }
 .rail-sub { font-size: 10.5px; color: var(--ink-3); }
 .rail-sub b { color: var(--ink-1); font-weight: 450; }
 
-/* a scrollable row of phase chips; each chip hugs its own label so titles
-   stay legible, only the current phase expands into a per-step meter */
-.rail { display: flex; align-items: stretch; gap: 6px; height: 42px; padding: 5px 6px; border-radius: 10px; border: 1px solid var(--hair); background: var(--fill-faint); overflow-x: auto; scrollbar-width: none; }
-.rail::-webkit-scrollbar { display: none; }
-.rc { position: relative; flex: 0 0 auto; display: flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 7px; white-space: nowrap; }
-.rc .rc-name { font-size: 10px; font-weight: 500; letter-spacing: 0.02em; }
-.rc .rc-meta { font-size: 9px; opacity: 0.7; }
-
-.rc.done { background: var(--fill-weak); }
-.rc.done .rc-name { color: var(--ink-2); }
-.rc.done .rc-meta { color: var(--ink-3); }
-.rc.future { background: transparent; opacity: 0.55; }
-.rc.future .rc-name { color: var(--ink-3); }
-.rc.future .rc-meta { color: var(--ink-4); }
-
-/* current = per-step meter that expands so its splits never crush */
-.rc.current { overflow: hidden; background: var(--teal-faint); box-shadow: inset 0 0 0 1px var(--teal-line); }
-.rc.current .rc-name { position: relative; z-index: 3; color: var(--teal); font-weight: 500; }
-.rc.current .rc-meta { position: relative; z-index: 3; color: var(--teal); opacity: 0.8; }
-.rc.current .rc-fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--fill); z-index: 0; background: linear-gradient(180deg, var(--teal-soft), var(--teal-faint)); }
-.rc.current::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image: repeating-linear-gradient(90deg, var(--teal-line) 0 1px, transparent 1px calc(100% / var(--cells))); opacity: 0.4; }
-.rc.current .rc-seam { position: absolute; top: 0; bottom: 0; left: var(--fill); width: 2px; transform: translateX(-1px); z-index: 2; background: var(--teal-bright); box-shadow: 0 0 8px var(--teal-glow); }
+/* one single progress bar: a neutral track split into one cell per step of the
+   family's process, filling with teal as the route advances (no phases) */
+.meter { position: relative; height: 42px; border-radius: 10px; border: 1px solid var(--hair); background: var(--track-empty); overflow: hidden; cursor: pointer; }
+.meter .m-fill { position: absolute; left: 0; top: 0; bottom: 0; width: var(--fill); z-index: 0; background: linear-gradient(180deg, var(--teal-soft), var(--teal-faint)); transition: width 0.25s ease; }
+.meter::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; background-image: repeating-linear-gradient(90deg, var(--cell-line) 0 1px, transparent 1px calc(100% / var(--cells))); }
+.meter .m-seam { position: absolute; top: 0; bottom: 0; left: var(--fill); width: 2px; transform: translateX(-1px); z-index: 2; background: var(--teal-bright); box-shadow: 0 0 8px var(--teal-glow); transition: left 0.25s ease; }
+.meter .m-sel { position: absolute; top: 0; bottom: 0; width: 2px; transform: translateX(-1px); z-index: 3; background: var(--ink-0); box-shadow: 0 0 6px rgba(255, 255, 255, 0.35); }
 
 /* ============================ control bar ============================ */
 .control-bar { flex: 0 0 auto; padding: 16px 22px; display: flex; align-items: center; gap: 16px; }

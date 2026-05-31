@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Family, Prediction } from './types'
 import { defaultSample, describe, expectedLength } from './lib/data'
-import { segmentRoute, buildRoadmap, categoryOf } from './lib/grammar'
+import { categoryOf } from './lib/grammar'
 import { validateRoute, ruleForStep } from './lib/rules'
 import { predictNextStep, LIVE } from './lib/model'
 import TopBar from './components/TopBar'
@@ -19,7 +19,6 @@ export default function App() {
   const [prediction, setPrediction] = useState<Prediction | null>(null)
   const [predicting, setPredicting] = useState(false)
   const [selOverride, setSelOverride] = useState<number | null>(null) // null = follow head
-  const [expOverride, setExpOverride] = useState<number | null>(null) // null = follow head phase
   const [importOpen, setImportOpen] = useState(false)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
@@ -30,14 +29,9 @@ export default function App() {
   })
   const token = useRef(0)
 
-  const phases = useMemo(() => segmentRoute(steps), [steps])
   const violations = useMemo(() => validateRoute(steps), [steps])
-  const roadmap = useMemo(() => buildRoadmap(family), [family])
 
   const headIdx = steps.length - 1
-  const headPhase = phases[phases.length - 1]
-  const headPhaseIndex = headPhase?.index ?? 0
-  const expandedIndex = expOverride ?? headPhaseIndex
   const selectedIdx = Math.min(selOverride ?? headIdx, steps.length - 1)
   const complete = steps[headIdx] === 'SHIP LOT'
   const total = expectedLength(family)
@@ -75,7 +69,6 @@ export default function App() {
     setSteps(seq)
     setRouteLabel(label)
     setSelOverride(null)
-    setExpOverride(null)
     setImportOpen(false)
     runPredict(fam, seq)
   }
@@ -96,18 +89,15 @@ export default function App() {
     const next = [...steps, prediction.step]
     setSteps(next)
     setSelOverride(null)
-    setExpOverride(null)
     runPredict(family, next)
   }
 
-  function onExpandPhase(phaseIndex: number) {
-    setExpOverride(phaseIndex)
-    const p = phases.find((x) => x.index === phaseIndex)
-    if (p) setSelOverride(p.steps[p.steps.length - 1].idx)
+  // select a step (from a route node click or a progress-bar seek)
+  function onSelectStep(stepIdx: number) {
+    setSelOverride(Math.max(0, Math.min(stepIdx, headIdx)))
   }
 
   const selStep = steps[selectedIdx]
-  const selPhase = phases.find((p) => p.steps.some((s) => s.idx === selectedIdx))
   const stepRule = useMemo(() => ruleForStep(steps, selectedIdx, violations), [steps, selectedIdx, violations])
   const detailFraction = Math.min(1, (selectedIdx + 1) / total)
 
@@ -141,25 +131,21 @@ export default function App() {
             </div>
 
             <ProcessRoute
-              phases={phases}
+              steps={steps}
               headIdx={headIdx}
-              headPhaseIndex={headPhaseIndex}
-              expandedIndex={expandedIndex}
               selectedIdx={selectedIdx}
               prediction={prediction}
               predicting={predicting}
-              roadmap={roadmap}
               violations={violations}
-              onSelectStep={(i) => setSelOverride(i)}
-              onExpandPhase={onExpandPhase}
+              onSelectStep={onSelectStep}
             />
 
             <FullRouteRail
-              roadmap={roadmap}
-              phases={phases}
-              headPhaseIndex={headPhaseIndex}
-              expectedTotal={total}
-              currentCount={steps.length}
+              total={total}
+              done={steps.length}
+              selectedIdx={selectedIdx}
+              headIdx={headIdx}
+              onSeek={onSelectStep}
             />
           </div>
 
@@ -170,7 +156,6 @@ export default function App() {
           step={selStep}
           idx={selectedIdx}
           total={total}
-          phaseName={selPhase?.name ?? '—'}
           category={categoryOf(selStep)}
           description={describe(selStep)}
           prediction={prediction}

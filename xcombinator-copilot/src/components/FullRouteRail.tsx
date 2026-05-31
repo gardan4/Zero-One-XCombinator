@@ -1,78 +1,45 @@
-import { useEffect, useRef, type CSSProperties } from 'react'
-import type { Phase, RoadmapPhase } from '../lib/grammar'
+import { useRef, type CSSProperties, type MouseEvent } from 'react'
 
 interface Props {
-  roadmap: RoadmapPhase[]
-  phases: Phase[]
-  headPhaseIndex: number
-  expectedTotal: number
-  currentCount: number
+  total: number // expected steps for the family = number of cells
+  done: number // steps completed so far
+  selectedIdx: number // currently selected step
+  headIdx: number // last completed step index (max selectable)
+  onSeek: (stepIdx: number) => void
 }
 
-export default function FullRouteRail({ roadmap, phases, headPhaseIndex, expectedTotal, currentCount }: Props) {
-  const railRef = useRef<HTMLDivElement>(null)
-  const curRef = useRef<HTMLDivElement>(null)
+export default function FullRouteRail({ total, done, selectedIdx, headIdx, onSeek }: Props) {
+  const meterRef = useRef<HTMLDivElement>(null)
+  const cells = Math.max(1, total)
+  const filled = Math.min(done, cells)
+  const fillPct = (filled / cells) * 100
+  const selPct = ((Math.min(selectedIdx, headIdx) + 0.5) / cells) * 100
+  const showSel = selectedIdx !== headIdx && selectedIdx >= 0 && selectedIdx <= headIdx
 
-  // keep the current phase centred as the route advances and the row scrolls
-  useEffect(() => {
-    const wrap = railRef.current
-    const el = curRef.current
-    if (!wrap || !el) return
-    const wr = wrap.getBoundingClientRect()
-    const er = el.getBoundingClientRect()
-    wrap.scrollBy({ left: er.left - wr.left - wrap.clientWidth * 0.4, behavior: 'smooth' })
-  }, [headPhaseIndex, currentCount])
+  // click anywhere on the bar to seek to that step (locked beyond the head)
+  function handleClick(e: MouseEvent<HTMLDivElement>) {
+    const el = meterRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const idx = Math.floor(((e.clientX - r.left) / r.width) * cells)
+    onSeek(Math.max(0, Math.min(idx, headIdx)))
+  }
 
-  const curRoadmap = roadmap.find((r) => r.index === headPhaseIndex)
-  const future = roadmap.filter((r) => r.index > headPhaseIndex)
+  const style = { '--cells': cells, '--fill': `${fillPct}%` } as CSSProperties
 
   return (
     <div className="flow-rail">
       <div className="rail-head">
         <span className="rail-title">Full route</span>
         <span className="rail-sub mono">
-          RECEIVE WAFER LOT <b>→</b> SHIP LOT &nbsp;·&nbsp; ~{expectedTotal} steps expected
+          RECEIVE WAFER LOT <b>→</b> SHIP LOT &nbsp;·&nbsp; {done} / ~{total} steps
         </span>
       </div>
 
-      <div className="rail" ref={railRef}>
-        {phases.map((p) => {
-          // past + current phases: real, observed step counts
-          if (p.index === headPhaseIndex) {
-            const expected = Math.max(1, Math.round(curRoadmap?.weight ?? p.steps.length))
-            const done = p.steps.length
-            const cells = Math.max(expected, done, 1)
-            const fillPct = Math.min(100, (done / cells) * 100)
-            const pitch = cells > 22 ? 7 : 10
-            const style = {
-              minWidth: `${cells * pitch + 14}px`,
-              '--cells': cells,
-              '--fill': `${fillPct}%`,
-            } as CSSProperties
-            return (
-              <div key={p.index} className="rc current" ref={curRef} style={style}>
-                <span className="rc-fill" />
-                <span className="rc-seam" />
-                <span className="rc-name">{p.name}</span>
-                <span className="rc-meta mono">{currentCount}</span>
-              </div>
-            )
-          }
-          return (
-            <div key={p.index} className="rc done">
-              <span className="rc-name">{p.name}</span>
-              <span className="rc-meta mono">{p.steps.length}</span>
-            </div>
-          )
-        })}
-
-        {/* future phases: expected sequence, estimated counts */}
-        {future.map((f) => (
-          <div key={f.index} className="rc future">
-            <span className="rc-name">{f.name}</span>
-            <span className="rc-meta mono">~{f.weight}</span>
-          </div>
-        ))}
+      <div className="meter" ref={meterRef} style={style} onClick={handleClick}>
+        <span className="m-fill" />
+        <span className="m-seam" />
+        {showSel && <span className="m-sel" style={{ left: `${selPct}%` }} />}
       </div>
     </div>
   )
