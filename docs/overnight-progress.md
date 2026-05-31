@@ -39,7 +39,16 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
 - [ ] **NEXT: scale-100 (43146520) done → validate JSON eval** then `pull_promote_scale.sh 100`. Confirm scorer gives sane top1/block_acc AND anomaly f1 > 0 (balanced+CoT corpus should fix the old f1=0).
 - [x] Stage base 0.5B/3B — DONE (in hf-local). Size configs created: leonardo_sft_fab_instruct_{0_5b,3b}.yaml. TODO: submit them --no-prep (after scale-100 eval validates). For the size panel, eval --tags must include model-size:0.5b / model-size:1.5b / model-size:3b (tag the canonical best eval with model-size:1.5b too).
 - [ ] Eval every checkpoint (judge-eval --no-prep) + promote → extras/results/INDEX.json.
-- [ ] Dashboard: infineon-results-dashboard build-results.mjs reads INDEX.json → base-vs-best; EXTEND for scaling + size panels (the storyline).
+- [x] Dashboard DATA layer DONE: infineon-results-dashboard/scripts/build-results.mjs now emits
+  `scaling[]` (data-size:N) + `modelSize[]` (model-size:Xb); headline 'best' excludes scaling points.
+  Stale raw entries dropped from INDEX. Regenerate anytime: `node infineon-results-dashboard/scripts/build-results.mjs`.
+- [ ] Dashboard FRONTEND panels: public/app.js renderDashboard() renders base-vs-best compare tables
+  (renderCompare). ADD renderScaling() + renderModelSize() reading RESULTS.scaling / RESULTS.modelSize
+  (line charts or compare tables) + containers in public/index.html + styles. Build when real model
+  data lands (so panels are verified with actual numbers, not underfit scale-100).
+- [ ] BATCH-EVAL when best-waiter fires: ls completed checkpoints in zo-experiments, judge-eval each:
+  best→slug hf-sft-instruct-all tags(...,model-size:1.5b); scale 300/800/2000→hf-sft-scale-N tags(...,scale,data-size:N);
+  0.5b/3b→hf-sft-{0_5b,3b} tags(...,model-size:{0.5b,3b}). Then pull+promote, rebuild build-results, build frontend panels.
 - [ ] Update scripts/serve_copilot_mac.py to JSON framing (build_messages + parse steps[0]); pscp best ckpt to ~/zo-models; verify live demo from Mac.
 
 ## Active background waiters
