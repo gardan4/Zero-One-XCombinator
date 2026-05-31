@@ -1,0 +1,136 @@
+{
+  "version": "sft-scale-instruct-100-v2",
+  "predictor": "hf",
+  "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8/artifacts",
+  "eval_set": "local",
+  "tags": [
+    "version:sft-scale-instruct-100-v2",
+    "predictor:hf",
+    "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8--artifacts",
+    "eval-set:local",
+    "train-run:20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8",
+    "real-run",
+    "reportable",
+    "role:finetuned",
+    "split:id",
+    "family:MOSFET",
+    "scale",
+    "data-size:100"
+  ],
+  "tasks": {
+    "nextstep": {
+      "by_family": {
+        "overall": {
+          "n": 200,
+          "top1": 0.365,
+          "top3": 0.365,
+          "top5": 0.365,
+          "mrr": 0.365
+        },
+        "MOSFET": {
+          "n": 200,
+          "top1": 0.365,
+          "top3": 0.365,
+          "top5": 0.365,
+          "mrr": 0.365
+        }
+      }
+    },
+    "completion": {
+      "by_family": {
+        "overall": {
+          "n": 200,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.9948806130870338,
+          "token_acc": 0.145,
+          "block_acc": 0.345
+        },
+        "MOSFET": {
+          "n": 200,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.9948806130870338,
+          "token_acc": 0.145,
+          "block_acc": 0.345
+        }
+      }
+    },
+    "anomaly": {
+      "by_family": {
+        "overall": {
+          "n": 200,
+          "binary_acc": 0.5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 100,
+            "fn": 100
+          },
+          "roc_auc": 0.5,
+          "rule_attribution_acc": null,
+          "per_rule_detection": {
+            "RULE_BACKSIDE_BEFORE_PASSIVATION": 0.0,
+            "RULE_CMP_NO_DEP": 0.0,
+            "RULE_DEP_NO_CLEAN": 0.0,
+            "RULE_ETCH_NO_MASK": 0.0,
+            "RULE_IMPLANT_NO_MASK": 0.0,
+            "RULE_LITHO_LEVEL_SKIP": 0.0,
+            "RULE_PAD_OPEN_BEFORE_DEP": 0.0,
+            "RULE_SHIP_BEFORE_TEST": 0.0,
+            "RULE_TEST_BEFORE_PASSIVATION": 0.0
+          }
+        },
+        "MOSFET": {
+          "n": 200,
+          "binary_acc": 0.5,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "confusion": {
+            "tp": 0,
+            "fp": 0,
+            "tn": 100,
+            "fn": 100
+          },
+          "roc_auc": 0.5,
+          "rule_attribution_acc": null,
+          "per_rule_detection": {
+            "RULE_BACKSIDE_BEFORE_PASSIVATION": 0.0,
+            "RULE_CMP_NO_DEP": 0.0,
+            "RULE_DEP_NO_CLEAN": 0.0,
+            "RULE_ETCH_NO_MASK": 0.0,
+            "RULE_IMPLANT_NO_MASK": 0.0,
+            "RULE_LITHO_LEVEL_SKIP": 0.0,
+            "RULE_PAD_OPEN_BEFORE_DEP": 0.0,
+            "RULE_SHIP_BEFORE_TEST": 0.0,
+            "RULE_TEST_BEFORE_PASSIVATION": 0.0
+          }
+        }
+      }
+    }
+  },
+  "metric_keys": {
+    "nextstep": [
+      "top1",
+      "top3",
+      "top5",
+      "mrr"
+    ],
+    "completion": [
+      "exact_match",
+      "norm_edit_dist",
+      "token_acc",
+      "block_acc"
+    ],
+    "anomaly": [
+      "binary_acc",
+      "precision",
+      "recall",
+      "f1",
+      "roc_auc",
+      "rule_attribution_acc"
+    ]
+  }
+}

@@ -184,5 +184,39 @@
       "examples.jsonl"
     ],
     "promoted_at": "2026-05-30T21:00:47.486810+00:00"
+  },
+  "hf-sft-scale-100": {
+    "path": "extras/results/hf-sft-scale-100",
+    "run_id": "20260530_235321_eval_judge-eval-sft-scale-instruct-100-v2_958f26",
+    "version": "sft-scale-instruct-100-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8/artifacts",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-scale-instruct-100-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8--artifacts",
+      "eval-set:local",
+      "train-run:20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "scale",
+      "data-size:100"
+    ],
+    "train_run_id": "20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-30T23:56:46.128063+00:00"
   }
 }

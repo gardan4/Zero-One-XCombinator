@@ -20,7 +20,12 @@ Deadline 10:00. Gotchas in memory `zero-one-instruct-redo.md`. **After any corpu
 | scale 100 (1.5B) | leonardo_sft_scale_instruct_100.yaml | 43146520 | submitted | hf-sft-scale-100 |
 | scale 300 (1.5B) | leonardo_sft_scale_instruct_300.yaml | 43146530 | submitted | hf-sft-scale-300 |
 | scale 800 (1.5B) | leonardo_sft_scale_instruct_800.yaml | 43146539 | submitted | hf-sft-scale-800 |
-| scale 2000 (1.5B) | leonardo_sft_scale_instruct_2000.yaml | 43146546 | submitted | hf-sft-scale-2000 |
+| scale 2000 (1.5B) | leonardo_sft_scale_instruct_2000.yaml | 43146546 | RUNNING | hf-sft-scale-2000 |
+| size 0.5B | leonardo_sft_fab_instruct_0_5b.yaml | 43147368 | RUNNING | hf-sft-0_5b (tag model-size:0.5b) |
+| size 3B | leonardo_sft_fab_instruct_3b.yaml | 43147369 | RUNNING (watch OOM) | hf-sft-3b (tag model-size:3b) |
+| scale 100 (DONE,evaled) | — | 43146520 | EVALED: ns0.365 cp0.345 an-f1:0 (underfit) | hf-sft-scale-100 |
+
+**Best-model waiter armed (43146516).** When it fires → batch-eval everything COMPLETED (best + scale 300/800/2000 + 0.5B, maybe 3B). Eval cmd per model: `uv run zo-cluster judge-eval --local --no-prep --model <ckpt> --predictor hf --version <slug>-v2 --eval-dir extras/eval_local/MOSFET --tags real-run,reportable,role:finetuned,split:id,family:MOSFET[,scale,data-size:N | ,model-size:X] --train-run <rid> --promote <slug>` then `pull_promote_scale.sh`-style pull. Tag the BEST eval with model-size:1.5b (so it anchors the size panel too). Until it fires: BUILD THE DASHBOARD (infineon-results-dashboard build-results.mjs + results.js → add scaling[] + modelSize[] panels + storyline).
 | size 0.5B | (todo: leonardo_sft_fab_instruct_0_5b.yaml) | - | needs base staged | hf-sft-0_5b |
 | size 3B | (todo: leonardo_sft_fab_instruct_3b.yaml) | - | needs base staged | hf-sft-3b |
 | size 7B | (todo, if feasible) | - | needs base staged | hf-sft-7b |
@@ -32,7 +37,7 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
 - [x] Fixed corpus delivery (ship_corpora.sh), GPU env (uv sync --extra gpu), sbatch race (--no-sync templates).
 - [x] Best + 4 scaling RUNNING cleanly on correct JSON corpora (round-2 jobs in table). scale-100 ~5min.
 - [ ] **NEXT: scale-100 (43146520) done → validate JSON eval** then `pull_promote_scale.sh 100`. Confirm scorer gives sane top1/block_acc AND anomaly f1 > 0 (balanced+CoT corpus should fix the old f1=0).
-- [ ] Stage base 0.5B/3B (/7B) — restarted, /tmp/stage_models.log → STAGING_DONE. Then size configs (copy instruct config, swap model path), submit --no-prep.
+- [x] Stage base 0.5B/3B — DONE (in hf-local). Size configs created: leonardo_sft_fab_instruct_{0_5b,3b}.yaml. TODO: submit them --no-prep (after scale-100 eval validates). For the size panel, eval --tags must include model-size:0.5b / model-size:1.5b / model-size:3b (tag the canonical best eval with model-size:1.5b too).
 - [ ] Eval every checkpoint (judge-eval --no-prep) + promote → extras/results/INDEX.json.
 - [ ] Dashboard: infineon-results-dashboard build-results.mjs reads INDEX.json → base-vs-best; EXTEND for scaling + size panels (the storyline).
 - [ ] Update scripts/serve_copilot_mac.py to JSON framing (build_messages + parse steps[0]); pscp best ckpt to ~/zo-models; verify live demo from Mac.
@@ -42,7 +47,13 @@ Baselines (no training): n-gram (have: extras/results/baseline-ngram), zero-shot
 - base-model staging on cluster (/tmp/stage_models.log).
 
 ## Eval results collected (fill as evals complete)
-(none yet)
+- **JSON eval pipeline VALIDATED** (43146973): scorer parses correctly (nextstep→list, completion→list,
+  anomaly→{is_valid,rule}). NOT an eval bug.
+- **hf-sft-scale-100** (100 seqs, 1 epoch): nextstep top1 **0.365**, completion block_acc 0.345
+  (norm_edit 0.995 — model emits only 1 step, didn't learn full suffix), anomaly f1 **0** (always valid).
+  → heavily UNDERFIT. NOTE: JSON+reasoning format is HARDER than the old pipe format (old 100/1ep got
+  0.69), so 1-epoch scaling underfits. WATCH: does the best (18k rows × 3 ep) emit full completions +
+  real anomaly? If the 1-epoch scaling curve is flat/underfit, bump scaling epochs to 2–3 and rerun.
 
 ## Discipline
 - DO NOT resubmit a job already in this table as RUNNING/COMPLETED. Check sacct first.

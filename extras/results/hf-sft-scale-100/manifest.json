@@ -1,0 +1,86 @@
+{
+  "run_id": "20260530_235321_eval_judge-eval-sft-scale-instruct-100-v2_958f26",
+  "version": "sft-scale-instruct-100-v2",
+  "predictor": "hf",
+  "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8/artifacts",
+  "eval_set": "local",
+  "tags": [
+    "version:sft-scale-instruct-100-v2",
+    "predictor:hf",
+    "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8--artifacts",
+    "eval-set:local",
+    "train-run:20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8",
+    "real-run",
+    "reportable",
+    "role:finetuned",
+    "split:id",
+    "family:MOSFET",
+    "scale",
+    "data-size:100"
+  ],
+  "train_run_id": "20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8",
+  "train_run": {
+    "id": "20260530_234544_sft_leonardo-sft-scale-instruct-100_cb9bc8",
+    "name": "leonardo-sft-scale-instruct-100",
+    "tags": [
+      "cluster",
+      "leonardo",
+      "sft",
+      "fab",
+      "instruct",
+      "scale",
+      "data-size:100",
+      "all-families"
+    ],
+    "config": {
+      "name": "leonardo-sft-scale-instruct-100",
+      "kind": "sft",
+      "model": "/leonardo_scratch/large/usertrain/a08trd0f/hf-local/Qwen2.5-1.5B-Instruct",
+      "dataset": "data/generated_scale/100/instruct_all.jsonl",
+      "dataset_split": "train",
+      "text_field": "messages",
+      "learning_rate": 1e-05,
+      "epochs": 1.0,
+      "batch_size": 4,
+      "grad_accum": 4,
+      "max_seq_len": 1024,
+      "warmup_ratio": 0.05,
+      "lora": false,
+      "lora_r": 16,
+      "lora_alpha": 32,
+      "lora_dropout": 0.05,
+      "bf16": true,
+      "seed": 42,
+      "output_dir": null,
+      "extra": {
+        "local_files_only": true,
+        "gradient_checkpointing": true,
+        "completion_only_loss": true,
+        "push_to_hub": false,
+        "base_model_hub_id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "tags": [
+          "leonardo",
+          "sft",
+          "fab",
+          "instruct",
+          "scale",
+          "data-size:100",
+          "all-families"
+        ]
+      }
+    }
+  },
+  "notes": null,
+  "valid_csv": "/leonardo/home/usertrain/a08trd0f/Zero-One-Philyr/extras/eval_local/MOSFET/eval_input_valid.csv",
+  "anomaly_csv": "/leonardo/home/usertrain/a08trd0f/Zero-One-Philyr/extras/eval_local/MOSFET/eval_input_anomaly.csv",
+  "gold": "/leonardo/home/usertrain/a08trd0f/Zero-One-Philyr/extras/eval_local/MOSFET/gold.json",
+  "artifacts": [
+    "anomaly.csv",
+    "completion.csv",
+    "examples.jsonl",
+    "metrics_report.json",
+    "metrics_report.md",
+    "nextstep.csv"
+  ],
+  "created_at": "2026-05-30T23:55:57.068195+00:00"
+}
