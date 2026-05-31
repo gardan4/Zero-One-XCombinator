@@ -1,0 +1,40 @@
+{
+  "run_id": "20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+  "version": "zeroshot-deepseek-v4-flash-mosfet40-v1",
+  "predictor": "llm-zeroshot",
+  "model_ref": "deepseek-ai/DeepSeek-V4-Flash",
+  "eval_set": "local",
+  "tags": [
+    "version:zeroshot-deepseek-v4-flash-mosfet40-v1",
+    "predictor:llm-zeroshot",
+    "model-ref:deepseek-ai--DeepSeek-V4-Flash",
+    "eval-set:local",
+    "real-run",
+    "reportable",
+    "family:MOSFET",
+    "eval-set:local-mosfet40",
+    "compare:baseline",
+    "split:id",
+    "role:baseline",
+    "method:rules-in-context",
+    "baseline:zeroshot",
+    "provider:featherless"
+  ],
+  "train_run_id": null,
+  "train_run": null,
+  "notes": "Full labeled proxy eval mosfet40 - DeepSeek zero-shot baseline",
+  "valid_csv": "extras\\eval_local_mosfet40\\eval_input_valid.csv",
+  "anomaly_csv": "extras\\eval_local_mosfet40\\eval_input_anomaly.csv",
+  "gold": "extras\\eval_local_mosfet40\\gold.json",
+  "artifacts": [
+    "anomaly.csv",
+    "completion.csv",
+    "examples.jsonl",
+    "metrics_report.json",
+    "metrics_report.md",
+    "nextstep.csv",
+    "official_scores.txt",
+    "ground_truth/"
+  ],
+  "created_at": "2026-05-31T06:11:24.290239+00:00"
+}

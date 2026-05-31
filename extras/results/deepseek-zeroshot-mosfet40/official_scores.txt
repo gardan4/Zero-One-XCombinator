@@ -1,0 +1,61 @@
+=== next-step ===
+
+============================================================
+EVAL RESULTS â€” NEXT-STEP PREDICTION
+============================================================
+Evaluated : 80/80 examples
+
+Top-1 Accuracy : 0.2375  (23.8%)
+Top-3 Accuracy : 0.2625  (26.2%)
+Top-5 Accuracy : 0.2625  (26.2%)
+MRR            : 0.2500
+
+By completion fraction:
+  0.6     Top-1: 0.2500  Top-3: 0.3000  Top-5: 0.3000  MRR: 0.2750
+  0.8     Top-1: 0.2250  Top-3: 0.2250  Top-5: 0.2250  MRR: 0.2250
+
+=== completion ===
+
+============================================================
+EVAL RESULTS â€” SEQUENCE COMPLETION
+============================================================
+Evaluated : 80/80 examples
+
+Mean Normalized Edit Distance : 0.8591  (lower is better)
+Exact Match Rate              : 0.0000  (0.0%)
+Mean Token Accuracy           : 0.0445  (4.4%)
+Mean Block-level Accuracy     : 0.1768  (17.7%)
+
+By completion fraction:
+  0.6     NED: 0.7781  Exact: 0.0000
+  0.8     NED: 0.9401  Exact: 0.0000
+
+=== anomaly ===
+  Supplemented with 40 valid examples from gt_anomaly_valid_supplement.csv
+
+============================================================
+EVAL RESULTS â€” ANOMALY DETECTION (FORBIDDEN PATTERNS)
+============================================================
+Evaluated       : 80/80 examples
+Ground-truth    : 40 invalid  /  40 valid
+
+Binary Accuracy : 0.5250  (52.5%)
+Precision (invalid class) : 0.7500
+Recall (invalid class)    : 0.0750
+F1 (invalid class)        : 0.1364
+Confusion Matrix (invalid as positive):
+  TP=3  FP=1
+  FN=37  TN=39
+ROC-AUC         : 0.5250  (requires --valid-supplement for meaningful value)
+Rule Attribution Accuracy : 0.6667  (among 3 correctly-detected invalid sequences)
+
+Detection rate by rule:
+  RULE_BACKSIDE_BEFORE_PASSIVATION          0.00  (0/7)
+  RULE_CMP_NO_DEP                           0.00  (0/2)
+  RULE_DEP_NO_CLEAN                         0.00  (0/2)
+  RULE_ETCH_NO_MASK                         0.00  (0/7)
+  RULE_IMPLANT_NO_MASK                      0.00  (0/1)
+  RULE_LITHO_LEVEL_SKIP                     0.20  (1/5)
+  RULE_PAD_OPEN_BEFORE_DEP                  0.00  (0/6)
+  RULE_SHIP_BEFORE_TEST                     0.33  (1/3)
+  RULE_TEST_BEFORE_PASSIVATION              0.14  (1/7)

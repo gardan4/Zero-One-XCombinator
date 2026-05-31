@@ -264,13 +264,13 @@
   },
   "hf-sft-scale-2000": {
     "path": "extras/results/hf-sft-scale-2000",
-    "run_id": "20260531_021808_eval_judge-eval-sft-scale-instruct-2000-v2_67bdf3",
-    "version": "sft-scale-instruct-2000-v2",
+    "run_id": "20260531_065555_eval_judge-eval-sft-scale-instruct-2000-local_3e8ce9",
+    "version": "sft-scale-instruct-2000-local-v3",
     "predictor": "hf",
     "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b/artifacts/checkpoint-2900",
     "eval_set": "local",
     "tags": [
-      "version:sft-scale-instruct-2000-v2",
+      "version:sft-scale-instruct-2000-local-v3",
       "predictor:hf",
       "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b--artifacts--checkpoint-2900",
       "eval-set:local",
@@ -291,10 +291,12 @@
       "anomaly.csv",
       "metrics_report.json",
       "metrics_report.md",
+      "official_scores.txt",
       "manifest.json",
-      "examples.jsonl"
+      "examples.jsonl",
+      "ground_truth/"
     ],
-    "promoted_at": "2026-05-31T02:23:14.351063+00:00"
+    "promoted_at": "2026-05-31T07:01:49.042623+00:00"
   },
   "hf-sft-instruct-all-IGBT": {
     "path": "extras/results/hf-sft-instruct-all-IGBT",
@@ -392,5 +394,112 @@
       "examples.jsonl"
     ],
     "promoted_at": "2026-05-31T06:07:11.408463+00:00"
+  },
+  "deepseek-zeroshot-mosfet40": {
+    "path": "extras/results/deepseek-zeroshot-mosfet40",
+    "run_id": "20260531_052650_eval_track-llm-zeroshot-zeroshot-deepseek-v4-_7af869",
+    "version": "zeroshot-deepseek-v4-flash-mosfet40-v1",
+    "predictor": "llm-zeroshot",
+    "model_ref": "deepseek-ai/DeepSeek-V4-Flash",
+    "eval_set": "local",
+    "tags": [
+      "version:zeroshot-deepseek-v4-flash-mosfet40-v1",
+      "predictor:llm-zeroshot",
+      "model-ref:deepseek-ai--DeepSeek-V4-Flash",
+      "eval-set:local",
+      "eval-set:local-mosfet40",
+      "real-run",
+      "reportable",
+      "role:baseline",
+      "baseline:zeroshot",
+      "method:rules-in-context",
+      "provider:featherless",
+      "split:id",
+      "family:MOSFET"
+    ],
+    "train_run_id": null,
+    "notes": "Featherless zero-shot; labeled mosfet40 proxy (n=80/task)",
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "official_scores.txt",
+      "manifest.json",
+      "examples.jsonl",
+      "ground_truth/"
+    ],
+    "promoted_at": "2026-05-31T08:45:00.000000+00:00"
+  },
+  "sft-instruct-all-local": {
+    "path": "extras/results/sft-instruct-all-local",
+    "run_id": "20260531_063038_eval_judge-eval-sft-instruct-all-local-v1_09dc1e",
+    "version": "sft-instruct-all-local-v1",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-instruct-all-local-v1",
+      "predictor:hf",
+      "eval-set:local",
+      "train-run:20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "method:instruct-sft",
+      "split:id",
+      "family:MOSFET",
+      "model-size:1.5b",
+      "provider:leonardo"
+    ],
+    "train_run_id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "notes": "Full labeled local eval (extras/eval_local gold, n=200/task)",
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "official_scores.txt",
+      "manifest.json",
+      "examples.jsonl",
+      "ground_truth/"
+    ],
+    "promoted_at": "2026-05-31T08:45:00.000000+00:00"
+  },
+  "qwen-zeroshot-local200": {
+    "path": "extras/results/qwen-zeroshot-local200",
+    "run_id": "20260531_064723_eval_judge-eval-zeroshot-qwen-1-5b-local200-v_f228f5",
+    "version": "zeroshot-qwen-1.5b-local200-v1",
+    "predictor": "llm-zeroshot",
+    "model_ref": "Qwen/Qwen2.5-1.5B-Instruct",
+    "eval_set": "local",
+    "tags": [
+      "version:zeroshot-qwen-1.5b-local200-v1",
+      "predictor:llm-zeroshot",
+      "model-ref:Qwen--Qwen2.5-1.5B-Instruct",
+      "eval-set:local",
+      "real-run",
+      "reportable",
+      "role:baseline",
+      "baseline:zeroshot",
+      "split:id",
+      "family:MOSFET",
+      "method:unified-json",
+      "model-size:1.5b-base",
+      "provider:leonardo"
+    ],
+    "train_run_id": null,
+    "notes": "Frozen Qwen2.5-1.5B-Instruct, llm-zeroshot unified JSON on eval_local/MOSFET gold-200",
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json"
+    ],
+    "promoted_at": "2026-05-31T08:55:00.000000+00:00"
   }
 }

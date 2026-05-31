@@ -1,0 +1,184 @@
+{
+  "version": "zeroshot-deepseek-v4-flash-mosfet40-v1",
+  "predictor": "llm-zeroshot",
+  "model_ref": "deepseek-ai/DeepSeek-V4-Flash",
+  "eval_set": "local",
+  "tags": [
+    "version:zeroshot-deepseek-v4-flash-mosfet40-v1",
+    "predictor:llm-zeroshot",
+    "model-ref:deepseek-ai--DeepSeek-V4-Flash",
+    "eval-set:local",
+    "real-run",
+    "reportable",
+    "family:MOSFET",
+    "eval-set:local-mosfet40",
+    "compare:baseline",
+    "split:id",
+    "role:baseline",
+    "method:rules-in-context",
+    "baseline:zeroshot",
+    "provider:featherless"
+  ],
+  "tasks": {
+    "nextstep": {
+      "by_family": {
+        "overall": {
+          "n": 80,
+          "top1": 0.2375,
+          "top3": 0.2625,
+          "top5": 0.2625,
+          "mrr": 0.25
+        },
+        "MOSFET": {
+          "n": 80,
+          "top1": 0.2375,
+          "top3": 0.2625,
+          "top5": 0.2625,
+          "mrr": 0.25
+        }
+      },
+      "by_cut": {
+        "overall": {
+          "n": 80,
+          "top1": 0.2375,
+          "top3": 0.2625,
+          "top5": 0.2625,
+          "mrr": 0.25
+        },
+        "frac60": {
+          "n": 40,
+          "top1": 0.25,
+          "top3": 0.3,
+          "top5": 0.3,
+          "mrr": 0.275
+        },
+        "frac80": {
+          "n": 40,
+          "top1": 0.225,
+          "top3": 0.225,
+          "top5": 0.225,
+          "mrr": 0.225
+        }
+      }
+    },
+    "completion": {
+      "by_family": {
+        "overall": {
+          "n": 80,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.859084094539283,
+          "token_acc": 0.04449089599800709,
+          "block_acc": 0.1767506149270182
+        },
+        "MOSFET": {
+          "n": 80,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.859084094539283,
+          "token_acc": 0.04449089599800709,
+          "block_acc": 0.1767506149270182
+        }
+      },
+      "by_cut": {
+        "overall": {
+          "n": 80,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.859084094539283,
+          "token_acc": 0.04449089599800709,
+          "block_acc": 0.1767506149270182
+        },
+        "frac60": {
+          "n": 40,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.7780556534660311,
+          "token_acc": 0.028048350437572638,
+          "block_acc": 0.1076949527977594
+        },
+        "frac80": {
+          "n": 40,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.9401125356125359,
+          "token_acc": 0.06093344155844155,
+          "block_acc": 0.24580627705627706
+        }
+      }
+    },
+    "anomaly": {
+      "by_family": {
+        "overall": {
+          "n": 80,
+          "binary_acc": 0.525,
+          "precision": 0.75,
+          "recall": 0.075,
+          "f1": 0.13636363636363635,
+          "confusion": {
+            "tp": 3,
+            "fp": 1,
+            "tn": 39,
+            "fn": 37
+          },
+          "roc_auc": 0.525,
+          "rule_attribution_acc": 0.6666666666666666,
+          "per_rule_detection": {
+            "RULE_BACKSIDE_BEFORE_PASSIVATION": 0.0,
+            "RULE_CMP_NO_DEP": 0.0,
+            "RULE_DEP_NO_CLEAN": 0.0,
+            "RULE_ETCH_NO_MASK": 0.0,
+            "RULE_IMPLANT_NO_MASK": 0.0,
+            "RULE_LITHO_LEVEL_SKIP": 0.2,
+            "RULE_PAD_OPEN_BEFORE_DEP": 0.0,
+            "RULE_SHIP_BEFORE_TEST": 0.3333333333333333,
+            "RULE_TEST_BEFORE_PASSIVATION": 0.14285714285714285
+          }
+        },
+        "MOSFET": {
+          "n": 80,
+          "binary_acc": 0.525,
+          "precision": 0.75,
+          "recall": 0.075,
+          "f1": 0.13636363636363635,
+          "confusion": {
+            "tp": 3,
+            "fp": 1,
+            "tn": 39,
+            "fn": 37
+          },
+          "roc_auc": 0.525,
+          "rule_attribution_acc": 0.6666666666666666,
+          "per_rule_detection": {
+            "RULE_BACKSIDE_BEFORE_PASSIVATION": 0.0,
+            "RULE_CMP_NO_DEP": 0.0,
+            "RULE_DEP_NO_CLEAN": 0.0,
+            "RULE_ETCH_NO_MASK": 0.0,
+            "RULE_IMPLANT_NO_MASK": 0.0,
+            "RULE_LITHO_LEVEL_SKIP": 0.2,
+            "RULE_PAD_OPEN_BEFORE_DEP": 0.0,
+            "RULE_SHIP_BEFORE_TEST": 0.3333333333333333,
+            "RULE_TEST_BEFORE_PASSIVATION": 0.14285714285714285
+          }
+        }
+      }
+    }
+  },
+  "metric_keys": {
+    "nextstep": [
+      "top1",
+      "top3",
+      "top5",
+      "mrr"
+    ],
+    "completion": [
+      "exact_match",
+      "norm_edit_dist",
+      "token_acc",
+      "block_acc"
+    ],
+    "anomaly": [
+      "binary_acc",
+      "precision",
+      "recall",
+      "f1",
+      "roc_auc",
+      "rule_attribution_acc"
+    ]
+  }
+}

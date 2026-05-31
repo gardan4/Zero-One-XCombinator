@@ -1,10 +1,10 @@
 {
-  "version": "sft-scale-instruct-2000-v2",
+  "version": "sft-scale-instruct-2000-local-v3",
   "predictor": "hf",
   "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b/artifacts/checkpoint-2900",
   "eval_set": "local",
   "tags": [
-    "version:sft-scale-instruct-2000-v2",
+    "version:sft-scale-instruct-2000-local-v3",
     "predictor:hf",
     "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b--artifacts--checkpoint-2900",
     "eval-set:local",
@@ -34,6 +34,29 @@
           "top5": 0.525,
           "mrr": 0.525
         }
+      },
+      "by_cut": {
+        "overall": {
+          "n": 200,
+          "top1": 0.525,
+          "top3": 0.525,
+          "top5": 0.525,
+          "mrr": 0.525
+        },
+        "frac60": {
+          "n": 100,
+          "top1": 0.75,
+          "top3": 0.75,
+          "top5": 0.75,
+          "mrr": 0.75
+        },
+        "frac80": {
+          "n": 100,
+          "top1": 0.3,
+          "top3": 0.3,
+          "top5": 0.3,
+          "mrr": 0.3
+        }
       }
     },
     "completion": {
@@ -41,16 +64,39 @@
         "overall": {
           "n": 200,
           "exact_match": 0.0,
-          "norm_edit_dist": 0.9880590067521919,
-          "token_acc": 0.455,
-          "block_acc": 0.745
+          "norm_edit_dist": 0.9879666990598843,
+          "token_acc": 0.46,
+          "block_acc": 0.735
         },
         "MOSFET": {
           "n": 200,
           "exact_match": 0.0,
-          "norm_edit_dist": 0.9880590067521919,
-          "token_acc": 0.455,
-          "block_acc": 0.745
+          "norm_edit_dist": 0.9879666990598843,
+          "token_acc": 0.46,
+          "block_acc": 0.735
+        }
+      },
+      "by_cut": {
+        "overall": {
+          "n": 200,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.9879666990598843,
+          "token_acc": 0.46,
+          "block_acc": 0.735
+        },
+        "frac60": {
+          "n": 100,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.9845949365813087,
+          "token_acc": 0.7,
+          "block_acc": 0.76
+        },
+        "frac80": {
+          "n": 100,
+          "exact_match": 0.0,
+          "norm_edit_dist": 0.9913384615384614,
+          "token_acc": 0.22,
+          "block_acc": 0.71
         }
       }
     },

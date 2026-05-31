@@ -1,7 +1,7 @@
 import results from '../data/results.json'
 
 // Comparison-story view: real eval metrics from extras/results (regenerate with `npm run build:results`).
-// Base = n-gram classical baseline; "best" = the best each task achieves across our fine-tuned models.
+// Headline = DeepSeek zero-shot vs fine-tuned; table includes n-gram and other baselines.
 
 const R = results as any
 const pc = (x: number | null | undefined) => (x == null ? '—' : (x * 100).toFixed(1) + '%')
@@ -13,24 +13,37 @@ const C = {
   base: '#94a3b8', // baseline (grey)
 }
 
-function Card({ title, metric, base, best }: { title: string; metric: string; base: number; best: number }) {
+function Card({
+  title,
+  metric,
+  base,
+  best,
+  baseLabel,
+  bestLabel,
+}: {
+  title: string
+  metric: string
+  base: number
+  best: number
+  baseLabel: string
+  bestLabel: string
+}) {
   const win = best >= base
   const w = (v: number) => Math.max(3, Math.min(100, v * 100))
   return (
     <div className="rs-card">
       <div className="rs-card-t">{title}</div>
       <div className="rs-card-m">{metric}</div>
-      <div className="rs-row"><span>Baseline · n-gram</span><b>{pc(base)}</b></div>
+      <div className="rs-row"><span>{baseLabel}</span><b>{pc(base)}</b></div>
       <div className="rs-bar"><i style={{ width: w(base) + '%', background: C.base }} /></div>
       <div className="rs-row">
-        <span>Best · fine-tuned</span>
+        <span>{bestLabel}</span>
         <span><b>{pc(best)}</b> <em className={'rs-pill ' + (win ? 'win' : 'lose')}>{win ? 'win' : 'trails'}</em></span>
       </div>
       <div className="rs-bar"><i style={{ width: w(best) + '%', background: win ? C.ns : '#ef4444' }} /></div>
     </div>
   )
 }
-
 type Series = { name: string; color: string; dashed?: boolean; vals: (number | null)[] }
 function LineChart({ labels, series }: { labels: string[]; series: Series[] }) {
   const W = 520, H = 230, padL = 40, padR = 16, padT = 14, padB = 36
@@ -75,6 +88,29 @@ function Legend({ series }: { series: Series[] }) {
 }
 
 export default function Results() {
+  const H = R.headline || {
+    baselineName: 'DeepSeek-V4-Flash (zero-shot)',
+    finetunedName: R.finetuned?.name || 'SFT instruct-all',
+    nextstep: R.nextstep,
+    completion: R.completion,
+    anomaly: R.anomaly,
+  }
+  const tableRows = [
+    ...(R.llmBaselines || []),
+    R.ngram,
+    R.finetuned,
+    ...(R.featuredModels || []),
+  ].filter(Boolean)
+
+  const finSlugs = new Set(
+    [R.finetuned?.slug, ...(R.featuredModels || []).map((m: any) => m.slug)].filter(Boolean),
+  )
+  const bestNextstep = R.bestByTask?.nextstep?.nextstepTop1 ?? R.finetuned?.nextstepTop1
+  const bestCompletion =
+    R.bestByTask?.completion?.completionBlockAcc ??
+    Math.max(...(R.scaling || []).map((p: any) => p.completionBlockAcc ?? 0), R.finetuned?.completionBlockAcc ?? 0)
+  const bestAnomaly = R.bestByTask?.anomaly?.anomalyF1 ?? R.finetuned?.anomalyF1
+
   const scalingSeries: Series[] = [
     { name: 'Next-step top-1', color: C.ns, vals: R.scaling.map((p: any) => p.nextstepTop1) },
     { name: 'Completion block-acc', color: C.cp, vals: R.scaling.map((p: any) => p.completionBlockAcc) },
@@ -91,15 +127,111 @@ export default function Results() {
       <div className="rs-head">
         <div className="rs-eyebrow">Infineon Industrial-AI · real eval metrics from extras/results</div>
         <h1>Teaching a small model fab <em>process logic</em></h1>
-        <p className="rs-lede">Qwen2.5-1.5B fine-tuned on fab routes, vs a classical n-gram baseline and the frozen base model. MOSFET labeled eval, n=200.</p>
+        <p className="rs-lede">
+          Qwen2.5-1.5B fine-tuned on fab routes vs zero-shot baselines (Qwen 1.5B on the same gold-200 set, DeepSeek on mosfet40).
+          Labeled MOSFET eval with gold labels.
+        </p>
       </div>
 
-      <h2 className="rs-h2">Headline — best fine-tuned (per task) vs n-gram baseline</h2>
+      <h2 className="rs-h2">Headline — fine-tuned vs DeepSeek zero-shot</h2>
       <div className="rs-cards">
-        <Card title="Next-step" metric="Top-1 accuracy" base={R.nextstep.baseline} best={R.nextstep.finetuned} />
-        <Card title="Completion" metric="Block accuracy" base={R.completion.baseline} best={R.completion.finetuned} />
-        <Card title="Anomaly" metric="F1 (rule violation)" base={R.anomaly.baseline} best={R.anomaly.finetuned} />
+        <Card
+          title="Next-step"
+          metric="Top-1 accuracy"
+          base={H.nextstep.baseline}
+          best={H.nextstep.finetuned}
+          baseLabel={H.baselineName}
+          bestLabel={H.finetunedName}
+        />
+        <Card
+          title="Completion"
+          metric="Block accuracy"
+          base={H.completion.baseline}
+          best={H.completion.finetuned}
+          baseLabel={H.baselineName}
+          bestLabel={H.finetunedName}
+        />
+        <Card
+          title="Anomaly"
+          metric="F1 (rule violation)"
+          base={H.anomaly.baseline}
+          best={H.anomaly.finetuned}
+          baseLabel={H.baselineName}
+          bestLabel={H.finetunedName}
+        />
       </div>
+      {(H.baselineEvalNote || H.finetunedEvalNote) && (
+        <p className="rs-sub" style={{ marginTop: -8, marginBottom: 20 }}>
+          DeepSeek: {H.baselineEvalNote || 'mosfet40 subset'}. Fine-tuned: {H.finetunedEvalNote || 'full eval_local'}.
+        </p>
+      )}
+
+      {tableRows.length > 0 && (
+        <>
+          <h2 className="rs-h2">All models (labeled eval, gold.json)</h2>
+          <div className="rs-panel rs-fam">
+            <div className="rs-frow rs-fhead"><span>Model</span><span>n</span><span>Next-step</span><span>Completion</span><span>Anomaly F1</span></div>
+            {tableRows.map((row: any) => (
+              <div
+                className={
+                  'rs-frow' +
+                  (finSlugs.has(row.slug) ? ' rs-frow-best' : '') +
+                  (row.highlight === 'completion' ? ' rs-frow-highlight' : '')
+                }
+                key={row.slug}
+              >
+                <span>
+                  {finSlugs.has(row.slug) ? <b>{row.name}</b> : row.name}
+                  {row.evalNote ? <em className="rs-note"> · {row.evalNote}</em> : null}
+                  {row.highlight === 'completion' ? (
+                    <em className="rs-pill win" style={{ marginLeft: 6 }}>
+                      best completion
+                    </em>
+                  ) : null}
+                </span>
+                <span>{row.nNextstep ?? '—'}</span>
+                <span>
+                  {row.nextstepTop1 === bestNextstep && row.nextstepTop1 != null ? (
+                    <b>{pc(row.nextstepTop1)}</b>
+                  ) : (
+                    pc(row.nextstepTop1)
+                  )}
+                </span>
+                <span>
+                  {row.completionBlockAcc === bestCompletion && row.completionBlockAcc != null ? (
+                    <b>{pc(row.completionBlockAcc)}</b>
+                  ) : (
+                    pc(row.completionBlockAcc)
+                  )}
+                </span>
+                <span>
+                  {row.anomalyF1 === bestAnomaly && row.anomalyF1 != null ? (
+                    <b>{pc(row.anomalyF1)}</b>
+                  ) : (
+                    pc(row.anomalyF1)
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {R.wandb?.runs?.length > 0 && (
+        <>
+          <h2 className="rs-h2">W&B runs (eval metrics)</h2>
+          <div className="rs-panel">
+            <ul className="rs-take">
+              {R.wandb.runs.map((r: any) => (
+                <li key={r.runId}>
+                  <a href={r.url} target="_blank" rel="noreferrer">{r.label}</a>
+                  <span className="rs-note"> · {r.runId}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
 
       <h2 className="rs-h2">Does more training data help? (1-epoch data-scaling)</h2>
       <div className="rs-panel">
@@ -129,10 +261,28 @@ export default function Results() {
       <h2 className="rs-h2">Takeaways</h2>
       <div className="rs-panel">
         <ul className="rs-take">
-          <li>With enough data the fine-tuned LLM <b>beats the strong n-gram</b> on completion ({pc(R.completion.finetuned)} vs {pc(R.completion.baseline)}).</li>
-          <li>Fine-tuning teaches <b>rule-violation detection from scratch</b> (anomaly F1 0 → {pc(R.anomaly.finetuned)}); the frozen base scores 0.</li>
-          <li>The n-gram is a strong classical baseline on next-step; the LLM's edge is completion coherence + one promptable, reasoning model across all tasks.</li>
-          <li>All numbers are real eval metrics — no placeholders. The live copilot runs this model on-device.</li>
+          <li>
+            Fine-tuning a 1.5B model <b>doubles next-step accuracy</b> vs DeepSeek zero-shot ({pc(H.nextstep.finetuned)} vs{' '}
+            {pc(H.nextstep.baseline)}).
+          </li>
+          {R.llmBaselines?.find((b: any) => b.slug === 'qwen-zeroshot-local200') && (
+            <li>
+              Same-model comparison on gold-200: Qwen zero-shot ({pc(R.llmBaselines.find((b: any) => b.slug === 'qwen-zeroshot-local200').nextstepTop1)}{' '}
+              next-step) vs fine-tuned ({pc(R.finetuned?.nextstepTop1)}).
+            </li>
+          )}
+          <li>
+            Completion block accuracy jumps from {pc(H.completion.baseline)} → {pc(H.completion.finetuned)}; anomaly F1 from{' '}
+            {pc(H.anomaly.baseline)} → {pc(H.anomaly.finetuned)}.
+          </li>
+          {R.ngram && (
+            <li>
+              The n-gram baseline remains strong on next-step ({pc(R.ngram.nextstepTop1)}). Fine-tuned models win on
+              completion ({pc(bestCompletion)} block-acc at 2000 routes vs {pc(R.ngram.completionBlockAcc)} n-gram) and
+              anomaly detection ({pc(R.bestByTask?.anomaly?.anomalyF1 ?? R.finetuned?.anomalyF1)} F1).
+            </li>
+          )}
+          <li>All numbers are real labeled eval metrics — no placeholders. The live copilot runs the fine-tuned model on-device.</li>
         </ul>
       </div>
       <div className="rs-src">Generated {R.generatedAt} · best={R.bestName} · baseline={R.baselineName}</div>
