@@ -199,6 +199,21 @@ function main() {
     .map((s) => ({ ...modelSizeOf(index[s]), ...seriesMetrics(s) }))
     .sort((a, b) => (a.params ?? 0) - (b.params ?? 0));
 
+  // per-family generalization: the all-family best model evaled on each family (separate slugs).
+  const perFamilyBest = ["MOSFET", "IGBT", "IC"]
+    .map((fam) => {
+      const slug = fam === "MOSFET" ? finSlug : `${finSlug}-${fam}`;
+      if (!index[slug]) return null;
+      const t = loadSlug(slug).report.tasks || {};
+      return {
+        family: fam,
+        nextstepTop1: pickOverall(t.nextstep).top1 ?? null,
+        completionBlockAcc: pickOverall(t.completion).block_acc ?? null,
+        anomalyF1: pickOverall(t.anomaly).f1 ?? null,
+      };
+    })
+    .filter(Boolean);
+
   const payload = {
     copy: {
       heroEyebrow: "Infineon Industrial-AI · generated from extras/results",
@@ -236,6 +251,7 @@ function main() {
     },
     scaling, // [{size, slug, nextstepTop1, completionBlockAcc, anomalyF1}] — data-scaling study
     modelSize, // [{label, params, slug, nextstepTop1, completionBlockAcc, anomalyF1}] — model-size sweep
+    perFamilyBest, // [{family, nextstepTop1, completionBlockAcc, anomalyF1}] — generalization across families
     training: { params: "—", epochs: 0, finalLoss: 0, finalValLoss: 0, steps: [] },
     ood: { heldOutFamily: "—", idF1: null, oodF1: null, idTop1: null, oodTop1: null },
     _generated: {

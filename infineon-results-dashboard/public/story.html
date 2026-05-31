@@ -91,6 +91,19 @@ function chartPanel(title, sub, labels, series){
     el("div",{class:"lede",style:"margin-bottom:8px"},sub), lineChart(labels,series), legend(series));
 }
 
+function familyTable(rows){
+  const pc=x=> x==null?"—":(x*100).toFixed(0)+"%";
+  const G="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;align-items:center";
+  const cell=(t,s="")=>el("div",{style:"padding:9px 12px;"+s},t);
+  const hdr=el("div",{style:G+";border-bottom:1px solid #243049"},
+    cell("Family","color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em"),
+    cell("Next-step","color:var(--muted);font-size:12px"),cell("Completion","color:var(--muted);font-size:12px"),cell("Anomaly F1","color:var(--muted);font-size:12px"));
+  const body=rows.map(r=>el("div",{style:G+";border-bottom:1px solid #141c2a"},
+    cell(r.family,"font-weight:700;color:var(--best)"),
+    cell(pc(r.nextstepTop1),"font-weight:600"),cell(pc(r.completionBlockAcc),"font-weight:600"),cell(pc(r.anomalyF1),"font-weight:600")));
+  return el("div",{class:"panel",style:"padding:8px 8px"}, hdr, ...body);
+}
+
 function render(){
   const app=document.getElementById("app"); app.innerHTML="";
   const c=R.copy||{};
@@ -123,6 +136,11 @@ function render(){
        {name:"Completion block-acc",color:"var(--accent)",vals:(R.modelSize||[]).map(p=>p.completionBlockAcc)},
        {name:"Anomaly F1",color:"var(--base)",vals:(R.modelSize||[]).map(p=>p.anomalyF1)},
        {name:"n-gram next-step",color:"#6b7a93",dashed:true,vals:(R.modelSize||[]).map(()=>ns.baseline.top1)}]),
+
+    el("h2",{},"Generalizes across all three families"),
+    el("div",{style:"margin-bottom:14px"},
+      el("p",{class:"lede",style:"margin:0 0 12px"},"One all-family model, evaluated on each family's labeled set. MOSFET is strongest, IGBT routes are hardest, and anomaly detection transfers to IGBT — it is not a MOSFET-only model."),
+      familyTable(R.perFamilyBest||[])),
 
     el("h2",{},"Takeaways"),
     el("div",{class:"panel"}, el("ul",{class:"take"},

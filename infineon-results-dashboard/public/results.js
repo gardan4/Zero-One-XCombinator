@@ -154,6 +154,26 @@ export const RESULTS = {
       "anomalyF1": 0.5665236051502146
     }
   ],
+  "perFamilyBest": [
+    {
+      "family": "MOSFET",
+      "nextstepTop1": 0.475,
+      "completionBlockAcc": 0.555,
+      "anomalyF1": 0.5665236051502146
+    },
+    {
+      "family": "IGBT",
+      "nextstepTop1": 0.315,
+      "completionBlockAcc": 0.365,
+      "anomalyF1": 0.5257731958762887
+    },
+    {
+      "family": "IC",
+      "nextstepTop1": 0.43,
+      "completionBlockAcc": 0.5,
+      "anomalyF1": 0
+    }
+  ],
   "training": {
     "params": "—",
     "epochs": 0,
@@ -169,7 +189,7 @@ export const RESULTS = {
     "oodTop1": null
   },
   "_generated": {
-    "at": "2026-05-31T02:30:30.499Z",
+    "at": "2026-05-31T02:46:03.529Z",
     "finetuned_slug": "hf-sft-instruct-all",
     "baseline_slug": "baseline-ngram",
     "source": "/Users/marcm/code/Zero One Philyr/.claude/worktrees/bold-banzai-ac0b36/extras/results/INDEX.json"
