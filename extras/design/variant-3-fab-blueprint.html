@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>XCombinator — Fab Process Copilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;450;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* ---- Deep blueprint graphite ---- */
+    --bg-void: #07090c;
+    --bg-deep: #0a0d11;
+    --bg-panel: rgba(19,24,30,0.52);
+    --bg-panel-2: rgba(26,32,40,0.60);
+    --bg-pill: rgba(255,255,255,0.030);
+
+    --ink-0: #eef2f6;     /* primary */
+    --ink-1: #a7afba;     /* secondary */
+    --ink-2: #737c89;     /* labels */
+    --ink-3: #555d69;     /* faint mono */
+    --ink-4: #3c434e;     /* very faint */
+
+    --hair: rgba(255,255,255,0.088);
+    --hair-soft: rgba(255,255,255,0.05);
+    --hi-top: rgba(255,255,255,0.10);
+
+    /* ---- The single accent: refined cool-teal ---- */
+    --teal: #5BD6C0;
+    --teal-soft: rgba(91,214,192,0.16);
+    --teal-line: rgba(91,214,192,0.46);
+    --teal-faint: rgba(91,214,192,0.10);
+    --teal-glow: rgba(91,214,192,0.30);
+
+    /* ---- Amber reserved ONLY for anomaly legend ---- */
+    --amber: #E8B765;
+    --amber-soft: rgba(232,183,101,0.14);
+
+    --schematic: rgba(150,166,186,0.20);  /* connector line ink */
+    --schematic-soft: rgba(150,166,186,0.12);
+
+    --r-xl: 24px;
+    --r-lg: 18px;
+    --r-md: 13px;
+    --r-sm: 9px;
+    --r-pill: 999px;
+
+    --shadow-float: 0 28px 64px -30px rgba(0,0,0,0.86), 0 6px 22px -10px rgba(0,0,0,0.55);
+    --shadow-soft: 0 18px 44px -26px rgba(0,0,0,0.8);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg-void);
+    color: var(--ink-0);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.006em;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  /* =================================================================
+     STAGE — the blueprint ground: deep graphite + precision dot/line grid
+     ================================================================= */
+  .stage {
+    position: relative;
+    width: 1440px;
+    height: 900px;
+    margin: 0 auto;
+    overflow: hidden;
+    background:
+      radial-gradient(1200px 680px at 18% -12%, #12161c 0%, rgba(18,22,28,0) 58%),
+      radial-gradient(1000px 760px at 100% 112%, #0e1217 0%, rgba(14,18,23,0) 55%),
+      linear-gradient(180deg, #0a0d11 0%, #07090c 100%);
+  }
+
+  /* layer 1: fine precision dot grid (blueprint engineering paper) */
+  .grid-dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(150,170,196,0.10) 0.7px, transparent 0.8px);
+    background-size: 22px 22px;
+    background-position: -1px -1px;
+    -webkit-mask-image: radial-gradient(1300px 900px at 50% 38%, #000 0%, rgba(0,0,0,0.35) 70%, transparent 100%);
+    mask-image: radial-gradient(1300px 900px at 50% 38%, #000 0%, rgba(0,0,0,0.35) 70%, transparent 100%);
+    pointer-events: none;
+  }
+  /* layer 2: coarse hairline rule grid — every 5th cell, like a drafting sheet */
+  .grid-lines {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(150,170,196,0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(150,170,196,0.045) 1px, transparent 1px);
+    background-size: 110px 110px;
+    -webkit-mask-image: radial-gradient(1200px 820px at 50% 42%, #000 0%, rgba(0,0,0,0.25) 66%, transparent 100%);
+    mask-image: radial-gradient(1200px 820px at 50% 42%, #000 0%, rgba(0,0,0,0.25) 66%, transparent 100%);
+    pointer-events: none;
+  }
+  /* a single faint teal bloom far down the flow — under the prediction zone */
+  .bloom {
+    position: absolute;
+    left: 66%; top: 52%;
+    width: 460px; height: 280px;
+    background: radial-gradient(closest-side, var(--teal-glow), transparent 72%);
+    opacity: 0.085;
+    filter: blur(20px);
+    pointer-events: none;
+  }
+  /* corner registration tick — quiet blueprint signature, top-left */
+  .reg-tick {
+    position: absolute;
+    width: 13px; height: 13px;
+    border: 1px solid rgba(150,170,196,0.18);
+    pointer-events: none;
+  }
+  .reg-tick.tl { top: 18px; left: 18px; border-right: none; border-bottom: none; }
+  .reg-tick.tr { top: 18px; right: 18px; border-left: none; border-bottom: none; }
+  .reg-tick.bl { bottom: 18px; left: 18px; border-right: none; border-top: none; }
+  .reg-tick.br { bottom: 18px; right: 18px; border-left: none; border-top: none; }
+
+  /* =================================================================
+     GLASS PRIMITIVE — frosted panels floating above the schematic ground
+     ================================================================= */
+  .glass {
+    position: relative;
+    background: var(--bg-panel);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-float);
+  }
+  .glass::before {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(180deg, var(--hi-top), rgba(255,255,255,0) 34%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* =================================================================
+     TOP BAR
+     ================================================================= */
+  .topbar {
+    position: absolute;
+    top: 30px; left: 40px; right: 40px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 22px;
+    z-index: 6;
+  }
+
+  .wordmark { display: flex; align-items: baseline; gap: 13px; }
+  .wordmark .mark-dot {
+    width: 7px; height: 7px; border-radius: 2px;
+    background: var(--teal);
+    box-shadow: 0 0 10px var(--teal-glow);
+    transform: translateY(-2px);
+  }
+  .wordmark .name {
+    font-size: 16.5px; font-weight: 600; letter-spacing: -0.022em; color: var(--ink-0);
+  }
+  .wordmark .tag {
+    font-size: 11px; font-weight: 450; color: var(--ink-2); letter-spacing: 0.01em;
+    padding-left: 13px; border-left: 1px solid var(--hair-soft);
+  }
+
+  .topbar .spacer { flex: 1; }
+
+  /* segmented FAMILY control */
+  .segmented {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-pill);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-pill);
+    padding: 3px;
+    gap: 2px;
+  }
+  .segmented .seg {
+    font-size: 12px; font-weight: 500; letter-spacing: 0.01em;
+    color: var(--ink-2);
+    padding: 6px 15px;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    transition: color .18s ease, background .18s ease;
+    white-space: nowrap;
+  }
+  .segmented .seg:hover { color: var(--ink-1); }
+  .segmented .seg.active {
+    color: var(--ink-0);
+    background: rgba(255,255,255,0.07);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .seg-label {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); margin-right: 11px;
+  }
+
+  /* import affordance */
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 500; color: var(--ink-1);
+    background: var(--bg-pill);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-pill);
+    padding: 8px 15px;
+    cursor: pointer;
+    transition: border-color .18s ease, color .18s ease, background .18s ease;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover { color: var(--ink-0); border-color: rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); }
+  .btn-ghost svg { opacity: 0.7; }
+
+  /* status pill — Simulated */
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 12px; font-weight: 500; color: var(--ink-1);
+    background: var(--bg-pill);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-pill);
+    padding: 8px 15px 8px 13px;
+    white-space: nowrap;
+  }
+  .status-pill .dot {
+    width: 6.5px; height: 6.5px; border-radius: 50%;
+    background: var(--ink-2);
+    box-shadow: 0 0 0 3px rgba(115,124,137,0.14);
+  }
+  .status-pill .future {
+    font-size: 10.5px; color: var(--ink-3); padding-left: 10px; margin-left: 2px;
+    border-left: 1px solid var(--hair-soft);
+  }
+
+  /* =================================================================
+     LAYOUT GRID — flow canvas (left/main) + detail panel (right)
+     ================================================================= */
+  .workspace {
+    position: absolute;
+    top: 112px; left: 40px; right: 40px; bottom: 40px;
+    display: grid;
+    grid-template-columns: 1fr 326px;
+    gap: 22px;
+    z-index: 4;
+  }
+
+  .left-col { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+
+  /* ---------- FLOW CANVAS (hero — absorbs vertical slack) ---------- */
+  .flow-canvas {
+    flex: 1;
+    min-height: 0;
+    padding: 26px 30px 22px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .flow-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .flow-head .title {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .flow-head .route-id {
+    font-size: 11px; color: var(--ink-3); letter-spacing: 0.02em;
+  }
+  .flow-head .route-id b { color: var(--ink-1); font-weight: 450; }
+
+  /* The horizontal track region — scrolls; default position reveals the centerpiece */
+  .track-wrap {
+    position: relative;
+    flex: 0 0 auto;
+    height: 170px;
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .track-wrap::-webkit-scrollbar { display: none; }
+  .track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 100%;
+    gap: 0;
+  }
+  /* a faint centerline baseline behind the whole flow — the schematic bus */
+  .track::before {
+    content: "";
+    position: absolute;
+    left: 132px; right: 0; top: 50%;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent 0%,
+      var(--schematic-soft) 3%,
+      var(--schematic-soft) 62%,
+      var(--teal-faint) 72%,
+      var(--schematic-soft) 82%,
+      transparent 100%);
+    transform: translateY(-0.5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* connector — clean schematic line between nodes */
+  .conn {
+    flex: 0 0 auto;
+    height: 1px;
+    background: var(--schematic);
+    position: relative;
+  }
+  .conn.w-sm { width: 11px; }
+  .conn.w-md { width: 18px; }
+  .conn.w-lg { width: 22px; }
+  /* small junction node where a connector meets a chip group */
+  .conn.tick::after {
+    content: "";
+    position: absolute; right: -1px; top: 50%;
+    width: 3px; height: 3px; border-radius: 50%;
+    background: var(--schematic);
+    transform: translate(0,-50%);
+  }
+  .conn.live { background: linear-gradient(90deg, var(--schematic), var(--teal-line)); }
+  .conn.predict {
+    background: none;
+    border-top: 1px dashed var(--teal-line);
+    height: 0;
+  }
+  .conn.future { background: var(--schematic-soft); }
+
+  /* ----- collapsed PHASE GROUP chip ----- */
+  .phase-chip {
+    flex: 0 0 auto;
+    display: inline-flex; flex-direction: column; align-items: flex-start;
+    gap: 2px;
+    background: var(--bg-pill);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-md);
+    padding: 7px 11px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    position: relative;
+    z-index: 1;
+  }
+  .phase-chip .pc-name {
+    font-size: 10.5px; font-weight: 500; color: var(--ink-1); letter-spacing: -0.005em; white-space: nowrap;
+  }
+  .phase-chip .pc-meta {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .phase-chip .pc-count {
+    font-size: 9px; font-weight: 450; color: var(--ink-3); letter-spacing: 0.06em;
+  }
+  .phase-chip .loop {
+    color: var(--ink-2);
+    font-size: 11px;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .phase-chip .loop svg { display: block; }
+
+  /* the collapse "stack" affordance — chips look like a folded group */
+  .phase-chip.stacked::after {
+    content: "";
+    position: absolute;
+    inset: 4px -4px -4px 4px;
+    border: 1px solid var(--hair-soft);
+    border-radius: var(--r-md);
+    background: rgba(255,255,255,0.012);
+    z-index: -1;
+  }
+
+  /* ----- EXPANDED current-phase bracket ----- */
+  .expanded {
+    flex: 0 0 auto;
+    position: relative;
+    padding: 30px 16px 14px;
+    margin: 0 2px;
+    z-index: 1;
+  }
+  /* phase bracket label above the expanded steps */
+  .expanded .phase-label {
+    position: absolute;
+    top: 4px; left: 20px;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--teal);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .expanded .phase-label .lbl-line {
+    width: 22px; height: 1px; background: var(--teal-line);
+  }
+  /* a faint bracket frame around the expanded region */
+  .expanded::before {
+    content: "";
+    position: absolute;
+    top: 20px; left: 6px; right: 6px; bottom: 4px;
+    border: 1px solid var(--teal-faint);
+    border-radius: var(--r-lg);
+    background: linear-gradient(180deg, rgba(91,214,192,0.025), rgba(91,214,192,0.0) 60%);
+    pointer-events: none;
+  }
+
+  .steps-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* individual STEP node */
+  .step {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 7px;
+    cursor: default;
+  }
+  .step .node {
+    width: 13px; height: 13px;
+    border-radius: 50%;
+    background: var(--bg-deep);
+    border: 1.5px solid rgba(167,175,186,0.5);
+    box-shadow: inset 0 0 0 2px rgba(7,9,12,0.9);
+    position: relative;
+    transition: all .18s ease;
+  }
+  .step .label {
+    font-size: 8.5px; font-weight: 450; letter-spacing: 0.03em;
+    color: var(--ink-2);
+    white-space: nowrap;
+    line-height: 1.25;
+    text-align: center;
+  }
+  /* absolute step index under each node */
+  .step .s-idx {
+    font-size: 8px; font-weight: 450; letter-spacing: 0.08em;
+    color: var(--ink-4);
+    margin-top: 1px;
+  }
+  .step.head .s-idx { color: var(--teal); opacity: 0.8; }
+  /* the inter-step connector inside expanded region */
+  .step-conn {
+    flex: 0 0 auto;
+    width: 13px; height: 1px;
+    background: var(--schematic);
+    margin-bottom: 18px; /* align to node row, not label */
+  }
+
+  /* CURRENT HEAD node — DEPOSIT BARRIER METAL (selected + live) */
+  .step.head .node {
+    background: var(--teal);
+    border-color: var(--teal);
+    box-shadow:
+      0 0 0 4px var(--teal-soft),
+      0 0 14px 1px var(--teal-glow),
+      inset 0 0 0 2px rgba(7,9,12,0.0);
+    width: 15px; height: 15px;
+  }
+  .step.head .label { color: var(--teal); font-weight: 500; }
+  .step.head .badge {
+    position: absolute;
+    top: -22px; left: 50%; transform: translateX(-50%);
+    font-size: 8px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--teal);
+    white-space: nowrap;
+  }
+  /* a subtle ring pulse on the head */
+  .step.head .node::after {
+    content: "";
+    position: absolute; inset: -7px;
+    border-radius: 50%;
+    border: 1px solid var(--teal-line);
+    opacity: 0;
+    animation: pulse 3.4s ease-out infinite;
+  }
+  @keyframes pulse {
+    0%   { opacity: 0.55; transform: scale(0.7); }
+    70%  { opacity: 0; transform: scale(1.5); }
+    100% { opacity: 0; transform: scale(1.5); }
+  }
+  /* selected outline (it is also the selected detail node) */
+  .step.head .sel-ring {
+    position: absolute;
+    inset: -11px;
+    border-radius: 50%;
+    border: 1px dashed rgba(91,214,192,0.4);
+  }
+
+  /* ----- PREDICTED NEXT (ghost / forming) node ----- */
+  .predict-node {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px;
+    position: relative;
+    padding: 0 4px;
+  }
+  .predict-node .ghost {
+    width: 17px; height: 17px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 40%, rgba(91,214,192,0.30), rgba(91,214,192,0.05) 70%);
+    border: 1.5px dashed var(--teal-line);
+    box-shadow: 0 0 18px 2px var(--teal-glow);
+    position: relative;
+    animation: form 3.4s ease-in-out infinite;
+  }
+  @keyframes form {
+    0%,100% { box-shadow: 0 0 14px 1px var(--teal-glow); }
+    50%     { box-shadow: 0 0 22px 3px var(--teal-glow); }
+  }
+  .predict-node .p-label {
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.04em;
+    color: var(--teal);
+    white-space: nowrap; text-align: center;
+    line-height: 1.2;
+    max-width: 100px;
+  }
+  .predict-node .p-conf {
+    font-size: 9px; font-weight: 450; color: var(--ink-1); letter-spacing: 0.04em;
+    background: var(--teal-soft);
+    border: 1px solid var(--teal-line);
+    border-radius: var(--r-pill);
+    padding: 2px 8px;
+    margin-top: 1px;
+  }
+  .predict-node .p-tag {
+    position: absolute; top: -23px; left: 50%; transform: translateX(-50%);
+    font-size: 8px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--teal); opacity: 0.85; white-space: nowrap;
+  }
+
+  /* ----- faint FUTURE phase chips ----- */
+  .future-chip {
+    flex: 0 0 auto;
+    font-size: 10.5px; font-weight: 450; color: var(--ink-3);
+    border: 1px dashed var(--hair-soft);
+    border-radius: var(--r-sm);
+    padding: 7px 11px;
+    opacity: 0.55;
+    white-space: nowrap;
+    background: rgba(255,255,255,0.008);
+  }
+  .future-grp { display: flex; align-items: center; gap: 9px; opacity: 0.9; }
+  .future-grp .fc-conn { width: 12px; height: 1px; background: var(--schematic-soft); }
+
+  /* start anchor (RECEIVE WAFER LOT) ghosted at far left */
+  .anchor {
+    flex: 0 0 auto;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 5px;
+    padding-right: 2px;
+  }
+  .anchor .a-cap {
+    font-size: 8.5px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-4);
+  }
+  .anchor .a-step {
+    font-size: 10px; color: var(--ink-3); letter-spacing: 0.02em;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .anchor .a-step::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    border: 1.5px solid var(--ink-4); background: var(--bg-deep);
+  }
+
+  /* fade masks at the track edges to imply scroll/continuation */
+  .track-fade {
+    position: absolute; top: 0; bottom: 0; width: 46px; z-index: 3; pointer-events: none;
+  }
+  .track-fade.l { left: 0; background: linear-gradient(90deg, var(--bg-panel) 10%, rgba(19,24,30,0)); }
+  .track-fade.r { right: 0; background: linear-gradient(270deg, var(--bg-panel) 10%, rgba(19,24,30,0)); }
+
+  /* =================================================================
+     FULL-ROUTE RAIL — bottom tier of the same schematic sheet. The whole
+     125-step route as a calm proportional phase rail; the named collapsed
+     phases live here, the current window is the lit segment the bus expands.
+     A position indicator, not a chart.
+     ================================================================= */
+  .flow-rail {
+    flex: 0 0 auto;
+    margin-top: auto;
+    padding-top: 22px;
+    border-top: 1px solid var(--hair-soft);
+  }
+  .flow-rail .rail-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 11px;
+  }
+  .flow-rail .rail-title {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
+  }
+  .flow-rail .rail-sub {
+    font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.02em;
+  }
+  .flow-rail .rail-sub b { color: var(--ink-1); font-weight: 450; }
+
+  /* the proportional phase rail */
+  .rail {
+    display: flex; align-items: stretch;
+    height: 46px;
+    border-radius: 11px;
+    overflow: hidden;
+    border: 1px solid var(--hair);
+    background: rgba(255,255,255,0.014);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .rail .seg {
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    border-right: 1px solid var(--hair-soft);
+    overflow: hidden;
+    transition: background .18s ease;
+  }
+  .rail .seg:last-child { border-right: none; }
+  .rail .seg .seg-name {
+    font-size: 9px; font-weight: 500; letter-spacing: 0.04em; color: var(--ink-2);
+    white-space: nowrap; padding: 0 4px;
+    overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  }
+  /* faint internal hatching to read like fab "lots" of steps */
+  .rail .seg::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(90deg, rgba(150,170,196,0.10) 0 1px, transparent 1px var(--pitch, 9px));
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  /* done segments */
+  .rail .seg.done { background: rgba(255,255,255,0.022); }
+  .rail .seg.done .seg-name { color: var(--ink-2); }
+  /* the CURRENT (Via) window — the lit segment the bus above expands */
+  .rail .seg.current {
+    background: linear-gradient(180deg, rgba(91,214,192,0.20), rgba(91,214,192,0.10));
+    box-shadow: inset 0 0 0 1px var(--teal-line), 0 0 18px -2px var(--teal-glow);
+  }
+  .rail .seg.current .seg-name { color: var(--teal); font-weight: 500; }
+  .rail .seg.current::before {
+    background-image: repeating-linear-gradient(90deg, rgba(91,214,192,0.22) 0 1px, transparent 1px 9px);
+    opacity: 0.6;
+  }
+  /* future segments — dim */
+  .rail .seg.future { background: transparent; opacity: 0.5; }
+  .rail .seg.future .seg-name { color: var(--ink-3); }
+
+  /* tick scale + caps under the rail */
+  .rail-scale {
+    position: relative;
+    height: 26px;
+    margin-top: 9px;
+  }
+  .rail-scale .cap {
+    position: absolute; top: 8px;
+    font-size: 9px; letter-spacing: 0.06em; color: var(--ink-3);
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .rail-scale .cap .tk { width: 1px; height: 5px; background: var(--hair); }
+  .rail-scale .cap.start { left: 0; transform: translateX(0); align-items: flex-start; }
+  .rail-scale .cap.start .tk { background: var(--ink-4); }
+  .rail-scale .cap.end { left: 100%; transform: translateX(-100%); align-items: flex-end; }
+  .rail-scale .cap.end .tk { background: var(--ink-4); }
+  /* the "you are here" pointer at 63% */
+  .rail-scale .here {
+    position: absolute; top: 0; left: 63.2%;
+    transform: translateX(-50%);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .rail-scale .here .nib {
+    width: 0; height: 0;
+    border-left: 4px solid transparent; border-right: 4px solid transparent;
+    border-bottom: 5px solid var(--teal);
+  }
+  .rail-scale .here .htk { width: 1px; height: 6px; background: var(--teal-line); }
+  .rail-scale .here .hnum {
+    font-size: 9px; font-weight: 500; color: var(--teal); letter-spacing: 0.04em; margin-top: 2px;
+  }
+
+  /* =================================================================
+     CONTROL BAR — Predict button + Auto-run + Anomaly status
+     ================================================================= */
+  .control-bar {
+    flex: 0 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  /* primary button */
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13.5px; font-weight: 550; letter-spacing: -0.005em;
+    color: #05201b;
+    background: linear-gradient(180deg, #6fe2cd, var(--teal));
+    border: 1px solid rgba(91,214,192,0.7);
+    border-radius: var(--r-pill);
+    padding: 11px 22px;
+    cursor: pointer;
+    box-shadow:
+      0 8px 22px -8px var(--teal-glow),
+      inset 0 1px 0 rgba(255,255,255,0.4);
+    transition: transform .12s ease, box-shadow .18s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px var(--teal-glow), inset 0 1px 0 rgba(255,255,255,0.45); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary svg { display: block; }
+
+  /* secondary toggle (dimmed, "soon") */
+  .toggle-soon {
+    display: inline-flex; align-items: center; gap: 11px;
+    font-size: 12.5px; font-weight: 450; color: var(--ink-3);
+    background: var(--bg-pill);
+    border: 1px solid var(--hair-soft);
+    border-radius: var(--r-pill);
+    padding: 9px 13px 9px 14px;
+    cursor: not-allowed;
+    opacity: 0.72;
+  }
+  .toggle-soon .switch {
+    width: 30px; height: 17px; border-radius: var(--r-pill);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--hair-soft);
+    position: relative; flex: 0 0 auto;
+  }
+  .toggle-soon .switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--ink-3);
+  }
+  .toggle-soon .soon {
+    font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3);
+    border: 1px solid var(--hair-soft);
+    border-radius: var(--r-pill);
+    padding: 2px 7px;
+  }
+
+  .control-bar .spacer { flex: 1; }
+
+  /* anomaly status chip — quiet, valid */
+  .anomaly {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 12px; font-weight: 500; color: var(--ink-1);
+    background: var(--bg-pill);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-pill);
+    padding: 8px 14px 8px 12px;
+  }
+  .anomaly .ok {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--teal-soft);
+    border: 1px solid var(--teal-line);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--teal);
+  }
+  .anomaly .ok svg { display: block; }
+
+  /* faint legend hint for amber anomaly rule */
+  .legend-hint {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.005em;
+    max-width: 360px;
+  }
+  .legend-hint .swatch {
+    width: 9px; height: 9px; border-radius: 2.5px;
+    background: var(--amber); opacity: 0.85; flex: 0 0 auto;
+    box-shadow: 0 0 0 3px var(--amber-soft);
+  }
+  .legend-hint .rule { color: var(--ink-2); }
+
+  /* =================================================================
+     STEP DETAIL PANEL (right column)
+     ================================================================= */
+  .detail {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 24px 22px;
+  }
+  .detail .d-head {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .detail .d-eyebrow {
+    font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
+  }
+  .detail .d-live {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--teal);
+  }
+  .detail .d-live .ld {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--teal);
+    box-shadow: 0 0 8px var(--teal-glow);
+  }
+
+  /* selected step token — big mono */
+  .detail .d-token {
+    font-size: 17px; font-weight: 500; letter-spacing: 0.01em;
+    color: var(--ink-0);
+    line-height: 1.32;
+    margin-bottom: 7px;
+  }
+  .detail .d-pos {
+    font-size: 11px; color: var(--ink-3); letter-spacing: 0.03em;
+    margin-bottom: 20px;
+  }
+  .detail .d-pos b { color: var(--ink-1); font-weight: 450; }
+
+  .detail .divider {
+    height: 1px; background: var(--hair-soft); margin: 0 -24px 18px;
+  }
+
+  .detail .d-row { margin-bottom: 18px; }
+  .detail .d-row .d-label {
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.13em; text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+  }
+  .detail .d-desc {
+    font-size: 12.5px; font-weight: 400; color: var(--ink-1); line-height: 1.55;
+    letter-spacing: -0.002em;
+  }
+
+  .detail .d-cat {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 500; color: var(--ink-1);
+    background: var(--bg-pill);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-pill);
+    padding: 6px 12px 6px 10px;
+  }
+  .detail .d-cat .cd {
+    width: 7px; height: 7px; border-radius: 2px; background: var(--ink-2);
+  }
+
+  /* predicted-next readout inside the detail panel */
+  .detail .d-pred {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 13px;
+    border-radius: var(--r-md);
+    background: linear-gradient(180deg, rgba(91,214,192,0.07), rgba(91,214,192,0.025));
+    border: 1px solid var(--teal-faint);
+  }
+  .detail .d-pred .pp-ghost {
+    width: 13px; height: 13px; border-radius: 50%; flex: 0 0 auto;
+    background: radial-gradient(circle at 50% 40%, rgba(91,214,192,0.32), rgba(91,214,192,0.05) 70%);
+    border: 1.5px dashed var(--teal-line);
+  }
+  .detail .d-pred .pp-body { flex: 1; min-width: 0; }
+  .detail .d-pred .pp-name {
+    font-size: 11.5px; font-weight: 500; color: var(--teal); letter-spacing: 0.01em;
+  }
+  .detail .d-pred .pp-conf {
+    font-size: 9px; font-weight: 450; color: var(--ink-2); letter-spacing: 0.02em; margin-top: 2px;
+  }
+  .detail .d-pred .pp-pct {
+    font-size: 12px; font-weight: 500; color: var(--ink-0); letter-spacing: 0.01em;
+  }
+
+  /* process-logic rule row — the rule governing this step, satisfied */
+  .detail .d-rule {
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .detail .d-rule .rk {
+    width: 15px; height: 15px; border-radius: 50%; flex: 0 0 auto; margin-top: 1px;
+    background: var(--teal-soft); border: 1px solid var(--teal-line);
+    display: inline-flex; align-items: center; justify-content: center; color: var(--teal);
+  }
+  .detail .d-rule .rk svg { display: block; }
+  .detail .d-rule .rr-id {
+    font-size: 11px; color: var(--ink-1); letter-spacing: 0.01em;
+  }
+  .detail .d-rule .rr-desc {
+    font-size: 10.5px; color: var(--ink-3); line-height: 1.5; margin-top: 4px; letter-spacing: -0.002em;
+  }
+
+  .detail .grow { flex: 1; }
+
+  /* mini position bar at the bottom of the detail panel — schematic touch */
+  .detail .progress {
+    margin-top: 4px;
+  }
+  .detail .progress .pbar {
+    position: relative;
+    height: 3px; border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .detail .progress .pfill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 63.2%;
+    background: linear-gradient(90deg, rgba(91,214,192,0.5), var(--teal));
+    border-radius: 2px;
+  }
+  .detail .progress .pcap {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 9px;
+    font-size: 9px; letter-spacing: 0.06em; color: var(--ink-3);
+  }
+  .detail .progress .pcap .start { color: var(--ink-3); }
+  .detail .progress .pcap .end { color: var(--ink-3); }
+  .detail .progress .pcap .now { color: var(--teal); }
+
+</style>
+</head>
+<body>
+  <div class="stage">
+    <!-- blueprint ground -->
+    <div class="grid-lines"></div>
+    <div class="grid-dots"></div>
+    <div class="bloom"></div>
+    <div class="reg-tick tl"></div>
+    <div class="reg-tick tr"></div>
+    <div class="reg-tick bl"></div>
+    <div class="reg-tick br"></div>
+
+    <!-- ===================== TOP BAR ===================== -->
+    <div class="topbar glass">
+      <div class="wordmark">
+        <span class="mark-dot"></span>
+        <span class="name">XCombinator</span>
+        <span class="tag">Fab Process Copilot</span>
+      </div>
+
+      <div class="spacer"></div>
+
+      <span class="seg-label">Family</span>
+      <div class="segmented">
+        <span class="seg active">MOSFET</span>
+        <span class="seg">IGBT</span>
+        <span class="seg">IC</span>
+      </div>
+
+      <button class="btn-ghost">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M7 9.2V1.8M7 1.8L4.2 4.6M7 1.8l2.8 2.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 9v2.2c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        Import sequence
+      </button>
+
+      <div class="status-pill">
+        <span class="dot"></span>
+        Simulated
+        <span class="future">Live · model</span>
+      </div>
+    </div>
+
+    <!-- ===================== WORKSPACE ===================== -->
+    <div class="workspace">
+      <!-- LEFT: flow canvas + control bar -->
+      <div class="left-col">
+
+        <!-- FLOW CANVAS -->
+        <div class="flow-canvas glass">
+          <div class="flow-head">
+            <div class="title">
+              Process Route
+            </div>
+            <div class="route-id mono">MOSFET_0417 &nbsp;·&nbsp; <b>79</b> / 125 steps</div>
+          </div>
+
+          <div class="track-wrap">
+            <div class="track-fade l"></div>
+            <div class="track-fade r"></div>
+
+            <div class="track">
+              <!-- start anchor -->
+              <div class="anchor">
+                <span class="a-cap">Route start</span>
+                <span class="a-step mono">RECEIVE WAFER LOT</span>
+              </div>
+
+              <div class="conn w-md tick"></div>
+
+              <!-- collapsed phase chips -->
+              <div class="phase-chip">
+                <span class="pc-name">Receive &amp; Inspect</span>
+                <span class="pc-meta"><span class="pc-count mono">· 4</span></span>
+              </div>
+              <div class="conn w-sm"></div>
+              <div class="phase-chip">
+                <span class="pc-name">Clean</span>
+                <span class="pc-meta"><span class="pc-count mono">· 5</span></span>
+              </div>
+              <div class="conn w-sm"></div>
+              <div class="phase-chip">
+                <span class="pc-name">Epitaxy Prep</span>
+                <span class="pc-meta"><span class="pc-count mono">· 5</span></span>
+              </div>
+              <div class="conn w-sm"></div>
+              <div class="phase-chip">
+                <span class="pc-name">Oxidation</span>
+                <span class="pc-meta"><span class="pc-count mono">· 2</span></span>
+              </div>
+              <div class="conn w-sm"></div>
+              <!-- litho cycle: stacked + loop glyph -->
+              <div class="phase-chip stacked">
+                <span class="pc-name">Litho Cycle ×4</span>
+                <span class="pc-meta">
+                  <span class="loop">
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.4 5.2A3.7 3.7 0 0 1 9.4 4.2M9.6 6.8A3.7 3.7 0 0 1 2.6 7.8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                      <path d="M9.6 2.2v2.1H7.5M2.4 9.8V7.7h2.1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                </span>
+              </div>
+              <div class="conn w-sm"></div>
+              <div class="phase-chip">
+                <span class="pc-name">Etch &amp; Implant</span>
+                <span class="pc-meta"><span class="pc-count mono">· 9</span></span>
+              </div>
+              <div class="conn w-sm"></div>
+              <div class="phase-chip">
+                <span class="pc-name">Dielectric &amp; CMP</span>
+                <span class="pc-meta"><span class="pc-count mono">· 3</span></span>
+              </div>
+
+              <div class="conn w-lg live tick"></div>
+
+              <!-- EXPANDED current phase: Via -->
+              <div class="expanded">
+                <div class="phase-label">
+                  <span class="lbl-line"></span>
+                  Via — current phase
+                </div>
+                <div class="steps-row">
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">SPIN COAT<br>PHOTORESIST</span>
+                    <span class="s-idx mono">71</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">ALIGN MASK<br>LEVEL 3</span>
+                    <span class="s-idx mono">72</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">EXPOSE LITHO<br>LEVEL 3</span>
+                    <span class="s-idx mono">73</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">DEVELOP<br>PHOTORESIST</span>
+                    <span class="s-idx mono">74</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">VIA ETCH</span>
+                    <span class="s-idx mono">75</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">STRIP RESIST</span>
+                    <span class="s-idx mono">76</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">CLEAN AFTER<br>VIA ETCH</span>
+                    <span class="s-idx mono">77</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <div class="step">
+                    <span class="node"></span>
+                    <span class="label mono">MEASURE<br>VIA CD</span>
+                    <span class="s-idx mono">78</span>
+                  </div>
+                  <div class="step-conn"></div>
+                  <!-- CURRENT HEAD -->
+                  <div class="step head">
+                    <span class="badge">Head</span>
+                    <span class="node"><span class="sel-ring"></span></span>
+                    <span class="label mono">DEPOSIT<br>BARRIER METAL</span>
+                    <span class="s-idx mono">79</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- predicted-next connector -->
+              <div class="conn w-lg predict"></div>
+
+              <!-- PREDICTED NEXT (ghost) -->
+              <div class="predict-node">
+                <span class="p-tag">Predicted next</span>
+                <span class="ghost"></span>
+                <span class="p-label mono">DEPOSIT<br>METAL SEED</span>
+                <span class="p-conf mono">71%</span>
+              </div>
+
+              <div class="conn w-lg future tick"></div>
+
+              <!-- faint FUTURE phase chips -->
+              <div class="future-grp">
+                <span class="future-chip">Metal</span>
+                <span class="fc-conn"></span>
+                <span class="future-chip">Passivation</span>
+                <span class="fc-conn"></span>
+                <span class="future-chip">Backside</span>
+                <span class="fc-conn"></span>
+                <span class="future-chip">Test</span>
+                <span class="fc-conn"></span>
+                <span class="future-chip">Ship</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- bottom tier: full-route proportional rail (same schematic sheet) -->
+          <div class="flow-rail">
+            <div class="rail-head">
+              <span class="rail-title">Full route</span>
+              <span class="rail-sub mono">RECEIVE WAFER LOT <b>→</b> SHIP LOT &nbsp;·&nbsp; 125 steps</span>
+            </div>
+            <div class="rail">
+              <div class="seg done" style="flex: 4">  <span class="seg-name">Receive &amp; Inspect</span></div>
+              <div class="seg done" style="flex: 5">  <span class="seg-name">Clean</span></div>
+              <div class="seg done" style="flex: 5">  <span class="seg-name">Epitaxy Prep</span></div>
+              <div class="seg done" style="flex: 2"></div>
+              <div class="seg done" style="flex: 26"> <span class="seg-name">Litho Cycle ×4</span></div>
+              <div class="seg done" style="flex: 9">  <span class="seg-name">Etch &amp; Implant</span></div>
+              <div class="seg done" style="flex: 3"></div>
+              <div class="seg current" style="flex: 10"><span class="seg-name">Via</span></div>
+              <div class="seg future" style="flex: 8">  <span class="seg-name">Metal</span></div>
+              <div class="seg future" style="flex: 7">  <span class="seg-name">Passivation</span></div>
+              <div class="seg future" style="flex: 5">  <span class="seg-name">Backside</span></div>
+              <div class="seg future" style="flex: 7">  <span class="seg-name">Test</span></div>
+              <div class="seg future" style="flex: 2">  <span class="seg-name">Ship</span></div>
+            </div>
+            <div class="rail-scale">
+              <span class="cap start mono"><span class="tk"></span>01</span>
+              <span class="here"><span class="nib"></span><span class="htk"></span><span class="hnum mono">79</span></span>
+              <span class="cap end mono"><span class="tk"></span>125</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTROL BAR -->
+        <div class="control-bar glass">
+          <button class="btn-primary">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M3 2.5l7 4.5-7 4.5V2.5z" fill="currentColor"/>
+            </svg>
+            Predict next step
+          </button>
+
+          <div class="toggle-soon">
+            <span class="switch"></span>
+            Auto-run to SHIP LOT
+            <span class="soon">Soon</span>
+          </div>
+
+          <div class="spacer"></div>
+
+          <div class="anomaly">
+            <span class="ok">
+              <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                <path d="M1.6 5.2l2.1 2.1L8.4 2.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            Process logic valid
+          </div>
+
+          <div class="legend-hint">
+            <span class="swatch"></span>
+            <span>Illegal step flags amber · <span class="rule mono">RULE_SHIP_BEFORE_TEST</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: STEP DETAIL -->
+      <div class="detail glass">
+        <div class="d-head">
+          <span class="d-eyebrow">Step detail</span>
+          <span class="d-live"><span class="ld"></span>Head</span>
+        </div>
+
+        <div class="d-token mono">DEPOSIT BARRIER METAL</div>
+        <div class="d-pos mono">step <b>79</b> / 125 · Via phase</div>
+
+        <div class="divider"></div>
+
+        <div class="d-row">
+          <div class="d-label">Description</div>
+          <div class="d-desc">Deposit a thin barrier / liner metal to block diffusion before via fill.</div>
+        </div>
+
+        <div class="d-row">
+          <div class="d-label">Category</div>
+          <span class="d-cat"><span class="cd"></span>Deposition</span>
+        </div>
+
+        <div class="d-row">
+          <div class="d-label">Predicted next</div>
+          <div class="d-pred">
+            <span class="pp-ghost"></span>
+            <span class="pp-body">
+              <span class="pp-name mono">DEPOSIT METAL SEED</span>
+              <span class="pp-conf">confidence</span>
+            </span>
+            <span class="pp-pct mono">71%</span>
+          </div>
+        </div>
+
+        <div class="d-row">
+          <div class="d-label">Process logic</div>
+          <div class="d-rule">
+            <span class="rk">
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                <path d="M1.6 5.2l2.1 2.1L8.4 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span>
+              <span class="rr-id mono">RULE_DEP_NO_CLEAN</span>
+              <span class="rr-desc">A clean precedes this deposition within range. Rule satisfied.</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="grow"></div>
+
+        <div class="divider"></div>
+
+        <div class="progress">
+          <div class="d-label">Route position</div>
+          <div class="pbar"><div class="pfill"></div></div>
+          <div class="pcap mono">
+            <span class="start">RECEIVE WAFER LOT</span>
+            <span class="now">79</span>
+            <span class="end">SHIP LOT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Frame the centerpiece by default: the expanded "Via" phase, the highlighted
+    // head, and the predicted-next ghost sit center-right; collapsed history fades
+    // off the left, the future tail off the right. Real routes are 100+ steps, so
+    // the process bus is a horizontally-scrolling schematic.
+    (function () {
+      var wrap = document.querySelector('.track-wrap');
+      var expanded = document.querySelector('.expanded');
+      function frame() {
+        // Frame the active region: the last collapsed phase chip peeks in at the
+        // left (the "fold" where collapse becomes expand), the whole "Via" phase,
+        // the head, and the predicted-next ghost all read together; future trails
+        // off the right. Collapsed history continues behind the left fade.
+        var target = expanded.offsetLeft - 96;
+        wrap.scrollLeft = Math.max(0, target);
+      }
+      frame();
+      window.addEventListener('resize', frame);
+    })();
+  </script>
+</body>
+</html>

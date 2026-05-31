@@ -43,14 +43,6 @@ export default function StepDetail({ step, idx, total, category, description, pr
         </div>
       )}
 
-      <div className="d-row">
-        <div className="d-label">Category</div>
-        <span className="d-cat">
-          <span className="cd" />
-          {category}
-        </span>
-      </div>
-
       {isHead && prediction && !complete && (
         <div className="d-row">
           <div className="d-label">Predicted next</div>

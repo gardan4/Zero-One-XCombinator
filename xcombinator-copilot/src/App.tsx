@@ -3,7 +3,7 @@ import type { Family, Prediction } from './types'
 import { defaultSample, describe, expectedLength } from './lib/data'
 import { categoryOf } from './lib/grammar'
 import { validateRoute, ruleForStep } from './lib/rules'
-import { predictNextStep, LIVE } from './lib/model'
+import { predictNextStep } from './lib/model'
 import TopBar from './components/TopBar'
 import ProcessRoute from './components/ProcessRoute'
 import FullRouteRail from './components/FullRouteRail'
@@ -80,7 +80,7 @@ export default function App() {
   }
 
   function onImport(p: ImportPayload) {
-    const label = p.routeId === 'PASTED' ? 'Pasted route' : p.label ?? `${p.family} route`
+    const label = p.label?.trim() || (p.routeId === 'PASTED' ? 'Pasted route' : `${p.family} route`)
     applyRoute(p.family, p.steps, label)
   }
 
@@ -100,6 +100,10 @@ export default function App() {
   const selStep = steps[selectedIdx]
   const stepRule = useMemo(() => ruleForStep(steps, selectedIdx, violations), [steps, selectedIdx, violations])
   const detailFraction = Math.min(1, (selectedIdx + 1) / total)
+  const [routeTitle, routeMeta] = useMemo(() => {
+    const [title, ...meta] = routeLabel.split(' · ')
+    return [title || family, meta.join(' · ')]
+  }, [family, routeLabel])
 
   return (
     <div className="app">
@@ -115,7 +119,6 @@ export default function App() {
         family={family}
         onFamily={onFamily}
         onImport={() => setImportOpen(true)}
-        live={LIVE}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />
@@ -124,9 +127,10 @@ export default function App() {
         <div className="left-col">
           <div className="flow-canvas glass">
             <div className="flow-head">
-              <div className="title">Process Route</div>
+              <div className="family-title">{routeTitle}</div>
               <div className="route-id mono">
-                {routeLabel} &nbsp;·&nbsp; <b>{steps.length}</b> / ~{total} steps
+                {routeMeta && <>{routeMeta} &nbsp;·&nbsp;</>}
+                <b>{steps.length}</b> / ~{total} steps
               </div>
             </div>
 

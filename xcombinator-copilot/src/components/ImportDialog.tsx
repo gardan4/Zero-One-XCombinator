@@ -17,6 +17,7 @@ interface Props {
 
 export default function ImportDialog({ family, onClose, onImport }: Props) {
   const [pasteFamily, setPasteFamily] = useState<Family>(family)
+  const [routeName, setRouteName] = useState('')
   const [text, setText] = useState('')
 
   const parsed = text
@@ -26,7 +27,8 @@ export default function ImportDialog({ family, onClose, onImport }: Props) {
 
   function importPasted() {
     if (parsed.length < 2) return
-    onImport({ family: pasteFamily, steps: parsed, routeId: 'PASTED' })
+    const label = routeName.trim() || `${pasteFamily} custom route`
+    onImport({ family: pasteFamily, steps: parsed, routeId: 'PASTED', label })
   }
 
   return (
@@ -61,6 +63,14 @@ export default function ImportDialog({ family, onClose, onImport }: Props) {
 
         <div className="modal-label">Paste a partial sequence</div>
         <div className="paste-row">
+          <input
+            className="paste-name"
+            type="text"
+            value={routeName}
+            onChange={(e) => setRouteName(e.target.value)}
+            placeholder="Route name"
+            aria-label="Custom sequence name"
+          />
           <select className="paste-family" value={pasteFamily} onChange={(e) => setPasteFamily(e.target.value as Family)}>
             {FAMILIES.map((f) => (
               <option key={f} value={f}>

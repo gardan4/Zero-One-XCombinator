@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Full-Route Rail — Tick dividers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;450;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-void: #07090c;
+    --bg-deep: #0a0d11;
+    --bg-panel: rgba(19,24,30,0.62);
+    --bg-pill: rgba(255,255,255,0.030);
+
+    --ink-0: #eef2f6;
+    --ink-1: #a7afba;
+    --ink-2: #737c89;
+    --ink-3: #555d69;
+    --ink-4: #3c434e;
+
+    --hair: rgba(255,255,255,0.088);
+    --hair-soft: rgba(255,255,255,0.05);
+    --hi-top: rgba(255,255,255,0.10);
+
+    --teal: #5BD6C0;
+    --teal-soft: rgba(91,214,192,0.16);
+    --teal-line: rgba(91,214,192,0.46);
+    --teal-faint: rgba(91,214,192,0.10);
+    --teal-glow: rgba(91,214,192,0.30);
+
+    --schematic: rgba(150,166,186,0.20);
+
+    --r-xl: 24px;
+    --r-pill: 999px;
+
+    --shadow-float: 0 28px 64px -30px rgba(0,0,0,0.86), 0 6px 22px -10px rgba(0,0,0,0.55);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg-void);
+    color: var(--ink-0);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    letter-spacing: -0.006em;
+  }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  /* ---- blueprint ground ---- */
+  .stage {
+    position: relative;
+    width: 1440px;
+    margin: 0 auto;
+    padding: 64px 0 72px;
+    background:
+      radial-gradient(1200px 680px at 18% -12%, #12161c 0%, rgba(18,22,28,0) 58%),
+      radial-gradient(1000px 760px at 100% 112%, #0e1217 0%, rgba(14,18,23,0) 55%),
+      linear-gradient(180deg, #0a0d11 0%, #07090c 100%);
+    overflow: hidden;
+  }
+  .grid-dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(150,170,196,0.10) 0.7px, transparent 0.8px);
+    background-size: 22px 22px; background-position: -1px -1px;
+    -webkit-mask-image: radial-gradient(1300px 900px at 50% 38%, #000 0%, rgba(0,0,0,0.35) 70%, transparent 100%);
+    mask-image: radial-gradient(1300px 900px at 50% 38%, #000 0%, rgba(0,0,0,0.35) 70%, transparent 100%);
+    pointer-events: none;
+  }
+  .grid-lines {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(150,170,196,0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(150,170,196,0.045) 1px, transparent 1px);
+    background-size: 110px 110px;
+    -webkit-mask-image: radial-gradient(1200px 820px at 50% 42%, #000 0%, rgba(0,0,0,0.25) 66%, transparent 100%);
+    mask-image: radial-gradient(1200px 820px at 50% 42%, #000 0%, rgba(0,0,0,0.25) 66%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .canvas { position: relative; width: 1180px; margin: 0 auto; z-index: 2; }
+
+  /* page heading */
+  .page-head { margin-bottom: 30px; padding-left: 4px; }
+  .page-head .h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-0); }
+  .page-head .h2 { font-size: 11.5px; color: var(--ink-2); margin-top: 5px; letter-spacing: 0.005em; }
+  .page-head .h2 b { color: var(--ink-1); font-weight: 450; }
+
+  /* state block label */
+  .state-tag {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 18px;
+  }
+  .state-tag .lt { color: var(--teal); }
+  .state-tag .desc { letter-spacing: 0.005em; text-transform: none; color: var(--ink-3); font-weight: 450; font-size: 11px; }
+
+  .state-block + .state-block { margin-top: 64px; }
+
+  /* glass panel host */
+  .glass {
+    position: relative;
+    background: var(--bg-panel);
+    backdrop-filter: blur(28px) saturate(150%);
+    -webkit-backdrop-filter: blur(28px) saturate(150%);
+    border: 1px solid var(--hair);
+    border-radius: var(--r-xl);
+    box-shadow: var(--shadow-float);
+    padding: 26px 30px 24px;
+  }
+  .glass::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(180deg, var(--hi-top), rgba(255,255,255,0) 34%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+  }
+
+  /* ===================== RAIL ===================== */
+  .rail-head {
+    display: flex; align-items: baseline; gap: 16px;
+    margin-bottom: 16px;
+  }
+  .rail-head .rail-title {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-2);
+    white-space: nowrap;
+  }
+  .rail-head .dotrule {
+    flex: 1; height: 1px;
+    background: repeating-linear-gradient(90deg, var(--hair) 0 1px, transparent 1px 6px);
+    opacity: 0.7; transform: translateY(-2px);
+  }
+  .rail-head .rail-sub {
+    font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.03em; white-space: nowrap;
+  }
+  .rail-head .rail-sub b { color: var(--ink-1); font-weight: 450; }
+  .rail-head .arrow { color: var(--ink-1); font-weight: 450; }
+
+  /* the proportional bubble row */
+  .rail {
+    position: relative;          /* ticker is positioned against the rail */
+    display: flex; align-items: stretch;
+    gap: 7px;
+    height: 56px;
+  }
+
+  /* one phase bubble (rounded-rect pill) */
+  .bub {
+    position: relative;
+    flex: 0 0 auto;            /* width set inline by JS */
+    min-width: 0;
+    border-radius: 11px;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--hair-soft);
+    transition: background .18s ease;
+  }
+  .bub .name {
+    position: relative; z-index: 3;
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: calc(100% - 12px);
+    padding: 0 4px;
+    pointer-events: none;
+  }
+
+  /* PAST — flat graphite pill, NO ticks, muted name */
+  .bub.past {
+    background: rgba(255,255,255,0.026);
+    border-color: var(--hair-soft);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+  }
+  .bub.past .name { color: var(--ink-2); }
+
+  /* FUTURE — dim, NO ticks */
+  .bub.future {
+    background: rgba(255,255,255,0.008);
+    border-color: rgba(255,255,255,0.04);
+    opacity: 0.62;
+  }
+  .bub.future .name { color: var(--ink-3); }
+
+  /* CURRENT — teal-filled pill, divider ticks */
+  .bub.current {
+    background: linear-gradient(180deg, rgba(91,214,192,0.22), rgba(91,214,192,0.11));
+    border-color: var(--teal-line);
+    box-shadow: inset 0 0 0 1px var(--teal-line), 0 0 22px -3px var(--teal-glow), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .bub.current .name { color: var(--teal); font-weight: 550; opacity: 0.92; }
+
+  /* tick layer inside current bubble — absolutely placed 1px dividers, one per step */
+  .ticks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+  .ticks .tk {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    transform: translateX(-0.5px);
+  }
+  .ticks .tk.done   { background: rgba(91,214,192,0.55); }
+  .ticks .tk.upcoming { background: rgba(91,214,192,0.16); }
+  /* the divider exactly at the head (between done and upcoming) reads brightest */
+  .ticks .tk.head { background: var(--teal); box-shadow: 0 0 6px var(--teal-glow); }
+
+  /* the ticker — upward nib on the head divider + a mono number flag that
+     drops into the scale band below the rail; aligned to doneInPhase/steps. */
+  .ticker {
+    position: absolute; z-index: 6;
+    left: 0;                      /* x set inline by JS = head divider position */
+    top: 0; bottom: 0;
+    width: 0;
+    pointer-events: none;
+  }
+  /* upward nib seated on the bubble's bottom edge, pointing up into the pill */
+  .ticker .nib {
+    position: absolute; left: 0; bottom: 1px; transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 4.5px solid transparent;
+    border-right: 4.5px solid transparent;
+    border-bottom: 7px solid var(--teal);
+    filter: drop-shadow(0 0 5px var(--teal-glow));
+  }
+  /* a thin stem dropping from the bubble bottom into the scale band */
+  .ticker .stem {
+    position: absolute; left: 0; transform: translateX(-50%);
+    top: 100%; width: 1px; height: 16px;
+    background: linear-gradient(180deg, var(--teal-line), rgba(91,214,192,0.0));
+  }
+  /* the mono step-number flag sitting in the scale band, centred on the stem */
+  .ticker .num {
+    position: absolute; left: 0; transform: translateX(-50%);
+    top: calc(100% + 18px);
+    font-size: 10px; font-weight: 500; color: var(--teal); letter-spacing: 0.04em;
+    line-height: 1; white-space: nowrap;
+    padding: 3px 6px; border-radius: 6px;
+    background: rgba(91,214,192,0.10);
+    border: 1px solid var(--teal-line);
+    box-shadow: 0 0 12px -2px var(--teal-glow);
+  }
+
+  /* ----- scale row under the rail: start/end caps ----- */
+  .scale {
+    position: relative;
+    height: 30px;
+    margin-top: 44px;             /* clears the ticker number flag that drops below the rail */
+  }
+  .scale .cap {
+    position: absolute; top: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-size: 9px; letter-spacing: 0.08em; color: var(--ink-3);
+  }
+  .scale .cap .tk { width: 1px; height: 6px; background: var(--ink-4); }
+  .scale .cap.start { left: 0; align-items: flex-start; }
+  .scale .cap.end { right: 0; align-items: flex-end; }
+  .scale .axis {
+    position: absolute; left: 0; right: 0; top: 0; height: 1px;
+    background: var(--hair-soft);
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="grid-lines"></div>
+    <div class="grid-dots"></div>
+
+    <div class="canvas">
+      <div class="page-head">
+        <div class="h1">Full-Route Rail — <span style="color:var(--teal)">Tick dividers</span></div>
+        <div class="h2">Splits = steps. Done bubbles flat &amp; tickless; the <b>current</b> bubble is a teal pill rendering every step as a 1px divider and expands to a legible pitch when its share is too small.</div>
+      </div>
+
+      <!-- STATE A -->
+      <div class="state-block">
+        <div class="state-tag"><span class="lt">State A</span> · <span class="desc">current = Via (12 steps) — fits at proportional width · ticker at step 9 / 12</span></div>
+        <div class="glass">
+          <div class="rail-head">
+            <span class="rail-title">Full Route</span>
+            <span class="dotrule"></span>
+            <span class="rail-sub mono">RECEIVE WAFER LOT <span class="arrow">→</span> SHIP LOT &nbsp;·&nbsp; ~<b>120</b> steps</span>
+          </div>
+          <div class="rail" data-rail="A"></div>
+          <div class="scale" data-scale="A">
+            <div class="axis"></div>
+            <span class="cap start mono"><span class="tk"></span>01</span>
+            <span class="cap end mono"><span class="tk"></span>120</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATE B -->
+      <div class="state-block">
+        <div class="state-tag"><span class="lt">State B</span> · <span class="desc">current = Litho Cycles (40 steps) — proportional slot too small, bubble EXPANDS to fit 40 splits · ticker at step 14 / 40</span></div>
+        <div class="glass">
+          <div class="rail-head">
+            <span class="rail-title">Full Route</span>
+            <span class="dotrule"></span>
+            <span class="rail-sub mono">RECEIVE WAFER LOT <span class="arrow">→</span> SHIP LOT &nbsp;·&nbsp; ~<b>120</b> steps</span>
+          </div>
+          <div class="rail" data-rail="B"></div>
+          <div class="scale" data-scale="B">
+            <div class="axis"></div>
+            <span class="cap start mono"><span class="tk"></span>01</span>
+            <span class="cap end mono"><span class="tk"></span>120</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    // ---- the route ----
+    const PHASES = [
+      { name: "Receive & Inspect", steps: 4 },
+      { name: "Clean",             steps: 5 },
+      { name: "Family Prep",       steps: 6 },
+      { name: "Oxidation",         steps: 2 },
+      { name: "Litho Cycles",      steps: 40 },
+      { name: "Dielectric & CMP",  steps: 5 },
+      { name: "Via",               steps: 12 },
+      { name: "Metal",             steps: 11 },
+      { name: "Passivation",       steps: 10 },
+      { name: "Backside",          steps: 11 },
+      { name: "Final & Test",      steps: 12 },
+      { name: "Ship",              steps: 2 },
+    ];
+    const TOTAL = PHASES.reduce((a, p) => a + p.steps, 0); // 120
+
+    const GAP = 7;          // matches .rail gap
+    const MIN_PITCH = 10;   // legible minimum px per step for the current bubble's ticks
+    const SNAP = 20;        // a deficit under this reads as "fits at proportional width" (no expand)
+    const FLOOR = 26;       // hard floor so a yielding neighbour never collapses to nothing
+
+    // cumulative step index at the START of each phase (1-based step numbering)
+    function startStep(i) {
+      let s = 0;
+      for (let k = 0; k < i; k++) s += PHASES[k].steps;
+      return s; // steps completed before phase i
+    }
+
+    // Lay out one rail. currentIdx = phase index that is current; doneInPhase = steps done within it.
+    function layout(railEl, scaleEl, currentIdx, doneInPhase) {
+      railEl.innerHTML = "";
+
+      const railW = railEl.clientWidth;
+      const n = PHASES.length;
+      const totalGap = GAP * (n - 1);
+      const avail = railW - totalGap;          // px available for bubbles themselves
+
+      // 1) natural proportional widths
+      const natural = PHASES.map(p => (p.steps / TOTAL) * avail);
+
+      // 2) the current bubble demands at least steps * MIN_PITCH (so ALL ticks fit at legible pitch)
+      const cur = PHASES[currentIdx];
+      const demand = cur.steps * MIN_PITCH;
+      const widths = natural.slice();
+
+      if (demand - natural[currentIdx] > SNAP) {
+        // Current bubble can't fit all its step-ticks at the legible minimum pitch within
+        // its proportional slot -> EXPAND it to its demand and pull the deficit from the
+        // OTHER bubbles, proportional to their slack above FLOOR (they shrink / ellipsize).
+        let deficit = demand - natural[currentIdx];
+        widths[currentIdx] = demand;
+
+        // pool of shrinkable width among non-current bubbles, above their floor
+        let shrinkable = 0;
+        for (let i = 0; i < n; i++) if (i !== currentIdx) shrinkable += Math.max(0, natural[i] - FLOOR);
+
+        const take = Math.min(deficit, shrinkable);
+        if (shrinkable > 0) {
+          for (let i = 0; i < n; i++) {
+            if (i === currentIdx) continue;
+            const slack = Math.max(0, natural[i] - FLOOR);
+            widths[i] = natural[i] - (slack / shrinkable) * take;
+          }
+        }
+        // if neighbours couldn't yield enough (take<deficit) the rail simply grows a touch;
+        // current keeps its full demand so ticks never overflow.
+      }
+
+      // 3) emit bubbles
+      let x = 0;
+      let headX = 0;            // rail-level x of the head divider (for the ticker)
+      let absStep = 0;
+      for (let i = 0; i < n; i++) {
+        const p = PHASES[i];
+        const w = Math.max(2, widths[i]);
+
+        const bub = document.createElement("div");
+        bub.className = "bub " + (i < currentIdx ? "past" : i > currentIdx ? "future" : "current");
+        bub.style.width = w + "px";
+
+        // current bubble: divider ticks (one per step), clipped to the rounded pill
+        if (i === currentIdx) {
+          const ticks = document.createElement("div");
+          ticks.className = "ticks";
+          // dividers sit BETWEEN steps: positions 1..steps-1 across the width.
+          // The divider at s == doneInPhase is the head (done|upcoming boundary).
+          const pitch = w / p.steps;
+          for (let s = 1; s < p.steps; s++) {
+            const tk = document.createElement("div");
+            const isHead = (s === doneInPhase);
+            tk.className = "tk " + (isHead ? "head" : (s < doneInPhase ? "done" : "upcoming"));
+            tk.style.left = (s * pitch) + "px";
+            ticks.appendChild(tk);
+          }
+          bub.appendChild(ticks);
+
+          headX = x + doneInPhase * pitch;          // rail-level x of the head divider
+          absStep = startStep(i) + doneInPhase;     // global step number at the head
+        }
+
+        const nm = document.createElement("span");
+        nm.className = "name";
+        nm.textContent = p.name;
+        bub.appendChild(nm);
+
+        railEl.appendChild(bub);
+        x += w + GAP;
+      }
+
+      // ticker lives at the RAIL level (escapes the bubble's overflow clip) and is
+      // aligned to the head divider; it stays correct even when the bubble expands.
+      const ticker = document.createElement("div");
+      ticker.className = "ticker";
+      ticker.style.left = headX + "px";
+      ticker.innerHTML =
+        '<span class="nib"></span>' +
+        '<span class="stem"></span>' +
+        '<span class="num mono">' + String(absStep).padStart(2, "0") + '</span>';
+      railEl.appendChild(ticker);
+    }
+
+    function build() {
+      const railA = document.querySelector('[data-rail="A"]');
+      const railB = document.querySelector('[data-rail="B"]');
+      const scaleA = document.querySelector('[data-scale="A"]');
+      const scaleB = document.querySelector('[data-scale="B"]');
+
+      // State A: current = Via (index 6), 9 of 12 done
+      layout(railA, scaleA, 6, 9);
+      // State B: current = Litho Cycles (index 4), 14 of 40 done
+      layout(railB, scaleB, 4, 14);
+    }
+
+    build();
+    window.addEventListener("resize", build);
+    // re-run once fonts settle so clientWidth is accurate
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
+  })();
+  </script>
+</body>
+</html>
