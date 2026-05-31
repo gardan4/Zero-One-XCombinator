@@ -161,5 +161,236 @@
       "examples.jsonl"
     ],
     "promoted_at": "2026-05-31T00:29:19.901565+00:00"
+  },
+  "hf-sft-scale-800": {
+    "path": "extras/results/hf-sft-scale-800",
+    "run_id": "20260531_004248_eval_judge-eval-sft-scale-instruct-800-v2_0f1255",
+    "version": "sft-scale-instruct-800-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234557_sft_leonardo-sft-scale-instruct-800_b52e1b/artifacts",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-scale-instruct-800-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234557_sft_leonardo-sft-scale-instruct-800_b52e1b--artifacts",
+      "eval-set:local",
+      "train-run:20260530_234557_sft_leonardo-sft-scale-instruct-800_b52e1b",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "scale",
+      "data-size:800"
+    ],
+    "train_run_id": "20260530_234557_sft_leonardo-sft-scale-instruct-800_b52e1b",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T00:49:27.417172+00:00"
+  },
+  "hf-sft-0_5b": {
+    "path": "extras/results/hf-sft-0_5b",
+    "run_id": "20260531_010846_eval_judge-eval-sft-instruct-0-5b-v2_9d1dd2",
+    "version": "sft-instruct-0_5b-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe/artifacts",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-instruct-0_5b-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe--artifacts",
+      "eval-set:local",
+      "train-run:20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "model-size:0.5b"
+    ],
+    "train_run_id": "20260530_235930_sft_leonardo-sft-fab-instruct-0-5b_c056fe",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T01:18:26.117805+00:00"
+  },
+  "hf-sft-instruct-all": {
+    "path": "extras/results/hf-sft-instruct-all",
+    "run_id": "20260531_020616_eval_judge-eval-sft-instruct-all-v2_868822",
+    "version": "sft-instruct-all-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-instruct-all-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a--artifacts--checkpoint-3050",
+      "eval-set:local",
+      "train-run:20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "model-size:1.5b"
+    ],
+    "train_run_id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T02:12:01.401731+00:00"
+  },
+  "hf-sft-scale-2000": {
+    "path": "extras/results/hf-sft-scale-2000",
+    "run_id": "20260531_021808_eval_judge-eval-sft-scale-instruct-2000-v2_67bdf3",
+    "version": "sft-scale-instruct-2000-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b/artifacts/checkpoint-2900",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-scale-instruct-2000-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b--artifacts--checkpoint-2900",
+      "eval-set:local",
+      "train-run:20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "scale",
+      "data-size:2000"
+    ],
+    "train_run_id": "20260530_234606_sft_leonardo-sft-scale-instruct-2000_ee052b",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T02:23:14.351063+00:00"
+  },
+  "hf-sft-instruct-all-IGBT": {
+    "path": "extras/results/hf-sft-instruct-all-IGBT",
+    "run_id": "20260531_023751_eval_judge-eval-sft-instruct-all-igbt-v2_6d5a7f",
+    "version": "sft-instruct-all-IGBT-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-instruct-all-IGBT-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a--artifacts--checkpoint-3050",
+      "eval-set:local",
+      "train-run:20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:IGBT"
+    ],
+    "train_run_id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T02:43:32.809078+00:00"
+  },
+  "hf-sft-instruct-all-IC": {
+    "path": "extras/results/hf-sft-instruct-all-IC",
+    "run_id": "20260531_023756_eval_judge-eval-sft-instruct-all-ic-v2_10a156",
+    "version": "sft-instruct-all-IC-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a/artifacts/checkpoint-3050",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-instruct-all-IC-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a--artifacts--checkpoint-3050",
+      "eval-set:local",
+      "train-run:20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:IC"
+    ],
+    "train_run_id": "20260530_234537_sft_leonardo-sft-fab-instruct-all_869c8a",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T02:43:35.283472+00:00"
+  },
+  "hf-sft-3b": {
+    "path": "extras/results/hf-sft-3b",
+    "run_id": "20260531_055512_eval_judge-eval-sft-instruct-3b-v2_ce90d5",
+    "version": "sft-instruct-3b-v2",
+    "predictor": "hf",
+    "model_ref": "/leonardo_scratch/large/usertrain/a08trd0f/zo-experiments/20260531_025032_sft_leonardo-sft-fab-instruct-3b_88c885/artifacts",
+    "eval_set": "local",
+    "tags": [
+      "version:sft-instruct-3b-v2",
+      "predictor:hf",
+      "model-ref:--leonardo_scratch--large--usertrain--a08trd0f--zo-experiments--20260531_025032_sft_leonardo-sft-fab-instruct-3b_88c885--artifacts",
+      "eval-set:local",
+      "train-run:20260531_025032_sft_leonardo-sft-fab-instruct-3b_88c885",
+      "real-run",
+      "reportable",
+      "role:finetuned",
+      "split:id",
+      "family:MOSFET",
+      "model-size:3b"
+    ],
+    "train_run_id": "20260531_025032_sft_leonardo-sft-fab-instruct-3b_88c885",
+    "notes": null,
+    "artifacts": [
+      "nextstep.csv",
+      "completion.csv",
+      "anomaly.csv",
+      "metrics_report.json",
+      "metrics_report.md",
+      "manifest.json",
+      "examples.jsonl"
+    ],
+    "promoted_at": "2026-05-31T06:07:11.408463+00:00"
   }
 }

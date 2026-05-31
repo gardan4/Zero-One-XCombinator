@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "XCombinator — Fab Process Copilot. Imports a partial semiconductor fab route and predicts the next process step.",
+  "description": "XCombinator \u2014 Fab Process Copilot. Imports a partial semiconductor fab route and predicts the next process step.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "deploy": "vite build && rm -rf ../infineon-results-dashboard/public/copilot && mkdir -p ../infineon-results-dashboard/public/copilot && cp -r dist/* ../infineon-results-dashboard/public/copilot/ && npm --prefix ../infineon-results-dashboard run deploy"
+    "deploy": "vite build && rm -rf ../infineon-results-dashboard/public/copilot && mkdir -p ../infineon-results-dashboard/public/copilot && cp -r dist/* ../infineon-results-dashboard/public/copilot/ && npm --prefix ../infineon-results-dashboard run deploy",
+    "build:results": "node scripts/build-results.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

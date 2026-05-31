@@ -5,6 +5,7 @@ import { segmentRoute, buildRoadmap, categoryOf } from './lib/grammar'
 import { validateRoute, ruleForStep } from './lib/rules'
 import { predictNextStep, LIVE } from './lib/model'
 import TopBar from './components/TopBar'
+import Results from './components/Results'
 import ProcessRoute from './components/ProcessRoute'
 import FullRouteRail from './components/FullRouteRail'
 import StepDetail from './components/StepDetail'
@@ -21,6 +22,7 @@ export default function App() {
   const [selOverride, setSelOverride] = useState<number | null>(null) // null = follow head
   const [expOverride, setExpOverride] = useState<number | null>(null) // null = follow head phase
   const [importOpen, setImportOpen] = useState(false)
+  const [view, setView] = useState<'copilot' | 'results'>('copilot')
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       return (localStorage.getItem('xc-theme') as 'dark' | 'light') || 'dark'
@@ -129,6 +131,12 @@ export default function App() {
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />
+
+      <div className="rs-nav-fixed"><div className="rs-nav">
+        <button className={view === 'copilot' ? 'on' : ''} onClick={() => setView('copilot')}>Copilot</button>
+        <button className={view === 'results' ? 'on' : ''} onClick={() => setView('results')}>Results</button>
+      </div></div>
+      {view === 'results' && <div className="rs-overlay"><Results /></div>}
 
       <div className="workspace">
         <div className="left-col">

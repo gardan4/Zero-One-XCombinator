@@ -18,7 +18,7 @@
     {
       "label": "Demo: model server (MPS)",
       "type": "shell",
-      "command": "uv run python scripts/serve_copilot_mac.py",
+      "command": "uv run --no-sync python scripts/serve_copilot_mac.py",
       "options": { "cwd": "${workspaceFolder}" },
       "isBackground": true,
       "problemMatcher": [],
@@ -32,7 +32,7 @@
     {
       "label": "Demo: copilot UI",
       "type": "shell",
-      "command": "npm run dev",
+      "command": "npm install --no-audit --no-fund --loglevel=error && npm run build:results && npm run dev",
       "options": { "cwd": "${workspaceFolder}/xcombinator-copilot" },
       "isBackground": true,
       "problemMatcher": [],

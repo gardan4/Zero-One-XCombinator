@@ -1,0 +1,96 @@
+{
+  "baselineName": "baseline-ngram",
+  "bestName": "best fine-tuned (per task)",
+  "nextstep": {
+    "baseline": 0.69,
+    "finetuned": 0.525
+  },
+  "completion": {
+    "baseline": 0.6369030173333577,
+    "finetuned": 0.745
+  },
+  "anomaly": {
+    "baseline": 0.888888888888889,
+    "finetuned": 0.5665236051502146
+  },
+  "scaling": [
+    {
+      "size": 100,
+      "slug": "hf-sft-scale-100",
+      "nextstepTop1": 0.365,
+      "completionBlockAcc": 0.345,
+      "anomalyF1": 0
+    },
+    {
+      "size": 300,
+      "slug": "hf-sft-scale-300",
+      "nextstepTop1": 0.435,
+      "completionBlockAcc": 0.5,
+      "anomalyF1": 0
+    },
+    {
+      "size": 800,
+      "slug": "hf-sft-scale-800",
+      "nextstepTop1": 0.43,
+      "completionBlockAcc": 0.66,
+      "anomalyF1": 0
+    },
+    {
+      "size": 2000,
+      "slug": "hf-sft-scale-2000",
+      "nextstepTop1": 0.525,
+      "completionBlockAcc": 0.745,
+      "anomalyF1": 0.10810810810810809
+    }
+  ],
+  "modelSize": [
+    {
+      "label": "0.5b",
+      "params": 0.5,
+      "slug": "hf-sft-0_5b",
+      "nextstepTop1": 0.45,
+      "completionBlockAcc": 0.605,
+      "anomalyF1": 0
+    },
+    {
+      "label": "1.5b",
+      "params": 1.5,
+      "slug": "hf-sft-instruct-all",
+      "nextstepTop1": 0.475,
+      "completionBlockAcc": 0.555,
+      "anomalyF1": 0.5665236051502146
+    },
+    {
+      "label": "3b",
+      "params": 3,
+      "slug": "hf-sft-3b",
+      "nextstepTop1": 0.435,
+      "completionBlockAcc": 0.555,
+      "anomalyF1": 0
+    }
+  ],
+  "perFamily": [
+    {
+      "family": "MOSFET",
+      "slug": "hf-sft-instruct-all",
+      "nextstepTop1": 0.475,
+      "completionBlockAcc": 0.555,
+      "anomalyF1": 0.5665236051502146
+    },
+    {
+      "family": "IGBT",
+      "slug": "hf-sft-instruct-all-IGBT",
+      "nextstepTop1": 0.315,
+      "completionBlockAcc": 0.365,
+      "anomalyF1": 0.5257731958762887
+    },
+    {
+      "family": "IC",
+      "slug": "hf-sft-instruct-all-IC",
+      "nextstepTop1": 0.43,
+      "completionBlockAcc": 0.5,
+      "anomalyF1": 0
+    }
+  ],
+  "generatedAt": "2026-05-31T06:12:48.421Z"
+}
