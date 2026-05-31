@@ -31,12 +31,14 @@ import json
 import math
 import os
 import re
+import threading
 import time
 
 import torch
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from zo_common.env import load_dotenv
 from zo_train.prompts import PromptItem, build_messages
@@ -135,22 +137,37 @@ def _parse_json_answer(text: str) -> dict | None:
     return None
 
 
+# Featherless's free tier allows only ~1 concurrent request, so serialize all remote calls behind a
+# lock — the Live-compare fan-out (and React-dev double-renders) would otherwise self-collide into 429s.
+_remote_lock = threading.Lock()
+
+
 def _remote_chat(name: str, messages: list[dict], max_new: int) -> str:
-    """Proxy a chat to Featherless and return the raw assistant text (with JSON-repair handling)."""
-    from zo_common.llm import chat as llm_chat
-    from zo_common.llm import message_text
+    """Proxy a chat to Featherless and return the raw assistant text (with the duplicate-`content`
+    JSON repair). Serialized + fast-fail: one quick retry on a 429 instead of the minute-long backoff
+    in zo_common.llm — a live demo card must never hang on a transient 429."""
+    import httpx
+
+    from zo_common.llm import _parse_chat_response, message_text
     from zo_eval.featherless import base_url, resolve_api_key
 
-    resp = llm_chat(
-        messages,
-        model=REMOTE_MODELS[name],
-        base_url=base_url(),
-        api_key=resolve_api_key(),
-        max_tokens=max(256, max_new),
-        temperature=0,
-        timeout=120.0,
-    )
-    return message_text(resp)
+    url = base_url().rstrip("/") + "/chat/completions"
+    headers = {"Authorization": f"Bearer {resolve_api_key()}"}
+    payload = {
+        "model": REMOTE_MODELS[name],
+        "messages": messages,
+        "temperature": 0,
+        "max_tokens": max(256, max_new),
+    }
+    with _remote_lock:
+        last = None
+        for attempt in range(3):
+            last = httpx.post(url, json=payload, headers=headers, timeout=30.0)
+            if last.status_code != 429 or attempt == 2:
+                break
+            time.sleep(1.5)  # brief settle; the cap is per-concurrent-request
+        last.raise_for_status()
+        return message_text(_parse_chat_response(last))
 
 
 app = FastAPI(title="Fab Copilot local server")
@@ -167,22 +184,18 @@ def health():
     return {"ok": True, "device": DEVICE, "models": ORDERED, "loaded": list(_loaded)}
 
 
-@app.post("/v1/chat/completions")
-async def chat(req: Request):
-    body = await req.json()
-    name = body.get("model") if body.get("model") in MODELS else ORDERED[0]
-    family, steps = _parse_user(body.get("messages", []))
-    # JSON answers need more room than the copilot's tiny default; reasoning can be a sentence or two.
-    max_new = max(192, int(body.get("max_tokens") or 0))
-    messages = build_messages("nextstep", PromptItem(family, partial_sequence=steps))
+# MPS / torch isn't safe for concurrent model LOADS or generate() calls from worker threads (the
+# Live-compare fan-out hits two local models at once) — serialize all local GPU work behind one lock.
+# This is separate from _remote_lock, so a local model and DeepSeek still run concurrently.
+_local_lock = threading.Lock()
 
-    confidence: float | None = None
+
+def _predict(name: str, family: str, steps: list[str], max_new: int) -> tuple[str, float | None]:
+    """Run one model and return (raw_text, confidence|None). Blocking — call via run_in_threadpool."""
+    messages = build_messages("nextstep", PromptItem(family, partial_sequence=steps))
     if name in REMOTE_MODELS:
-        try:
-            raw = _remote_chat(name, messages, max_new)
-        except Exception as exc:  # creds missing / network — surface so the copilot falls back
-            return {"error": {"message": f"remote model {name} failed: {exc}"}}
-    else:
+        return _remote_chat(name, messages, max_new), None
+    with _local_lock:
         tok, model = _load(name)
         prompt = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         inputs = tok(prompt, return_tensors="pt").to(DEVICE)
@@ -201,6 +214,25 @@ async def chat(req: Request):
             confidence = _generation_confidence(new_ids, gen.scores)
         except Exception:
             confidence = None
+    return raw, confidence
+
+
+@app.post("/v1/chat/completions")
+async def chat(req: Request):
+    body = await req.json()
+    name = body.get("model") if body.get("model") in MODELS else ORDERED[0]
+    family, steps = _parse_user(body.get("messages", []))
+    # JSON answers need more room than the copilot's tiny default; reasoning can be a sentence or two.
+    max_new = max(192, int(body.get("max_tokens") or 0))
+
+    # Offload the blocking work (torch generate / sync remote call) to a worker thread so the event
+    # loop stays free — the Live-compare page fans out to all 3 models at once and they run concurrently
+    # instead of serializing behind one another.
+    try:
+        raw, confidence = await run_in_threadpool(_predict, name, family, steps, max_new)
+    except Exception as exc:  # creds missing / network / load error — surface so the copilot falls back
+        print(f"[serve] {name} failed: {type(exc).__name__}: {exc}", flush=True)
+        return {"error": {"message": f"model {name} failed: {exc}"}}
 
     parsed = _parse_json_answer(raw)
     steps_out = parsed["steps"] if parsed else [raw.strip()]

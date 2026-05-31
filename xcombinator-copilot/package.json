@@ -9,7 +9,9 @@
     "build": "vite build",
     "preview": "vite preview --port 4173",
     "deploy": "vite build && rm -rf ../infineon-results-dashboard/public/copilot && mkdir -p ../infineon-results-dashboard/public/copilot && cp -r dist/* ../infineon-results-dashboard/public/copilot/ && npm --prefix ../infineon-results-dashboard run deploy",
-    "build:results": "node scripts/build-results.mjs"
+    "build:results": "node scripts/build-results.mjs",
+    "build:samples": "node scripts/build-eval-samples.mjs",
+    "build:data": "npm run build:results && npm run build:samples"
   },
   "dependencies": {
     "react": "^19.1.0",

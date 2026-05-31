@@ -6,6 +6,7 @@ import { validateRoute, ruleForStep } from './lib/rules'
 import { predictNextStep, listModels, LIVE, DEFAULT_MODEL } from './lib/model'
 import TopBar from './components/TopBar'
 import Results from './components/Results'
+import Showroom from './components/Showroom'
 import ProcessRoute from './components/ProcessRoute'
 import FullRouteRail from './components/FullRouteRail'
 import StepDetail from './components/StepDetail'
@@ -21,7 +22,7 @@ export default function App() {
   const [predicting, setPredicting] = useState(false)
   const [selOverride, setSelOverride] = useState<number | null>(null) // null = follow head
   const [importOpen, setImportOpen] = useState(false)
-  const [view, setView] = useState<'copilot' | 'results'>('copilot')
+  const [view, setView] = useState<'compare' | 'copilot' | 'results'>('copilot')
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try {
       return (localStorage.getItem('xc-theme') as 'dark' | 'light') || 'dark'
@@ -158,9 +159,11 @@ export default function App() {
       />
 
       <div className="rs-nav-fixed"><div className="rs-nav">
+        <button className={view === 'compare' ? 'on' : ''} onClick={() => setView('compare')}>Live compare</button>
         <button className={view === 'copilot' ? 'on' : ''} onClick={() => setView('copilot')}>Copilot</button>
         <button className={view === 'results' ? 'on' : ''} onClick={() => setView('results')}>Results</button>
       </div></div>
+      {view === 'compare' && <div className="rs-overlay"><Showroom models={models} /></div>}
       {view === 'results' && <div className="rs-overlay"><Results /></div>}
 
       <div className="workspace">
