@@ -161,11 +161,12 @@ def _remote_chat(name: str, messages: list[dict], max_new: int) -> str:
     }
     with _remote_lock:
         last = None
-        for attempt in range(3):
+        attempts = 2  # 1 retry only — Featherless free tier has a hard quota; extra retries just burn it
+        for attempt in range(attempts):
             last = httpx.post(url, json=payload, headers=headers, timeout=30.0)
-            if last.status_code != 429 or attempt == 2:
+            if last.status_code != 429 or attempt == attempts - 1:
                 break
-            time.sleep(1.5)  # brief settle; the cap is per-concurrent-request
+            time.sleep(2.0)  # brief settle for a transient concurrency 429
         last.raise_for_status()
         return message_text(_parse_chat_response(last))
 

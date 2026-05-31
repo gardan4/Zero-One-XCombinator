@@ -32,7 +32,7 @@
     {
       "label": "Demo: copilot UI",
       "type": "shell",
-      "command": "npm install --no-audit --no-fund --loglevel=error && npm run build:results && npm run dev",
+      "command": "npm install --no-audit --no-fund --loglevel=error && npm run build:data && npm run dev",
       "options": { "cwd": "${workspaceFolder}/xcombinator-copilot" },
       "isBackground": true,
       "problemMatcher": [],
