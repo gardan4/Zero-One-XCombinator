@@ -5,11 +5,25 @@ interface Props {
   family: Family
   onFamily: (f: Family) => void
   onImport: () => void
+  live: boolean
+  models: string[]
+  selectedModel: string
+  onSelectModel: (m: string) => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
 }
 
-export default function TopBar({ family, onFamily, onImport, theme, onToggleTheme }: Props) {
+/** Map a served model id to a friendly label, falling back to the raw id. */
+export function modelLabel(id: string): string {
+  const lc = id.toLowerCase()
+  if (id === 'base-qwen' || lc.includes('base')) return 'Base · Qwen2.5-1.5B'
+  if (id === 'sft-best' || id === 'sft-fab-all' || lc.includes('sft')) return 'Fine-tuned · SFT'
+  if (lc.includes('grpo')) return 'RL · GRPO'
+  if (lc.includes('lofo')) return 'OOD · LOFO'
+  return id
+}
+
+export default function TopBar({ family, onFamily, onImport, live, models, selectedModel, onSelectModel, theme, onToggleTheme }: Props) {
   return (
     <header className="topbar glass">
       <div className="wordmark">
@@ -34,6 +48,26 @@ export default function TopBar({ family, onFamily, onImport, theme, onToggleThem
           </button>
         ))}
       </div>
+
+      <span className="seg-label">Model</span>
+      {models.length > 0 ? (
+        <div className="model-select">
+          <select aria-label="Inference model" value={selectedModel} onChange={(e) => onSelectModel(e.target.value)}>
+            {models.map((m) => (
+              <option key={m} value={m}>
+                {modelLabel(m)}
+              </option>
+            ))}
+          </select>
+          <svg className="ms-caret" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden>
+            <path d="M2.4 3.8L5 6.4l2.6-2.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      ) : (
+        <span className="model-chip" title="No inference server reachable">
+          Simulated (no server)
+        </span>
+      )}
 
       <button className="btn-ghost" onClick={onImport}>
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -60,6 +94,11 @@ export default function TopBar({ family, onFamily, onImport, theme, onToggleThem
           </svg>
         )}
       </button>
+
+      <div className={`status-pill${live && selectedModel ? ' is-live' : ''}`}>
+        <span className="dot" />
+        {live && selectedModel ? `Live · ${modelLabel(selectedModel)}` : 'Simulated'}
+      </div>
     </header>
   )
 }

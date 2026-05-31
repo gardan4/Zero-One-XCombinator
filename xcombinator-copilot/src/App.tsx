@@ -3,7 +3,7 @@ import type { Family, Prediction, Violation } from './types'
 import { defaultSample, describe, expectedLength } from './lib/data'
 import { categoryOf } from './lib/grammar'
 import { validateRoute, ruleForStep } from './lib/rules'
-import { predictNextStep } from './lib/model'
+import { predictNextStep, listModels, LIVE, DEFAULT_MODEL } from './lib/model'
 import TopBar from './components/TopBar'
 import Results from './components/Results'
 import ProcessRoute from './components/ProcessRoute'
@@ -30,6 +30,10 @@ export default function App() {
     }
   })
   const token = useRef(0)
+  const [models, setModels] = useState<string[]>([])
+  const [selectedModel, setSelectedModel] = useState<string>('')
+  const modelRef = useRef('') // latest selection, so runPredict never reads a stale value
+  modelRef.current = selectedModel
 
   const violations = useMemo(() => validateRoute(steps), [steps])
 
@@ -52,7 +56,7 @@ export default function App() {
     const t = ++token.current
     setPredicting(true)
     setPrediction(null)
-    predictNextStep(fam, seq).then((p) => {
+    predictNextStep(fam, seq, modelRef.current || undefined).then((p) => {
       if (t === token.current) {
         setPrediction(p)
         setPredicting(false)
@@ -65,6 +69,20 @@ export default function App() {
     runPredict(family, steps)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // load the served model list; prefer VITE_MODEL_NAME, else the first served id
+  useEffect(() => {
+    listModels().then((ids) => {
+      setModels(ids)
+      if (ids.length) setSelectedModel((cur) => cur || (DEFAULT_MODEL && ids.includes(DEFAULT_MODEL) ? DEFAULT_MODEL : ids[0]))
+    })
+  }, [])
+
+  // re-predict whenever the presenter switches model
+  useEffect(() => {
+    if (selectedModel) runPredict(family, steps)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedModel])
 
   // apply + persist the theme
   useEffect(() => {
@@ -131,6 +149,10 @@ export default function App() {
         family={family}
         onFamily={onFamily}
         onImport={() => setImportOpen(true)}
+        live={LIVE}
+        models={models}
+        selectedModel={selectedModel}
+        onSelectModel={setSelectedModel}
         theme={theme}
         onToggleTheme={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
       />

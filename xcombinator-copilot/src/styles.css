@@ -216,6 +216,25 @@ button { font-family: inherit; }
 .status-pill.is-live .dot { background: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft), 0 0 8px var(--teal-glow); }
 .status-pill .future { font-size: 10.5px; color: var(--ink-3); padding-left: 10px; border-left: 1px solid var(--hair-soft); }
 
+/* model selector — pill <select> matching the segmented / ghost controls */
+.model-select { position: relative; display: inline-flex; align-items: center; }
+.model-select select {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  font-family: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink-1);
+  background: var(--bg-pill); border: 1px solid var(--hair); border-radius: var(--r-pill);
+  padding: 8px 30px 8px 14px; cursor: pointer; transition: all 0.18s;
+}
+.model-select select:hover { color: var(--ink-0); border-color: var(--border-hover); background: var(--fill-hover); }
+.model-select select:focus-visible { outline: none; border-color: var(--teal-line); color: var(--ink-0); }
+.model-select select option { background: var(--bg-deep); color: var(--ink-0); }
+.model-select .ms-caret { position: absolute; right: 12px; color: var(--ink-2); pointer-events: none; }
+
+.model-chip {
+  display: inline-flex; align-items: center; font-size: 12px; font-weight: 450; color: var(--ink-3);
+  background: var(--bg-pill); border: 1px dashed var(--hair-soft); border-radius: var(--r-pill);
+  padding: 8px 14px; white-space: nowrap; opacity: 0.78;
+}
+
 /* ============================ workspace ============================ */
 .workspace { position: relative; z-index: 1; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 344px; gap: 20px; }
 .left-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }

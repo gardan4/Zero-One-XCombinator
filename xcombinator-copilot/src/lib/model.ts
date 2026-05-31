@@ -22,12 +22,33 @@ const API_KEY = (import.meta.env.VITE_MODEL_API_KEY as string) || 'EMPTY'
 
 export const LIVE = Boolean(BASE)
 
-export async function predictNextStep(family: Family, steps: string[]): Promise<Prediction | null> {
+/** Optional default model id (VITE_MODEL_NAME), exposed so the UI can prefer it in the picker. */
+export const DEFAULT_MODEL = (import.meta.env.VITE_MODEL_NAME as string) || ''
+
+/**
+ * List the model ids the local server has loaded (GET /v1/models).
+ * Returns [] on any error or when VITE_MODEL_BASE_URL is unset, so the UI can fall back to the
+ * "Simulated (no server)" state without throwing.
+ */
+export async function listModels(): Promise<string[]> {
+  if (!BASE) return []
+  try {
+    const res = await fetch(`${BASE.replace(/\/$/, '')}/models`)
+    const json = await res.json()
+    const data: unknown = json?.data
+    if (!Array.isArray(data)) return []
+    return data.map((m) => (m as { id?: string })?.id).filter((id): id is string => Boolean(id))
+  } catch {
+    return []
+  }
+}
+
+export async function predictNextStep(family: Family, steps: string[], modelName?: string): Promise<Prediction | null> {
   if (steps.length === 0 || steps[steps.length - 1] === 'SHIP LOT') return null
 
   if (LIVE) {
     try {
-      return await predictLive(family, steps)
+      return await predictLive(family, steps, modelName)
     } catch {
       // network/model hiccup: fall through to the local simulator so the demo never stalls
     }
@@ -41,13 +62,13 @@ export async function predictNextStep(family: Family, steps: string[]): Promise<
 // Live path — the served model, OpenAI-compatible chat (matches zo_common.llm)
 // ---------------------------------------------------------------------------
 
-async function predictLive(family: Family, steps: string[]): Promise<Prediction> {
+async function predictLive(family: Family, steps: string[], modelName?: string): Promise<Prediction> {
   const prompt = `Product family: ${family}\nProcess so far: ${steps.join(' | ')}\n\nNext process step?`
   const res = await fetch(`${BASE!.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${API_KEY}` },
     body: JSON.stringify({
-      model: MODEL,
+      model: modelName || MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0,
       max_tokens: 24,
