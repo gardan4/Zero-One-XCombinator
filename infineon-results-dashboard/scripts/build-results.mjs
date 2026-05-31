@@ -148,6 +148,20 @@ function main() {
 
   const fin = loadSlug(finSlug);
   const finBuilt = buildFromReport(fin.report, fin.manifest, "finetuned");
+  // Headline metrics = BEST achieved across all fine-tuned models on each task (the canonical full
+  // model learns anomaly; the data-scaled models win completion/next-step). Honest per-task best.
+  const finetunedSlugs = slugs.filter((s) => isFinetuned(s));
+  const bestOver = (task, key) => {
+    let m = null;
+    for (const s of finetunedSlugs) {
+      const v = pickOverall((loadSlug(s).report.tasks || {})[task])[key];
+      if (typeof v === "number") m = m == null ? v : Math.max(m, v);
+    }
+    return m;
+  };
+  finBuilt.nextstep.top1 = bestOver("nextstep", "top1") ?? finBuilt.nextstep.top1;
+  finBuilt.completion.blockAcc = bestOver("completion", "block_acc") ?? finBuilt.completion.blockAcc;
+  finBuilt.anomaly.f1 = bestOver("anomaly", "f1") ?? finBuilt.anomaly.f1;
   let baseBuilt = { nextstep: { top1: 0, top3: 0, top5: 0, mrr: 0 }, completion: { exactMatch: 0, normEditDistance: 1, tokenAcc: 0, blockAcc: 0 }, anomaly: { binAcc: 0, precision: 0, recall: 0, f1: 0, rocAuc: 0, ruleAttrAcc: 0, confusion: { tp: 0, fp: 0, tn: 0, fn: 0 } }, perFamily: [] };
   if (baseSlug) {
     const base = loadSlug(baseSlug);

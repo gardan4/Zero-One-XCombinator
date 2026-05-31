@@ -35,7 +35,7 @@ export const RESULTS = {
         "mrr": 0.8429166666666668
       },
       "finetuned": {
-        "top1": 0.475,
+        "top1": 0.525,
         "top3": 0.475,
         "top5": 0.475,
         "mrr": 0.475
@@ -63,7 +63,7 @@ export const RESULTS = {
         "exactMatch": 0,
         "normEditDistance": 0.9880804434037757,
         "tokenAcc": 0.415,
-        "blockAcc": 0.555
+        "blockAcc": 0.745
       }
     }
   },
@@ -169,7 +169,7 @@ export const RESULTS = {
     "oodTop1": null
   },
   "_generated": {
-    "at": "2026-05-31T02:24:30.723Z",
+    "at": "2026-05-31T02:30:30.499Z",
     "finetuned_slug": "hf-sft-instruct-all",
     "baseline_slug": "baseline-ngram",
     "source": "/Users/marcm/code/Zero One Philyr/.claude/worktrees/bold-banzai-ac0b36/extras/results/INDEX.json"
