@@ -510,7 +510,6 @@ button { font-family: inherit; }
 .sr-ctx{color:#64748b;font-size:12px}.sr-ctx b{color:#0f172a}
 .sr-fam-chip{display:inline-block;font-weight:800;font-size:11px;color:#0f9d6b;background:rgba(15,157,107,.13);border-radius:6px;padding:2px 7px;margin-right:4px}
 .sr-dsblurb{color:#94a3b8;font-size:12px;margin:-6px 0 14px}
-.sr-postdeadline{margin:8px 0 0;font-size:11.5px;color:#b45309;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);border-radius:8px;padding:6px 11px;display:inline-block}
 .sr-actions{margin-left:auto;display:inline-flex;gap:8px}
 .sr-btn{border:1px solid #d8e0ea;background:#fff;color:#334155;font-weight:700;font-size:13px;padding:7px 14px;border-radius:9px;cursor:pointer}
 .sr-btn:hover{border-color:#0f9d6b;color:#0f9d6b}

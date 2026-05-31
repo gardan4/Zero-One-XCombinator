@@ -200,13 +200,17 @@ node infineon-results-dashboard/scripts/build-results.mjs   # -> public/results.
 uv run --no-sync python scripts/serve_copilot_mac.py        # :8001; then the copilot with VITE_MODEL_BASE_URL=:8001/v1
 ```
 
-**Model weights.** The headline checkpoint is on Hugging Face:
-[`XCombinator/sft-fab-instruct-all`](https://huggingface.co/XCombinator/sft-fab-instruct-all) (public,
-loads directly with `AutoModelForCausalLM.from_pretrained`). The other checkpoints (0.5B, 3B,
-scale-100/300/800/2000) live on Leonardo scratch.
-> ⚠️ **Post-deadline note:** this Hugging Face repo was **uploaded *after* the 2026-05-31 10:00 submission
-> deadline**, only to give judges download access. The **weights are the exact pre-deadline checkpoint** —
-> unchanged, not retrained. Only the upload/hosting is post-deadline.
+**Model weights (Hugging Face, public).** Every checkpoint compared in this report is downloadable and
+loads directly with `AutoModelForCausalLM.from_pretrained` (no token, full models — not LoRA adapters):
+
+- **Flagship** (all-family, balanced; deploy/submit model): [`XCombinator/sft-fab-instruct-all`](https://huggingface.co/XCombinator/sft-fab-instruct-all)
+- **Data-scaling:** [`sft-fab-scale-100`](https://huggingface.co/XCombinator/sft-fab-scale-100) · [`-300`](https://huggingface.co/XCombinator/sft-fab-scale-300) · [`-800`](https://huggingface.co/XCombinator/sft-fab-scale-800) · [`-2000`](https://huggingface.co/XCombinator/sft-fab-scale-2000) (completion specialist)
+- **Model-size:** [`sft-fab-0.5b`](https://huggingface.co/XCombinator/sft-fab-0.5b) · [`sft-fab-3b`](https://huggingface.co/XCombinator/sft-fab-3b)
+
+> ⚠️ **Post-deadline note:** these Hugging Face repos were **uploaded *after* the 2026-05-31 10:00
+> submission deadline**, only to give judges download access. The **weights are the exact pre-deadline
+> checkpoints** — unchanged, not retrained or modified. Only the upload/hosting is post-deadline. Each
+> model card repeats this notice.
 
 ## Credits
 
@@ -223,11 +227,10 @@ science, separately from the symbolic oracle (`baseline-oracle-anomaly`, the upp
 
 **Organizer submission CSVs:** [`extras/results/kickoff-final/`](extras/results/kickoff-final/) (`nextstep.csv`, `completion.csv`, `anomaly.csv`) — SFT instruct-all · Qwen2.5-1.5B on the kickoff test set (600 + 987 rows).
 
-**Post-deadline changes (full disclosure):** everything scored/submitted was produced **before** the
-2026-05-31 10:00 deadline. After the deadline we only (1) **uploaded the existing best checkpoint to
-Hugging Face** ([`XCombinator/sft-fab-instruct-all`](https://huggingface.co/XCombinator/sft-fab-instruct-all))
-so judges can download it — same weights, not retrained — and (2) added a **Live-compare** view to the
-local copilot demo. **No eval numbers or model weights in this report were changed after the deadline.**
+**Post-deadline note (full disclosure):** all training, eval numbers, and model weights were produced
+**before** the 2026-05-31 10:00 deadline. The only post-deadline action was **uploading the existing
+checkpoints to Hugging Face** (under [`XCombinator`](https://huggingface.co/XCombinator)) so judges can
+download them — **same weights, not retrained or modified**. Nothing scored in this report changed.
 
 ---
 
