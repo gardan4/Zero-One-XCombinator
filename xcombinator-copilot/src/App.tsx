@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Family, Prediction } from './types'
+import type { Family, Prediction, Violation } from './types'
 import { defaultSample, describe, expectedLength } from './lib/data'
 import { categoryOf } from './lib/grammar'
 import { validateRoute, ruleForStep } from './lib/rules'
@@ -32,6 +32,16 @@ export default function App() {
   const token = useRef(0)
 
   const violations = useMemo(() => validateRoute(steps), [steps])
+
+  // Would appending the predicted step keep the route grammar-valid? Compare the violations of the
+  // route *with* the prediction against the current ones; the first new one is what it would break.
+  const predCheck = useMemo(() => {
+    if (!prediction) return { valid: true, violation: null as Violation | null }
+    const before = new Set(violations.map((x) => `${x.rule}@${x.stepIndex}`))
+    const after = validateRoute([...steps, prediction.step])
+    const fresh = after.find((x) => !before.has(`${x.rule}@${x.stepIndex}`)) ?? null
+    return { valid: !fresh, violation: fresh }
+  }, [prediction, steps, violations])
 
   const headIdx = steps.length - 1
   const selectedIdx = Math.min(selOverride ?? headIdx, steps.length - 1)
@@ -148,6 +158,8 @@ export default function App() {
               selectedIdx={selectedIdx}
               prediction={prediction}
               predicting={predicting}
+              predValid={predCheck.valid}
+              predViolation={predCheck.violation}
               violations={violations}
               onSelectStep={onSelectStep}
             />
@@ -171,6 +183,8 @@ export default function App() {
           category={categoryOf(selStep)}
           description={describe(selStep)}
           prediction={prediction}
+          predValid={predCheck.valid}
+          predViolation={predCheck.violation}
           rule={stepRule}
           fraction={detailFraction}
           isHead={selectedIdx === headIdx}

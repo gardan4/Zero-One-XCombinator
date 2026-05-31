@@ -55,7 +55,10 @@ async function predictLive(family: Family, steps: string[]): Promise<Prediction>
   })
   const json = await res.json()
   const raw: string = json?.choices?.[0]?.message?.content ?? ''
-  return { step: snapToVocab(raw), confidence: 0.82, source: 'model' }
+  // The local server returns the model's real per-step confidence (geometric mean of the
+  // greedy tokens' probabilities). Read it; fall back only if an older server omits it.
+  const conf = typeof json?.confidence === 'number' ? Math.max(0.05, Math.min(0.99, json.confidence)) : 0.82
+  return { step: snapToVocab(raw), confidence: conf, source: 'model' }
 }
 
 function snapToVocab(raw: string): string {
