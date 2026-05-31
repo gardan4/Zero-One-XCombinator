@@ -64,6 +64,18 @@ baseline (0.637)**:
 frozen base sit at 0 (they answer "valid" to everything). Spotting one rule violation in a ~100-step
 route is the hardest task — it needs balanced data *and* enough epochs.
 
+**It generalizes across all three families** (one all-family model, evaled per family) — best 1.5B,
+next-step / completion / anomaly-F1:
+
+| family | next-step | completion | anomaly F1 |
+|---|---|---|---|
+| MOSFET | 0.475 | 0.555 | 0.567 |
+| IGBT | 0.315 | 0.365 | 0.526 |
+| IC | 0.430 | 0.500 | 0.000 |
+
+Not a MOSFET-only model: MOSFET is strongest, IGBT routes are hardest (more variable early blocks), and
+anomaly detection transfers to IGBT (F1 0.53) but not yet to IC — an honest per-family weak spot.
+
 **The n-gram is a genuinely strong baseline.** On next-step, local transition statistics are hard to
 beat on these structured routes (0.69); on anomaly, an n-gram likelihood threshold is excellent (F1
 0.89). The LLM's edge is **completion coherence**, being **one promptable model across all three
