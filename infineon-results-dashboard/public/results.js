@@ -152,6 +152,14 @@ export const RESULTS = {
       "nextstepTop1": 0.475,
       "completionBlockAcc": 0.555,
       "anomalyF1": 0.5665236051502146
+    },
+    {
+      "label": "3b",
+      "params": 3,
+      "slug": "hf-sft-3b",
+      "nextstepTop1": 0.435,
+      "completionBlockAcc": 0.555,
+      "anomalyF1": 0
     }
   ],
   "perFamilyBest": [
@@ -189,7 +197,7 @@ export const RESULTS = {
     "oodTop1": null
   },
   "_generated": {
-    "at": "2026-05-31T02:46:03.529Z",
+    "at": "2026-05-31T06:07:11.477Z",
     "finetuned_slug": "hf-sft-instruct-all",
     "baseline_slug": "baseline-ngram",
     "source": "/Users/marcm/code/Zero One Philyr/.claude/worktrees/bold-banzai-ac0b36/extras/results/INDEX.json"
