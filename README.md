@@ -6,6 +6,9 @@ them from one dashboard — with the Leonardo A100 cluster doing the heavy lifti
 
 > New here? Read [`CLAUDE.md`](CLAUDE.md) and [`.claude/knowledge/INDEX.md`](.claude/knowledge/INDEX.md) first.
 
+**Team report:** [`REPORT.md`](REPORT.md) (also [`submissions/XCombinator/REPORT.md`](submissions/XCombinator/REPORT.md)).  
+**Organizer eval CSVs:** [`extras/results/kickoff-final/`](extras/results/kickoff-final/) (`nextstep.csv`, `completion.csv`, `anomaly.csv`).
+
 ## Layout
 
 ```
