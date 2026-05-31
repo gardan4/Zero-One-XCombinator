@@ -77,8 +77,9 @@ function lineChart(labels, series){ // series: [{name,color,vals:[0..1|null]}]
   labels.forEach((l,i)=> g.append(Object.assign(svg("text",{x:x(i),y:H-12,"text-anchor":"middle"}),{textContent:l})));
   for(const s of series){
     const pts=s.vals.map((v,i)=> v==null?null:[x(i),y(v)]).filter(Boolean);
-    if(pts.length>1) g.append(svg("polyline",{points:pts.map(p=>p.join(",")).join(" "),fill:"none",stroke:s.color,"stroke-width":2.5}));
-    pts.forEach(p=> g.append(svg("circle",{cx:p[0],cy:p[1],r:3.5,fill:s.color})));
+    if(pts.length>1){ const pl=svg("polyline",{points:pts.map(p=>p.join(",")).join(" "),fill:"none",stroke:s.color,"stroke-width":s.dashed?1.5:2.5});
+      if(s.dashed) pl.setAttribute("stroke-dasharray","6 5"); g.append(pl); }
+    if(!s.dashed) pts.forEach(p=> g.append(svg("circle",{cx:p[0],cy:p[1],r:3.5,fill:s.color})));
   }
   return g;
 }
@@ -110,7 +111,9 @@ function render(){
       "Each point is a fine-tune on N routes/family at a fixed 1-epoch budget.",
       (R.scaling||[]).map(p=>String(p.size)),
       [{name:"Next-step top-1",color:"var(--best)",vals:(R.scaling||[]).map(p=>p.nextstepTop1)},
-       {name:"Completion block-acc",color:"var(--accent)",vals:(R.scaling||[]).map(p=>p.completionBlockAcc)}]),
+       {name:"Completion block-acc",color:"var(--accent)",vals:(R.scaling||[]).map(p=>p.completionBlockAcc)},
+       {name:"n-gram next-step",color:"var(--base)",dashed:true,vals:(R.scaling||[]).map(()=>ns.baseline.top1)},
+       {name:"n-gram completion",color:"#9a86ff",dashed:true,vals:(R.scaling||[]).map(()=>cp.baseline.blockAcc)}]),
 
     el("h2",{},"Does model size help? (0.5B → 3B, full data)"),
     chartPanel("Accuracy vs base-model parameters",
@@ -118,7 +121,8 @@ function render(){
       (R.modelSize||[]).map(p=>p.label||(p.params+"B")),
       [{name:"Next-step top-1",color:"var(--best)",vals:(R.modelSize||[]).map(p=>p.nextstepTop1)},
        {name:"Completion block-acc",color:"var(--accent)",vals:(R.modelSize||[]).map(p=>p.completionBlockAcc)},
-       {name:"Anomaly F1",color:"var(--base)",vals:(R.modelSize||[]).map(p=>p.anomalyF1)}]),
+       {name:"Anomaly F1",color:"var(--base)",vals:(R.modelSize||[]).map(p=>p.anomalyF1)},
+       {name:"n-gram next-step",color:"#6b7a93",dashed:true,vals:(R.modelSize||[]).map(()=>ns.baseline.top1)}]),
 
     el("h2",{},"Takeaways"),
     el("div",{class:"panel"}, el("ul",{class:"take"},

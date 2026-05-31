@@ -113,6 +113,13 @@ export const RESULTS = {
       "nextstepTop1": 0.365,
       "completionBlockAcc": 0.345,
       "anomalyF1": 0
+    },
+    {
+      "size": 300,
+      "slug": "hf-sft-scale-300",
+      "nextstepTop1": 0.435,
+      "completionBlockAcc": 0.5,
+      "anomalyF1": 0
     }
   ],
   "modelSize": [],
@@ -131,7 +138,7 @@ export const RESULTS = {
     "oodTop1": null
   },
   "_generated": {
-    "at": "2026-05-31T00:04:57.643Z",
+    "at": "2026-05-31T00:28:26.694Z",
     "finetuned_slug": "hf-sft-scale-100",
     "baseline_slug": "baseline-ngram",
     "source": "/Users/marcm/code/Zero One Philyr/.claude/worktrees/bold-banzai-ac0b36/extras/results/INDEX.json"
